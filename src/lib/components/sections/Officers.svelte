@@ -3,7 +3,9 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
-	import { officers } from '$lib/data/officers';
+	import type { Officer } from '$lib/data/officers';
+
+	let { officers }: { officers: Officer[] } = $props();
 </script>
 
 <Section id="oficiales" eyebrow="Oficiales" title="El consejo de guerra">

@@ -3,7 +3,9 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parallax } from '$lib/actions/parallax';
 	import { cursorTilt } from '$lib/actions/cursorTilt';
-	import { guild } from '$lib/data/guild';
+	import type { Guild } from '$lib/data/guild';
+
+	let { guild }: { guild: Guild } = $props();
 
 	// Zona de referencia para la inclinación 3D del logo (todo el héroe).
 	let heroEl = $state<HTMLElement>();

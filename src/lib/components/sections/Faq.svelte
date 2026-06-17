@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { faq } from '$lib/data/faq';
+	import type { FaqItem } from '$lib/data/faq';
+
+	let { faq }: { faq: FaqItem[] } = $props();
 
 	// Índices de los items abiertos. Se permite tener varios abiertos a la vez.
 	let open = $state<Set<number>>(new Set());

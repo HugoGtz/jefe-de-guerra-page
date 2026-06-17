@@ -1,6 +1,14 @@
-# Cloudflare Pages config (used by `wrangler pages deploy`).
-# `name` is the Pages project; `pages_build_output_dir` is the static build.
-# The functions/ directory is auto-detected and deployed as Pages Functions.
+# Cloudflare Pages config (SSR via @sveltejs/adapter-cloudflare).
+# adapter-cloudflare emits the site + _worker.js to .svelte-kit/cloudflare.
 name = "jefe-de-guerra"
-pages_build_output_dir = "build"
+pages_build_output_dir = ".svelte-kit/cloudflare"
 compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 database holding the guild's dynamic content (progress, teams, officers…).
+# Create it once:  wrangler d1 create jefe-de-guerra
+# then paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "jefe-de-guerra"
+database_id = "67f6dad7-9953-4156-af12-a033142caf37"

@@ -4,7 +4,9 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { reveal, type RevealDirection } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
-	import { teams, type RaidProgress } from '$lib/data/teams';
+	import type { Team, RaidProgress } from '$lib/data/teams';
+
+	let { teams }: { teams: Team[] } = $props();
 
 	// Estado de revelado por equipo: arranca en 0 y salta al valor real
 	// on-reveal, para que las barras hagan el barrido animado al entrar.
@@ -28,13 +30,15 @@
 		'cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis',
 		'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'
 	];
-	const countWord = teams.length <= 12 ? numberWords[teams.length] : String(teams.length);
-	const countLabel = countWord.charAt(0).toUpperCase() + countWord.slice(1);
-	const rosterNoun = teams.length === 1 ? 'roster marcha' : 'rosters marchan';
+	const countWord = $derived(
+		teams.length <= 12 ? numberWords[teams.length] : String(teams.length)
+	);
+	const countLabel = $derived(countWord.charAt(0).toUpperCase() + countWord.slice(1));
+	const rosterNoun = $derived(teams.length === 1 ? 'roster marcha' : 'rosters marchan');
 
 	// Zona horaria de referencia para la nota compartida (tomada del primer
 	// equipo; todos comparten la misma zona). undefined si no hay equipos.
-	const scheduleTimezone = teams[0]?.schedule.timezone;
+	const scheduleTimezone = $derived(teams[0]?.schedule.timezone);
 </script>
 
 <Section id="equipos" eyebrow="La hueste" title="Equipos de Raid">

@@ -6,9 +6,16 @@ es una Cloudflare Pages Function (`functions/api/apply.js`, ruta `/api/apply`).
 
 ## 1. Una sola vez — Cloudflare
 
-1. **Crear el proyecto Pages** (tipo *Direct Upload*):
-   Dashboard → Workers & Pages → Create → Pages → "Upload assets".
+1. **Crear el proyecto Pages** como **Direct Upload** (NO "Connect to Git"):
+   Dashboard → Workers & Pages → Create → Pages → **"Upload assets"**.
    Nómbralo **`jefe-de-guerra`** (debe coincidir con `name` en `wrangler.toml`).
+
+   > ¿Por qué "Upload assets" y no "Connect to Git"? Porque **GitHub Actions** hace
+   > el build y sube el resultado con `wrangler pages deploy` (eso ES un direct
+   > upload). El push a git solo dispara el workflow; Cloudflare NO buildea. Si
+   > conectaras el proyecto a Git, CF intentaría buildear por su cuenta y chocaría
+   > con el workflow. (En el primer "Upload assets" puedes subir cualquier carpeta
+   > rápida para crear el proyecto; el deploy real lo hará Actions.)
 2. **API token** con permiso de Pages:
    My Profile → API Tokens → Create Token → plantilla *"Edit Cloudflare Workers"*
    o un token custom con **Account › Cloudflare Pages › Edit**. Copia el token.

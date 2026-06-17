@@ -2,7 +2,9 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { guild } from '$lib/data/guild';
+	import type { Guild } from '$lib/data/guild';
+
+	let { guild }: { guild: Guild } = $props();
 </script>
 
 <Section id="la-guild" eyebrow="La Guild" title="Quiénes somos">

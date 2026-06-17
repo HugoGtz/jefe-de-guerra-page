@@ -10,7 +10,9 @@
 	import Apply from '$lib/components/sections/Apply.svelte';
 	import Officers from '$lib/components/sections/Officers.svelte';
 	import LavaDivider from '$lib/components/LavaDivider.svelte';
-	import { recruitment } from '$lib/data/recruitment';
+
+	// Datos de SSR (+layout.server.ts): mismas claves/shapes que $lib/data/*.
+	let { data } = $props();
 
 	// TODO: cambiar por el dominio real tras desplegar (Cloudflare Pages).
 	// Debe ser absoluto: Discord/WhatsApp/Twitter exigen URL absoluta en og:image.
@@ -18,7 +20,7 @@
 	const ogImage = `${siteUrl}/og-image.png`;
 
 	// Datos estructurados (SEO). Ayuda a buscadores a entender la entidad.
-	const jsonLd = {
+	const jsonLd = $derived({
 		'@context': 'https://schema.org',
 		'@type': 'Organization',
 		name: 'Jefe de Guerra',
@@ -28,8 +30,8 @@
 		image: ogImage,
 		description:
 			'Hermandad de la Horda en el servidor Dreamscythe (World of Warcraft: The Burning Crusade Classic). Raids de Fase 2: Serpentshrine Cavern y Tempest Keep.',
-		sameAs: [recruitment.discordUrl, recruitment.whatsappUrl]
-	};
+		sameAs: [data.recruitment.discordUrl, data.recruitment.whatsappUrl]
+	});
 </script>
 
 <svelte:head>
@@ -68,21 +70,21 @@
 	{@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
 </svelte:head>
 
-<Hero />
-<About />
+<Hero guild={data.guild} />
+<About guild={data.guild} />
 <LavaDivider />
-<RaidProgress />
+<RaidProgress phases={data.phases} />
 <LavaDivider />
-<Feats />
+<Feats feats={data.feats} />
 <LavaDivider />
-<Teams />
+<Teams teams={data.teams} />
 <LavaDivider />
-<Community />
+<Community guild={data.guild} community={data.community} discordUrl={data.recruitment.discordUrl} />
 <LavaDivider />
-<Recruitment />
+<Recruitment recruitment={data.recruitment} />
 <LavaDivider />
-<Faq />
+<Faq faq={data.faq} />
 <LavaDivider />
-<Apply />
+<Apply recruitment={data.recruitment} />
 <LavaDivider />
-<Officers />
+<Officers officers={data.officers} />

@@ -3,13 +3,28 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import {
-		discordServerId,
-		discordInvite,
-		raidNights,
-		raidTimezone
-	} from '$lib/data/community';
+	import type { Guild } from '$lib/data/guild';
+	import type { RaidNight } from '$lib/data/community';
 	import { getNextRaid, type NextRaid } from '$lib/utils/nextRaid';
+
+	type Community = {
+		discordServerId: string;
+		discordInvite: string;
+		raidTimezone: string;
+		raidNights: RaidNight[];
+	};
+
+	let {
+		community,
+		discordUrl
+	}: { guild: Guild; community: Community; discordUrl: string } = $props();
+
+	// Derivados del objeto de comunidad para conservar el resto del componente
+	// sin cambios. `discordInvite` cae a `discordUrl` si está vacío.
+	const discordServerId = $derived(community.discordServerId);
+	const raidNights = $derived(community.raidNights);
+	const raidTimezone = $derived(community.raidTimezone);
+	const discordInvite = $derived(community.discordInvite || discordUrl);
 
 	// El countdown se calcula SOLO en el cliente (depende de la hora actual y
 	// de la zona horaria). En SSR / antes de montar mostramos un placeholder

@@ -2,7 +2,9 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { recruitment } from '$lib/data/recruitment';
+	import type { Recruitment } from '$lib/data/recruitment';
+
+	let { recruitment }: { recruitment: Recruitment } = $props();
 
 	// Clases jugables de TBC (The Burning Crusade).
 	const CLASSES = [

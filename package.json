@@ -24,8 +24,10 @@
     "vite": "^6.0.0"
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20260617.1",
     "@fontsource/cinzel": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
+    "@sveltejs/adapter-cloudflare": "^7.2.9",
     "three": "^0.170.0"
   }
 }

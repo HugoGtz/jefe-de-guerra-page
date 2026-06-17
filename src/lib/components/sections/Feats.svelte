@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { feats, type Feat } from '$lib/data/kills';
+	import type { Feat } from '$lib/data/kills';
+
+	let { feats }: { feats: Feat[] } = $props();
 
 	const MONTHS_ES = [
 		'ene',

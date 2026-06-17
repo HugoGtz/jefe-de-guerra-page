@@ -4,7 +4,9 @@
 	import CopyButton from '$lib/components/CopyButton.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
-	import { recruitment } from '$lib/data/recruitment';
+	import type { Recruitment } from '$lib/data/recruitment';
+
+	let { recruitment }: { recruitment: Recruitment } = $props();
 </script>
 
 <Section id="reclutamiento" eyebrow="Reclutamiento" title="Únete a la lucha">

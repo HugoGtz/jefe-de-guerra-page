@@ -1,22 +1,15 @@
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /**
- * Fully prerendered static site (see src/routes/+layout.ts).
- * adapter-static emits plain files that Cloudflare Pages serves directly.
+ * SSR on Cloudflare (Pages, advanced mode). Pages reads guild data from D1 at
+ * request time, so the site is server-rendered (not prerendered).
  * @type {import('@sveltejs/kit').Config}
  */
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({
-			pages: 'build',
-			assets: 'build',
-			// Emit a styled 404.html (served by Cloudflare Pages on unmatched routes).
-			fallback: '404.html',
-			precompress: false,
-			strict: true
-		})
+		adapter: adapter()
 	}
 };
 

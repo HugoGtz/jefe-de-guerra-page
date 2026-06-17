@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { scrollSpy } from '$lib/actions/scrollSpy';
-	import { guild } from '$lib/data/guild';
-	import { recruitment } from '$lib/data/recruitment';
+	import type { Guild } from '$lib/data/guild';
+	import type { Recruitment } from '$lib/data/recruitment';
+
+	// Datos de SSR (+layout.server.ts), expuestos vía $page.data en el layout.
+	const guild = $derived($page.data.guild as Guild);
+	const recruitment = $derived($page.data.recruitment as Recruitment);
 
 	const links = [
 		{ href: '#inicio', label: 'Inicio' },

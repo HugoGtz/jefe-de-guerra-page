@@ -1,7 +1,12 @@
 <script lang="ts">
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import { guild } from '$lib/data/guild';
-	import { recruitment } from '$lib/data/recruitment';
+	import { page } from '$app/stores';
+	import type { Guild } from '$lib/data/guild';
+	import type { Recruitment } from '$lib/data/recruitment';
+
+	// Datos de SSR (+layout.server.ts), expuestos vía $page.data en el layout.
+	const guild = $derived($page.data.guild as Guild);
+	const recruitment = $derived($page.data.recruitment as Recruitment);
 
 	const year = new Date().getFullYear();
 </script>

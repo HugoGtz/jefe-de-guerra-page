@@ -4,7 +4,13 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { countUp } from '$lib/actions/countUp';
-	import { phaseOne, phaseTwo, type Raid } from '$lib/data/raids';
+	import type { Phase, Raid } from '$lib/data/raids';
+
+	let { phases }: { phases: Phase[] } = $props();
+
+	// Fase 1 (completada) y Fase 2 (en progreso), por orden en el array.
+	const phaseOne = $derived(phases[0]);
+	const phaseTwo = $derived(phases[1]);
 
 	// Estado de revelado por raid: arranca en 0 y salta al valor real on-reveal,
 	// para que las barras hagan el barrido animado al entrar en viewport.
@@ -19,9 +25,9 @@
 	}
 
 	// Estadísticas agregadas para la tira animada (contadores).
-	const allRaids = [...phaseOne.raids, ...phaseTwo.raids];
-	const totalBossesDefeated = allRaids.reduce((acc, r) => acc + r.kills, 0);
-	const totalRaids = allRaids.length;
+	const allRaids = $derived([...phaseOne.raids, ...phaseTwo.raids]);
+	const totalBossesDefeated = $derived(allRaids.reduce((acc, r) => acc + r.kills, 0));
+	const totalRaids = $derived(allRaids.length);
 </script>
 
 <Section id="progreso" eyebrow="Progreso" title="Avance de raids" class="raids">
