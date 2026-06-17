@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: jefe-de-guerra-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Bind-mount the source so edits on the host hot-reload in the container.
+      - .:/app
+      # Keep node_modules inside the container (Linux-native binaries).
+      - node_modules:/app/node_modules
+    environment:
+      # Bind mounts on macOS don't emit fs events reliably; poll instead.
+      - DOCKER=true
+    stdin_open: true
+    tty: true
+
+volumes:
+  node_modules:

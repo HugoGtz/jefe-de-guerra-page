@@ -1,0 +1,13 @@
+# Dev image — pinned to Node 22 LTS so the toolchain is reproducible
+# regardless of the host's Node version.
+FROM node:22-bookworm-slim
+
+WORKDIR /app
+ENV NODE_ENV=development
+
+# Vite dev server
+EXPOSE 5173
+
+# node_modules is provided by a named volume (see docker-compose.yml),
+# so installed binaries are Linux-native and never clash with the macOS host.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
