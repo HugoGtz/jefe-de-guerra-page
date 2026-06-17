@@ -1,0 +1,347 @@
+@import "tailwindcss";
+
+/* Self-hosted fonts (no Google Fonts request — faster, privacy-friendly).
+   These register the "Cinzel" and "Inter" families used by the @theme tokens. */
+@import "@fontsource/cinzel/500.css";
+@import "@fontsource/cinzel/700.css";
+@import "@fontsource/cinzel/900.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+/* ============================================================
+   Jefe de Guerra — Design tokens
+   Palette extracted from the guild crest. Exposed as Tailwind
+   v4 theme tokens so utilities like bg-blood / text-silver /
+   border-steel / text-lava are generated automatically.
+   ============================================================ */
+@theme {
+	/* Reds — primary identity */
+	--color-blood: #a10613; /* primary red */
+	--color-crimson-deep: #6b0410; /* shadow red */
+	--color-lava: #ff3b21; /* bright glow accent */
+	--color-ember: #ff6b2c; /* orange-red highlight */
+
+	/* Metals / neutrals */
+	--color-silver: #e5e5e5; /* logo text */
+	--color-steel: #b8bcc2; /* metallic border/grey */
+	--color-steel-dim: #8b8e95; /* muted grey text (raised for AA contrast on dark surfaces) */
+
+	/* Dark surfaces */
+	--color-ash: #0a0708; /* near-black warm base */
+	--color-stone: #14100f; /* lighter dark surface */
+	--color-iron: #1c1815; /* card/surface dark */
+
+	/* Fonts — exposed as font-display / font-sans utilities */
+	--font-display: "Cinzel", serif;
+	--font-sans: "Inter", system-ui, sans-serif;
+}
+
+/* ============================================================
+   Base layer
+   ============================================================ */
+@layer base {
+	body {
+		background-color: var(--color-ash);
+		color: var(--color-silver);
+		font-family: var(--font-sans);
+		/* Subtle layered "dark metal + faint red glow at edges" texture.
+		   Cheap: pure CSS gradients, fixed so it doesn't scroll-jank. */
+		background-image:
+			/* faint red glow bleeding from the corners */
+			radial-gradient(
+				ellipse 80% 50% at 0% 0%,
+				rgba(161, 6, 19, 0.1),
+				transparent 60%
+			),
+			radial-gradient(
+				ellipse 80% 50% at 100% 100%,
+				rgba(107, 4, 16, 0.12),
+				transparent 60%
+			),
+			/* central vignette so edges feel darker / imposing */
+			radial-gradient(
+				ellipse 120% 120% at 50% 0%,
+				rgba(20, 16, 15, 0.6),
+				var(--color-ash) 70%
+			),
+			/* brushed-metal hairline striping, extremely faint */
+			repeating-linear-gradient(
+				115deg,
+				rgba(184, 188, 194, 0.015) 0px,
+				rgba(184, 188, 194, 0.015) 1px,
+				transparent 1px,
+				transparent 3px
+			);
+		background-attachment: fixed;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-display);
+	}
+
+	::selection {
+		background-color: var(--color-blood);
+		color: var(--color-silver);
+	}
+
+	/* Themed scrollbar — dark track, blood thumb */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-blood) var(--color-stone);
+	}
+	*::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	*::-webkit-scrollbar-track {
+		background: var(--color-stone);
+	}
+	*::-webkit-scrollbar-thumb {
+		background: linear-gradient(
+			var(--color-blood),
+			var(--color-crimson-deep)
+		);
+		border: 2px solid var(--color-stone);
+		border-radius: 6px;
+	}
+	*::-webkit-scrollbar-thumb:hover {
+		background: linear-gradient(var(--color-lava), var(--color-blood));
+	}
+}
+
+/* ============================================================
+   Reusable component / utility classes
+   ============================================================ */
+@layer components {
+	/* Brushed-metal 1px border with subtle inset gradient.
+	   Illuminates (border brightens + faint glow) on hover. */
+	.metal-border {
+		border: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);
+		background-image: linear-gradient(
+			180deg,
+			rgba(184, 188, 194, 0.06),
+			rgba(0, 0, 0, 0.12)
+		);
+		box-shadow:
+			inset 0 1px 0 rgba(229, 229, 229, 0.06),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+		transition:
+			border-color 0.25s ease,
+			box-shadow 0.25s ease;
+	}
+	.metal-border:hover {
+		border-color: color-mix(in srgb, var(--color-steel) 70%, transparent);
+		box-shadow:
+			inset 0 1px 0 rgba(229, 229, 229, 0.12),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+			0 0 12px rgba(255, 59, 33, 0.18);
+	}
+
+	/* Red glow for hover states. */
+	.glow-red {
+		box-shadow:
+			0 0 16px rgba(255, 59, 33, 0.45),
+			0 0 32px rgba(161, 6, 19, 0.35);
+	}
+
+	/* Silver text with a dark engraved shadow. */
+	.text-engraved {
+		color: var(--color-silver);
+		text-shadow:
+			0 1px 0 rgba(0, 0, 0, 0.7),
+			0 -1px 0 rgba(229, 229, 229, 0.08);
+	}
+
+	/* Bright red text with a soft glow. */
+	.text-lava-glow {
+		color: var(--color-lava);
+		text-shadow:
+			0 0 8px rgba(255, 59, 33, 0.55),
+			0 0 18px rgba(161, 6, 19, 0.4);
+	}
+
+	/* Card surface: iron bg, metal border, slight inner gradient. */
+	.surface {
+		background-color: var(--color-iron);
+		background-image: linear-gradient(
+			180deg,
+			rgba(229, 229, 229, 0.03),
+			rgba(0, 0, 0, 0.25)
+		);
+		border: 1px solid color-mix(in srgb, var(--color-steel) 30%, transparent);
+		box-shadow:
+			inset 0 1px 0 rgba(229, 229, 229, 0.05),
+			0 2px 8px rgba(0, 0, 0, 0.5);
+	}
+}
+
+/* ============================================================
+   Micro-animation layer — keyframes + reusable helpers.
+   GPU-only (transform / opacity / box-shadow / filter), so they
+   stay 60fps and are auto-neutralized by the reduced-motion rule
+   below (duration ~0). Nothing here is required for usability.
+   ============================================================ */
+@layer animations {
+	/* Continuous attention pulse for the primary CTA: gentle
+	   breathing scale + glow. Subtle on purpose. */
+	@keyframes jdg-pulse {
+		0%,
+		100% {
+			transform: translateY(-2px) scale(1);
+			box-shadow:
+				inset 0 1px 0 rgba(229, 229, 229, 0.14),
+				0 0 12px rgba(255, 59, 33, 0.3),
+				0 0 22px rgba(161, 6, 19, 0.22);
+		}
+		50% {
+			transform: translateY(-2px) scale(1.025);
+			box-shadow:
+				inset 0 1px 0 rgba(229, 229, 229, 0.2),
+				0 0 20px rgba(255, 59, 33, 0.5),
+				0 0 38px rgba(161, 6, 19, 0.36);
+		}
+	}
+
+	/* Slow shine sweep traveling left -> right across a fill.
+	   Driven via translateX of an oversized highlight band. */
+	@keyframes jdg-shine-sweep {
+		0% {
+			transform: translateX(-120%);
+		}
+		100% {
+			transform: translateX(220%);
+		}
+	}
+
+	/* Gentle pulsing glow used when a ProgressBar is complete. */
+	@keyframes jdg-complete-glow {
+		0%,
+		100% {
+			box-shadow:
+				0 0 12px rgba(255, 107, 44, 0.5),
+				inset 0 0 8px rgba(255, 229, 180, 0.22);
+		}
+		50% {
+			box-shadow:
+				0 0 22px rgba(255, 107, 44, 0.85),
+				inset 0 0 12px rgba(255, 229, 180, 0.4);
+		}
+	}
+
+	/* Attention pulse helper — opt-in (Button `pulse` prop). */
+	.jdg-pulse {
+		animation: jdg-pulse 2s ease-in-out infinite;
+	}
+
+	/* Reusable diagonal gleam light-sweep overlay. Apply to an
+	   ::before of a position:relative, overflow:hidden element and
+	   set its opacity/transform from the parent's hover state. */
+	.jdg-gleam {
+		position: relative;
+		overflow: hidden;
+	}
+	.jdg-gleam::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 60%;
+		height: 100%;
+		pointer-events: none;
+		background: linear-gradient(
+			105deg,
+			transparent 0%,
+			rgba(229, 229, 229, 0.18) 45%,
+			rgba(255, 255, 255, 0.32) 50%,
+			rgba(229, 229, 229, 0.18) 55%,
+			transparent 100%
+		);
+		transform: translateX(-180%) skewX(-18deg);
+		opacity: 0;
+		transition:
+			transform 0s,
+			opacity 0.2s ease;
+	}
+	.jdg-gleam:hover::before {
+		opacity: 1;
+		transform: translateX(320%) skewX(-18deg);
+		transition:
+			transform 0.7s ease,
+			opacity 0.2s ease;
+	}
+
+	/* Continuous border beam: a rotating conic-gradient light ring masked
+	   to a thin border via mask-composite, so only the perimeter shows.
+	   Opt-in (Card/Button `beam` prop). GPU-cheap — only `rotate` animates,
+	   on its own absolutely-positioned layer behind content. Inherits the
+	   host's border-radius via inset:0 + matching radius so it hugs rounded
+	   corners. */
+	.jdg-beam {
+		position: relative;
+	}
+	.jdg-beam::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		/* Inherit the rounded shape of the host element. */
+		border-radius: inherit;
+		padding: 1px; /* thickness of the beam ring */
+		pointer-events: none;
+		/* The traveling light: a transparent ring with one bright lava arc. */
+		background: conic-gradient(
+			from var(--jdg-beam-angle, 0deg),
+			transparent 0deg,
+			transparent 270deg,
+			rgba(255, 59, 33, 0.15) 320deg,
+			rgba(255, 107, 44, 0.95) 350deg,
+			rgba(255, 59, 33, 0.15) 360deg
+		);
+		/* Carve out the interior so only a 1px border ring is painted. */
+		-webkit-mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		-webkit-mask-composite: xor;
+		mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		mask-composite: exclude;
+		/* Animate the conic start angle via a registered custom property so
+		   the rotation is GPU-cheap and reduced-motion neutralizes it. */
+		animation: jdg-beam-spin 4s linear infinite;
+	}
+
+	/* Spin the conic-gradient by advancing its --jdg-beam-angle. Registered
+	   below so it interpolates as an <angle>. */
+	@property --jdg-beam-angle {
+		syntax: "<angle>";
+		inherits: false;
+		initial-value: 0deg;
+	}
+	@keyframes jdg-beam-spin {
+		to {
+			--jdg-beam-angle: 360deg;
+		}
+	}
+}
+
+/* ============================================================
+   Reduced motion — globally neutralize non-essential motion.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}
