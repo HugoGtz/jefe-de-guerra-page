@@ -1,6 +1,6 @@
 /**
  * Preguntas frecuentes para reclutas potenciales.
- * Contenido PLACEHOLDER: revisar y confirmar con el oficial de guild.
+ * Basadas en el reglamento oficial de la hermandad (semi-hardcore, TBC Classic).
  */
 
 export type FaqItem = {
@@ -10,38 +10,45 @@ export type FaqItem = {
 	a: string;
 };
 
-// TODO: confirmar con el usuario — todas las respuestas son provisionales.
 export const faq: FaqItem[] = [
 	{
-		q: '¿Qué sistema de reparto de botín usáis?',
-		a: 'Usamos Loot Council para el contenido de progresión: un grupo de oficiales reparte el equipo según mejora real del raid, asistencia y rendimiento. En contenido en farmeo pasamos a Soft Reserve (SR) para agilizar. La prioridad siempre es el progreso del grupo, no las estadísticas individuales.'
+		q: '¿Qué tipo de hermandad es Jefe de Guerra?',
+		a: 'Somos una hermandad semi-hardcore de World of Warcraft: The Burning Crusade Classic. Progresamos en serio, con preparación y compromiso, pero manteniendo un buen ambiente hispanohablante. Tenemos varios equipos de raid (Cores) para cubrir distintos horarios.'
 	},
 	{
 		q: '¿Qué addons son obligatorios?',
-		a: 'Pedimos Deadly Boss Mods (DBM) o BigWigs para los avisos de mecánicas, un medidor de daño/sanación (Details! o Recount) y WeakAuras para las mecánicas concretas de cada jefe. Compartimos nuestros paquetes de WeakAuras en Discord antes de cada raid nuevo.'
+		a: 'DBM o BigWigs (avisos de mecánicas), Loon BiS (para verificar tu equipo BiS), Gargul (gestión de loot y Soft Reserve) y un addon de aggro (tipo Omen). Deben estar instalados y actualizados antes del raid.'
+	},
+	{
+		q: '¿Qué requisitos de equipo y consumibles piden?',
+		a: 'Preséntate con tu Pre-BiS gemado y encantado al máximo nivel disponible. Los consumibles son obligatorios: frascos, elixires y comida de buff. Venir sin consumibles afecta a tu loot (ver sistema de SR).'
 	},
 	{
 		q: '¿Cuál es la política de asistencia?',
-		a: 'No exigimos asistencia perfecta, pero sí avisar con antelación si no vas a poder asistir. Para entrar al roster de progresión pedimos una asistencia aproximada del 75% en las noches de raid fijadas. La vida real va primero; lo único que pedimos es comunicación.'
+		a: 'Para mantener el estatus de Raider Fijo se pide un mínimo del 85% de asistencia mensual. Bajar de ese 85% supone descender a Raider Suplente. La vida real va primero, pero pedimos avisar siempre con antelación.'
 	},
 	{
-		q: '¿Qué consumibles y encantamientos se esperan?',
-		a: 'Que vengas con la mejor preparación razonable para tu nivel: comida de buff, elixires/pociones de flask, piedras de salud/maná y los encantamientos y gemas adecuados en todas las piezas. No hace falta que seas BiS, pero sí presentarte listo para rendir.'
+		q: '¿Cómo funciona el sistema de loot?',
+		a: 'Usamos Soft Reserve (SR) con Gargul. Cada raider parte de 1 SR base. Bonos: +1 SR por puntualidad (estar 10-15 min antes) y +1 SR por traer todos los consumibles (revisión de un oficial). Penalizaciones: -1 SR ese día por superar los 5 min de tolerancia, y -1 SR en la siguiente raid por faltar sin avisar. No se permite hacer SR por off-spec (rama secundaria).'
 	},
 	{
-		q: '¿Hay requisito de edad o idioma?',
-		a: 'Somos una comunidad mayoritariamente hispanohablante, así que el idioma de la guild es el español. Pedimos +18 por el ambiente del Discord de voz, aunque valoramos cada caso. Lo importante es buena actitud y saber estar.'
+		q: '¿Hay prioridades de loot por clase o rol?',
+		a: 'Sí. Los tanques tienen prioridad en piezas Tier BiS para asegurar la progresión (verificado con Loon BiS por los raid leaders). Los cazadores eligen entre arma a dos manos o dos armas de una mano. Casters y healers eligen entre bastón o set de Main Hand + Off-hand según la fase. De trinkets físicos (Espinazo/Tsunami) máximo 1 por jugador hasta que todos los DPS tengan uno.'
 	},
 	{
-		q: '¿Necesito experiencia previa de raid?',
-		a: 'No es imprescindible, pero ayuda. Valoramos más la actitud, la disposición a aprender mecánicas y la constancia que tu historial. Si vienes de otro servidor o expansión, cuéntanoslo y lo tendremos en cuenta en la prueba.'
+		q: '¿Cómo se reparten las monturas?',
+		a: 'Puedes hacer 1 SR por la montura tras cumplir 5 semanas activas en tu core. Además, los jugadores con estatus Full BiS (ya tienen todos sus items BiS) pueden usar sus 3 SR específicamente para la montura.'
 	},
 	{
-		q: '¿Qué días y horario raideáis?',
-		a: 'Raideamos en horario de noche entre semana (zona horaria europea). Los días concretos los confirmamos en el Discord según la fase actual. Avisamos con antelación de cualquier raid extra de progresión.'
+		q: '¿Qué rangos hay y cómo progreso?',
+		a: 'Entras como Raider Suplente (no rolea armas, trinkets ni monturas). Tras 3 semanas de asistencia constante pasas a Raider Fijo. Si te trasladas a otro core (avisando antes), vuelves a cumplir las 3 semanas para recuperar el estatus.'
+	},
+	{
+		q: '¿Qué sanciones existen?',
+		a: 'Bajar del 85% mensual te degrada a Raider Suplente. Cambiar de core sin avisar al Raid Leader con días de antelación puede costarte tu lugar fijo; si reincides, la degradación a Suplente es permanente. La expulsión se reserva para ninjeo comprobado, toxicidad extrema o drama público.'
 	},
 	{
 		q: '¿Cómo aplico a la guild?',
-		a: 'Rellena el formulario de aplicación de esta página o escríbenos directamente por Discord. Cuéntanos tu clase, especialización, experiencia y disponibilidad, y un oficial te contactará para una prueba en el próximo raid.'
+		a: 'Rellena el formulario de aplicación de esta página o escríbenos por Discord. Cuéntanos tu clase, especialización, experiencia y disponibilidad, y un oficial te contactará para una prueba en el próximo raid.'
 	}
 ];

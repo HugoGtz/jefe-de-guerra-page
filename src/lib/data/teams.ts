@@ -36,7 +36,19 @@ export type Team = {
 	recruiting: boolean;
 	/** Nota corta opcional (p. ej. roles buscados). */
 	note?: string;
+	/** ID de hermandad en WarcraftLogs (Fresh/Anniversary) para enlazar a sus logs. */
+	wclGuildId?: number;
 };
+
+/**
+ * URL de los logs de la hermandad padre "Jefe de Guerra" en WarcraftLogs
+ * (Fresh/Anniversary Classic).
+ */
+export const guildLogsUrl = 'https://es.fresh.warcraftlogs.com/guild/id/792187';
+
+/** Construye la URL de los logs de una hermandad WCL a partir de su ID. */
+export const wclGuildUrl = (id: number) =>
+	'https://es.fresh.warcraftlogs.com/guild/id/' + id;
 
 // TODO: confirmar con el usuario (nombres, horarios, progreso, reclutamiento).
 export const teams: Team[] = [
@@ -47,7 +59,8 @@ export const teams: Team[] = [
 		ssc: { kills: 6, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 3, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
-		note: 'Roster veterano · cupo completo' // TODO: confirmar con el usuario
+		note: 'Roster veterano · cupo completo', // TODO: confirmar con el usuario
+		wclGuildId: 826903
 	},
 	{
 		id: 'core-2',
@@ -56,7 +69,8 @@ export const teams: Team[] = [
 		ssc: { kills: 5, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
-		note: 'Buscamos sanadores y DPS a distancia' // TODO: confirmar con el usuario
+		note: 'Buscamos sanadores y DPS a distancia', // TODO: confirmar con el usuario
+		wclGuildId: 826904
 	},
 	{
 		id: 'core-3',
@@ -65,7 +79,8 @@ export const teams: Team[] = [
 		ssc: { kills: 4, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
-		note: 'Tanque y DPS cuerpo a cuerpo' // TODO: confirmar con el usuario
+		note: 'Tanque y DPS cuerpo a cuerpo', // TODO: confirmar con el usuario
+		wclGuildId: 826905
 	},
 	{
 		id: 'core-4',
@@ -74,7 +89,8 @@ export const teams: Team[] = [
 		ssc: { kills: 3, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 1, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
-		note: 'Roster en formación · todos los roles' // TODO: confirmar con el usuario
+		note: 'Roster en formación · todos los roles', // TODO: confirmar con el usuario
+		wclGuildId: 826907
 	},
 	{
 		id: 'core-5',
@@ -83,6 +99,27 @@ export const teams: Team[] = [
 		ssc: { kills: 5, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
-		note: 'Horario diurno de fin de semana' // TODO: confirmar con el usuario
+		note: 'Horario diurno de fin de semana', // TODO: confirmar con el usuario
+		wclGuildId: 826908
+	},
+	{
+		id: 'core-6',
+		name: 'Core 6',
+		schedule: { days: 'Lun · Jue', time: '21:00', timezone: 'CET' }, // TODO: confirmar
+		ssc: { kills: 2, total: 6 }, // TODO: confirmar
+		tk: { kills: 0, total: 4 }, // TODO: confirmar
+		recruiting: true, // TODO: confirmar
+		note: 'Roster joven · buscamos todos los roles', // TODO: confirmar
+		wclGuildId: 826909
+	},
+	{
+		id: 'core-7',
+		name: 'Core 7',
+		schedule: { days: 'Mié · Sáb', time: '20:00', timezone: 'CET' }, // TODO: confirmar
+		ssc: { kills: 1, total: 6 }, // TODO: confirmar
+		tk: { kills: 0, total: 4 }, // TODO: confirmar
+		recruiting: true, // TODO: confirmar
+		note: 'Nuevo core en formación', // TODO: confirmar
+		wclGuildId: 826910
 	}
 ];

@@ -31,6 +31,25 @@ import {
 	raidNights as staticRaidNights,
 	type RaidNight
 } from '$lib/data/community';
+import { getWclData, type WclData, type WclFeat } from '$lib/server/warcraftlogs';
+
+/** Guild-wide stats surfaced in the UI, derived from WCL (or manual fallback). */
+export type GuildStats = {
+	/** Distinct Phase 2 (SSC + TK) bosses down across all cores. */
+	phase2BossesDown: number;
+	/** Total Phase 2 bosses (SSC 6 + TK 4 = 10). */
+	phase2BossesTotal: number;
+	/** Number of raid teams (cores). */
+	activeCores: number;
+	/** Most recent feat, or null if none. */
+	lastFeat: { boss: string; date: string; team?: string } | null;
+	/** Feats within 30 days of the newest feat date. */
+	killsLast30Days: number;
+	/** Core with the most SSC+TK kills (name + count), or null. */
+	topCore: { name: string; kills: number } | null;
+	/** Cores at SSC 6/6 AND TK 4/4. */
+	fullClearCores: number;
+};
 
 export type GuildData = {
 	guild: Guild;
@@ -40,6 +59,7 @@ export type GuildData = {
 	teams: Team[];
 	feats: Feat[];
 	faq: FaqItem[];
+	stats: GuildStats;
 	community: {
 		discordServerId: string;
 		discordInvite: string;
@@ -58,6 +78,7 @@ function staticFallback(): GuildData {
 		teams: staticTeams,
 		feats: staticFeats,
 		faq: staticFaq,
+		stats: computeStats(staticPhases, staticFeats, staticTeams, Date.now()),
 		community: {
 			discordServerId: staticDiscordServerId,
 			discordInvite: staticDiscordInvite,
@@ -87,6 +108,270 @@ function phasePercent(raids: Raid[]): number {
 	const total = raids.reduce((acc, r) => acc + r.total, 0);
 	const kills = raids.reduce((acc, r) => acc + r.kills, 0);
 	return total === 0 ? 0 : Math.round((kills / total) * 100);
+}
+
+// ── WarcraftLogs integration (live progress + feats, D1-cached) ──────────────
+
+/** How long a cached WCL aggregate stays fresh before we refetch (~20 min). */
+const WCL_CACHE_TTL_MS = 20 * 60 * 1000;
+const WCL_CACHE_KEY = 'guild';
+
+type WclCacheRow = { json: string; fetched_at: number };
+
+/** English boss name → our Feat raid bucket. Covers Phase 1 + Phase 2 bosses. */
+const BOSS_TO_RAID: Record<string, Feat['raid']> = {
+	// SSC
+	'Hydross the Unstable': 'SSC',
+	'The Lurker Below': 'SSC',
+	'Leotheras the Blind': 'SSC',
+	'Fathom-Lord Karathress': 'SSC',
+	'Morogrim Tidewalker': 'SSC',
+	'Lady Vashj': 'SSC',
+	// TK
+	"Al'ar": 'TK',
+	'Void Reaver': 'TK',
+	'High Astromancer Solarian': 'TK',
+	"Kael'thas Sunstrider": 'TK',
+	// Karazhan
+	'Attumen the Huntsman': 'Karazhan',
+	Moroes: 'Karazhan',
+	'Maiden of Virtue': 'Karazhan',
+	'Opera Event': 'Karazhan',
+	'The Curator': 'Karazhan',
+	'Terestian Illhoof': 'Karazhan',
+	'Shade of Aran': 'Karazhan',
+	Netherspite: 'Karazhan',
+	'Chess Event': 'Karazhan',
+	'Prince Malchezaar': 'Karazhan',
+	// Gruul's Lair
+	'High King Maulgar': 'Gruul',
+	'Gruul the Dragonkiller': 'Gruul',
+	// Magtheridon's Lair
+	Magtheridon: 'Magtheridon'
+};
+
+/** Map a killed boss name to a Feat raid bucket, defaulting to SSC if unknown. */
+function raidForBoss(boss: string): Feat['raid'] {
+	return BOSS_TO_RAID[boss] ?? 'SSC';
+}
+
+/** SSC bosses (English names, as they come from WCL fights). */
+const SSC_BOSSES = new Set<string>([
+	'Hydross the Unstable',
+	'The Lurker Below',
+	'Leotheras the Blind',
+	'Fathom-Lord Karathress',
+	'Morogrim Tidewalker',
+	'Lady Vashj'
+]);
+/** TK (The Eye) bosses. */
+const TK_BOSSES = new Set<string>([
+	"Al'ar",
+	'Void Reaver',
+	'High Astromancer Solarian',
+	"Kael'thas Sunstrider"
+]);
+const SSC_TOTAL = 6;
+const TK_TOTAL = 4;
+
+/** A WclFeat is serialized to JSON in the cache; reshape into our Feat type. */
+function wclFeatToFeat(f: WclFeat): Feat {
+	return {
+		boss: f.boss,
+		raid: raidForBoss(f.boss),
+		date: f.date,
+		team: f.team,
+		firstKill: f.firstKill
+	};
+}
+
+/**
+ * Fetch WCL data with a D1 cache (key='guild', TTL ~20 min). On fetch error,
+ * falls back to stale cache if present, otherwise returns null. The cached
+ * payload stores `killedBossNames` as an array (Sets aren't JSON-serializable).
+ */
+async function loadWclCached(platform: App.Platform): Promise<WclData | null> {
+	const DB = platform.env.DB;
+	const env = platform.env;
+	const now = Date.now();
+
+	let cachedRow: WclCacheRow | null = null;
+	try {
+		cachedRow = await DB.prepare(
+			'SELECT json, fetched_at FROM wcl_cache WHERE key = ?'
+		)
+			.bind(WCL_CACHE_KEY)
+			.first<WclCacheRow>();
+	} catch {
+		// Cache table may not exist yet — proceed to a fresh fetch.
+		cachedRow = null;
+	}
+
+	const parseRow = (row: WclCacheRow): WclData | null => {
+		try {
+			const parsed = JSON.parse(row.json) as {
+				killedBossNames: string[];
+				perCore?: Record<string, string[]>;
+				feats: WclFeat[];
+			};
+			// Coerce string keys (JSON object keys) back to numbers.
+			const perCore: Record<number, string[]> = {};
+			for (const [k, v] of Object.entries(parsed.perCore ?? {})) {
+				perCore[Number(k)] = v;
+			}
+			return {
+				killedBossNames: new Set(parsed.killedBossNames),
+				perCore,
+				feats: parsed.feats
+			};
+		} catch {
+			return null;
+		}
+	};
+
+	// Fresh enough → use the cached value.
+	if (cachedRow && now - cachedRow.fetched_at < WCL_CACHE_TTL_MS) {
+		const fresh = parseRow(cachedRow);
+		if (fresh) return fresh;
+	}
+
+	// Otherwise fetch live, then upsert the cache.
+	const fetched = await getWclData(env);
+	if (fetched) {
+		try {
+			const payload = JSON.stringify({
+				killedBossNames: [...fetched.killedBossNames],
+				perCore: fetched.perCore,
+				feats: fetched.feats
+			});
+			await DB.prepare(
+				'INSERT INTO wcl_cache (key, json, fetched_at) VALUES (?, ?, ?) ' +
+					'ON CONFLICT(key) DO UPDATE SET json = excluded.json, fetched_at = excluded.fetched_at'
+			)
+				.bind(WCL_CACHE_KEY, payload, now)
+				.run();
+		} catch {
+			// Caching is best-effort; ignore write failures.
+		}
+		return fetched;
+	}
+
+	// Fetch failed → use stale cache if we have one.
+	if (cachedRow) return parseRow(cachedRow);
+	return null;
+}
+
+/**
+ * Apply live WCL data on top of the base phases/feats:
+ *  - Progress: every Phase 2 (SSC/TK) boss gets `defeated` from the union of
+ *    killed bosses across cores; raid + phase percentages recomputed.
+ *  - Feats: replaced by the WCL-derived feats (mapped to the Feat shape).
+ * Returns the (possibly) overridden phases + feats. Never throws.
+ */
+function applyWclOverride(
+	phases: Phase[],
+	feats: Feat[],
+	wcl: WclData
+): { phases: Phase[]; feats: Feat[] } {
+	const phase2Ids = new Set(['phase-2']);
+
+	const nextPhases = phases.map((phase) => {
+		if (!phase2Ids.has(phase.id)) return phase;
+		const raids = phase.raids.map((raid) => {
+			const bosses: Boss[] = raid.bosses.map((b) => ({
+				name: b.name,
+				defeated: wcl.killedBossNames.has(b.name)
+			}));
+			return withRaidProgress(raid.id, raid.name, bosses, raid.abbr);
+		});
+		return { ...phase, raids, percent: phasePercent(raids) };
+	});
+
+	const nextFeats = wcl.feats.map(wclFeatToFeat);
+
+	return { phases: nextPhases, feats: nextFeats.length > 0 ? nextFeats : feats };
+}
+
+/**
+ * Override each team's SSC/TK kill counts from its OWN WCL core data. A team is
+ * only overridden when its wclGuildId is present in `wcl.perCore` (i.e. WCL
+ * returned data for that core); otherwise the manual D1 value is kept.
+ */
+function applyTeamWclOverride(teams: Team[], wcl: WclData): Team[] {
+	return teams.map((team) => {
+		if (team.wclGuildId == null) return team;
+		const killed = wcl.perCore[team.wclGuildId];
+		if (!killed) return team; // No WCL data for this core → keep manual.
+		const sscKills = killed.filter((b) => SSC_BOSSES.has(b)).length;
+		const tkKills = killed.filter((b) => TK_BOSSES.has(b)).length;
+		return {
+			...team,
+			ssc: { kills: sscKills, total: SSC_TOTAL },
+			tk: { kills: tkKills, total: TK_TOTAL }
+		};
+	});
+}
+
+/**
+ * Compute guild-wide stats. Derived from the (already WCL-overridden) phases,
+ * feats and teams — so it works whether or not WCL was available. Pass the
+ * runtime `now` (ms) so module scope stays free of Date.now.
+ */
+function computeStats(
+	phases: Phase[],
+	feats: Feat[],
+	teams: Team[],
+	now: number
+): GuildStats {
+	// Phase 2 bosses down (union across cores) from the phase-2 raids.
+	const phase2 = phases.find((p) => p.id === 'phase-2');
+	const phase2BossesDown = phase2
+		? phase2.raids.reduce((acc, r) => acc + r.kills, 0)
+		: 0;
+	const phase2BossesTotal = SSC_TOTAL + TK_TOTAL;
+
+	const activeCores = teams.length;
+
+	// Most recent feat (feats are newest-first, but sort defensively by date).
+	const sortedFeats = [...feats].sort((a, b) =>
+		a.date < b.date ? 1 : a.date > b.date ? -1 : 0
+	);
+	const newest = sortedFeats[0] ?? null;
+	const lastFeat = newest
+		? { boss: newest.boss, date: newest.date, team: newest.team }
+		: null;
+
+	// Kills within 30 days of the newest feat date (avoid drifting on stale data).
+	let killsLast30Days = 0;
+	if (newest) {
+		const newestMs = Date.parse(newest.date);
+		const ref = Number.isNaN(newestMs) ? now : newestMs;
+		const cutoff = ref - 30 * 24 * 60 * 60 * 1000;
+		killsLast30Days = sortedFeats.filter((f) => {
+			const ms = Date.parse(f.date);
+			return !Number.isNaN(ms) && ms >= cutoff;
+		}).length;
+	}
+
+	// Top core by SSC+TK kills.
+	let topCore: GuildStats['topCore'] = null;
+	let fullClearCores = 0;
+	for (const t of teams) {
+		const kills = t.ssc.kills + t.tk.kills;
+		if (!topCore || kills > topCore.kills) topCore = { name: t.name, kills };
+		if (t.ssc.kills >= SSC_TOTAL && t.tk.kills >= TK_TOTAL) fullClearCores++;
+	}
+	if (topCore && topCore.kills === 0) topCore = null;
+
+	return {
+		phase2BossesDown,
+		phase2BossesTotal,
+		activeCores,
+		lastFeat,
+		killsLast30Days,
+		topCore,
+		fullClearCores
+	};
 }
 
 // ── Row shapes returned by D1 ────────────────────────────────────────────────
@@ -125,6 +410,7 @@ type TeamRow = {
 	tk_total: number;
 	recruiting: number;
 	note: string | null;
+	wcl_guild_id: number | null;
 };
 type OfficerRow = {
 	name: string;
@@ -249,9 +535,10 @@ export async function loadGuildData(
 		const officers: Officer[] = (officerRes.results ?? []).map((o) => ({
 			name: o.name,
 			role: o.role,
-			wowClass: o.wow_class as Officer['wowClass'],
-			classLabel: o.class_label,
-			line: o.line
+			// Empty strings (unknown class/line) map to undefined → hidden in UI.
+			wowClass: (o.wow_class || undefined) as Officer['wowClass'],
+			classLabel: o.class_label || undefined,
+			line: o.line || undefined
 		}));
 
 		// ── Recruitment ──
@@ -280,7 +567,8 @@ export async function loadGuildData(
 			ssc: { kills: t.ssc_kills, total: t.ssc_total },
 			tk: { kills: t.tk_kills, total: t.tk_total },
 			recruiting: t.recruiting === 1,
-			note: t.note ?? undefined
+			note: t.note ?? undefined,
+			wclGuildId: t.wcl_guild_id ?? undefined
 		}));
 
 		// ── Feats ──
@@ -308,7 +596,38 @@ export async function loadGuildData(
 			raidNights
 		};
 
-		return { guild, phases, officers, recruitment, teams, feats, faq, community };
+		// ── WarcraftLogs live override (cached, resilient) ──
+		// Attempt to derive Phase 2 progress, per-core progress + recent feats from
+		// the guild's WCL logs. Any failure leaves the manual D1 data untouched.
+		let outPhases = phases;
+		let outFeats = feats;
+		let outTeams = teams;
+		try {
+			const wcl = await loadWclCached(platform!);
+			if (wcl) {
+				const overridden = applyWclOverride(phases, feats, wcl);
+				outPhases = overridden.phases;
+				outFeats = overridden.feats;
+				outTeams = applyTeamWclOverride(teams, wcl);
+			}
+		} catch {
+			// Keep the manual progress + feats + teams on any WCL error.
+		}
+
+		// Stats are derived from whatever data we ended up with (WCL or manual).
+		const stats = computeStats(outPhases, outFeats, outTeams, Date.now());
+
+		return {
+			guild,
+			phases: outPhases,
+			officers,
+			recruitment,
+			teams: outTeams,
+			feats: outFeats,
+			faq,
+			stats,
+			community
+		};
 	} catch {
 		return staticFallback();
 	}

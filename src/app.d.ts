@@ -16,6 +16,9 @@ declare global {
 				DB: D1Database;
 				/** Discord webhook for the recruitment apply form (server secret). */
 				DISCORD_WEBHOOK_URL?: string;
+				/** WarcraftLogs API client (server secrets) for live progress/feats. */
+				WCL_CLIENT_ID?: string;
+				WCL_CLIENT_SECRET?: string;
 				/** Shared officer password for the /admin panel (server secret). */
 				ADMIN_PASSWORD?: string;
 			};

@@ -6,7 +6,29 @@
 	import { countUp } from '$lib/actions/countUp';
 	import type { Phase, Raid } from '$lib/data/raids';
 
-	let { phases }: { phases: Phase[] } = $props();
+	// Forma de las stats (espejo de GuildStats en $lib/server/data). Local para
+	// no importar código server-only en un componente de cliente.
+	type GuildStats = {
+		phase2BossesDown: number;
+		phase2BossesTotal: number;
+		activeCores: number;
+		lastFeat: { boss: string; date: string; team?: string } | null;
+		killsLast30Days: number;
+		topCore: { name: string; kills: number } | null;
+		fullClearCores: number;
+	};
+
+	let { phases, stats }: { phases: Phase[]; stats?: GuildStats } = $props();
+
+	// Fecha de la última hazaña formateada en es-ES (corta), o null.
+	const lastFeatLabel = $derived(
+		stats?.lastFeat
+			? new Date(stats.lastFeat.date + 'T00:00:00').toLocaleDateString('es-ES', {
+					day: 'numeric',
+					month: 'short'
+				})
+			: null
+	);
 
 	// Fase 1 (completada) y Fase 2 (en progreso), por orden en el array.
 	const phaseOne = $derived(phases[0]);
@@ -32,6 +54,8 @@
 
 <Section id="progreso" eyebrow="Progreso" title="Avance de raids" class="raids">
 	<!-- ── TIRA DE ESTADÍSTICAS (contadores animados) ──────────── -->
+	<!-- Cuando hay datos de WCL mostramos jefes Fase 2 / cores / última hazaña;
+	     si no, caemos a las stats agregadas de siempre (bosses / raids). -->
 	<div class="stats" use:reveal>
 		<div class="stat">
 			<span class="stat__value text-lava-glow"
@@ -39,24 +63,53 @@
 			>
 			<span class="stat__label">Fase 1</span>
 		</div>
-		<div class="stat">
-			<span class="stat__value text-lava-glow"
-				use:countUp={{ to: totalBossesDefeated }}>{totalBossesDefeated}</span
-			>
-			<span class="stat__label">Bosses derrotados</span>
-		</div>
-		<div class="stat">
-			<span class="stat__value text-lava-glow" use:countUp={{ to: totalRaids }}
-				>{totalRaids}</span
-			>
-			<span class="stat__label">Raids</span>
-		</div>
-		<div class="stat">
-			<span class="stat__value text-lava-glow"
-				use:countUp={{ to: phaseTwo.percent, suffix: '%' }}>{phaseTwo.percent}%</span
-			>
-			<span class="stat__label">Fase 2</span>
-		</div>
+
+		{#if stats}
+			<div class="stat">
+				<span class="stat__value text-lava-glow"
+					use:countUp={{ to: stats.phase2BossesDown }}>{stats.phase2BossesDown}</span
+				><span class="stat__suffix">/{stats.phase2BossesTotal}</span>
+				<span class="stat__label">Jefes Fase 2</span>
+			</div>
+			<div class="stat">
+				<span class="stat__value text-lava-glow" use:countUp={{ to: stats.activeCores }}
+					>{stats.activeCores}</span
+				>
+				<span class="stat__label">Cores activos</span>
+			</div>
+			{#if stats.lastFeat && lastFeatLabel}
+				<div class="stat">
+					<span class="stat__value stat__value--text text-lava-glow">{lastFeatLabel}</span>
+					<span class="stat__label">Última hazaña</span>
+				</div>
+			{:else}
+				<div class="stat">
+					<span class="stat__value text-lava-glow"
+						use:countUp={{ to: phaseTwo.percent, suffix: '%' }}>{phaseTwo.percent}%</span
+					>
+					<span class="stat__label">Fase 2</span>
+				</div>
+			{/if}
+		{:else}
+			<div class="stat">
+				<span class="stat__value text-lava-glow"
+					use:countUp={{ to: totalBossesDefeated }}>{totalBossesDefeated}</span
+				>
+				<span class="stat__label">Bosses derrotados</span>
+			</div>
+			<div class="stat">
+				<span class="stat__value text-lava-glow" use:countUp={{ to: totalRaids }}
+					>{totalRaids}</span
+				>
+				<span class="stat__label">Raids</span>
+			</div>
+			<div class="stat">
+				<span class="stat__value text-lava-glow"
+					use:countUp={{ to: phaseTwo.percent, suffix: '%' }}>{phaseTwo.percent}%</span
+				>
+				<span class="stat__label">Fase 2</span>
+			</div>
+		{/if}
 	</div>
 
 	<!-- ── FASE 1 — COMPLETADA ─────────────────────────────────── -->
@@ -168,6 +221,20 @@
 		font-size: clamp(1.8rem, 5vw, 2.6rem);
 		font-weight: 900;
 		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
+	/* Variante de texto (p. ej. fecha de última hazaña): un poco más pequeña
+	   para que quepa sin romper la rejilla. */
+	.stat__value--text {
+		font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+		text-transform: capitalize;
+	}
+	.stat__suffix {
+		font-family: var(--font-display);
+		font-size: clamp(1rem, 2.5vw, 1.4rem);
+		font-weight: 900;
+		line-height: 1;
+		color: var(--color-steel-dim);
 		font-variant-numeric: tabular-nums;
 	}
 	.stat__label {

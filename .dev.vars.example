@@ -1,0 +1,15 @@
+# Secretos para desarrollo local (vite dev). Copia este archivo a `.dev.vars`
+# y rellena los valores reales. `.dev.vars` está en .gitignore (NO se commitea).
+#
+# En PRODUCCIÓN estos NO van aquí: se ponen como secrets del proyecto Pages:
+#   wrangler pages secret put <NOMBRE> --project-name jefe-de-guerra
+
+# Webhook de Discord para el formulario de aplicación (/api/apply)
+DISCORD_WEBHOOK_URL=
+
+# WarcraftLogs API client (Settings > API Clients en warcraftlogs.com)
+WCL_CLIENT_ID=
+WCL_CLIENT_SECRET=
+
+# Contraseña del panel de admin (Fase 2)
+ADMIN_PASSWORD=

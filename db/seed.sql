@@ -80,19 +80,30 @@ INSERT INTO bosses (raid_id, name, defeated, sort) VALUES
   ('tempest-keep', 'Kael''thas Sunstrider', 0, 3);
 
 -- ── Teams (Cores) ────────────────────────────────────────────────────────────
-INSERT INTO teams (id, name, schedule_days, schedule_time, schedule_timezone, ssc_kills, ssc_total, tk_kills, tk_total, recruiting, note, sort) VALUES
-  ('core-1', 'Core 1', 'Mar · Jue', '21:00', 'CET', 6, 6, 3, 4, 0, 'Roster veterano · cupo completo', 0),
-  ('core-2', 'Core 2', 'Mié · Vie', '21:30', 'CET', 5, 6, 2, 4, 1, 'Buscamos sanadores y DPS a distancia', 1),
-  ('core-3', 'Core 3', 'Lun · Mié', '20:30', 'CET', 4, 6, 2, 4, 1, 'Tanque y DPS cuerpo a cuerpo', 2),
-  ('core-4', 'Core 4', 'Vie · Dom', '22:00', 'CET', 3, 6, 1, 4, 1, 'Roster en formación · todos los roles', 3),
-  ('core-5', 'Core 5', 'Sáb · Dom', '17:00', 'CET', 5, 6, 2, 4, 0, 'Horario diurno de fin de semana', 4);
+INSERT INTO teams (id, name, schedule_days, schedule_time, schedule_timezone, ssc_kills, ssc_total, tk_kills, tk_total, recruiting, note, wcl_guild_id, sort) VALUES
+  ('core-1', 'Core 1', 'Mar · Jue', '21:00', 'CET', 6, 6, 3, 4, 0, 'Roster veterano · cupo completo', 826903, 0),
+  ('core-2', 'Core 2', 'Mié · Vie', '21:30', 'CET', 5, 6, 2, 4, 1, 'Buscamos sanadores y DPS a distancia', 826904, 1),
+  ('core-3', 'Core 3', 'Lun · Mié', '20:30', 'CET', 4, 6, 2, 4, 1, 'Tanque y DPS cuerpo a cuerpo', 826905, 2),
+  ('core-4', 'Core 4', 'Vie · Dom', '22:00', 'CET', 3, 6, 1, 4, 1, 'Roster en formación · todos los roles', 826907, 3),
+  ('core-5', 'Core 5', 'Sáb · Dom', '17:00', 'CET', 5, 6, 2, 4, 0, 'Horario diurno de fin de semana', 826908, 4),
+  ('core-6', 'Core 6', 'Lun · Jue', '21:00', 'CET', 2, 6, 0, 4, 1, 'Roster joven · buscamos todos los roles', 826909, 5),
+  ('core-7', 'Core 7', 'Mié · Sáb', '20:00', 'CET', 1, 6, 0, 4, 1, 'Nuevo core en formación', 826910, 6);
 
 -- ── Officers ─────────────────────────────────────────────────────────────────
 INSERT INTO officers (name, role, wow_class, class_label, line, sort) VALUES
-  ('Grommash', 'Líder de Guild', 'Warrior', 'Guerrero', 'Funda la estrategia y mantiene firme el estandarte de la Horda.', 0),
-  ('Thalyssra', 'Raid Leader', 'Shaman', 'Chamán', 'Marca el ritmo de cada pull y no perdona una mecánica fallada.', 1),
-  ('Drakthar', 'Oficial', 'Warlock', 'Brujo', 'Gestiona el loot y mantiene el orden en el caos del raid.', 2),
-  ('Sylvara', 'Reclutadora', 'Priest', 'Sacerdote', 'La primera cara amable que verás al unirte a la hermandad.', 3);
+  ('Yuliox', 'Oficial', '', '', '', 0),
+  ('Gelvez', 'Oficial', '', '', '', 1),
+  ('Zorkian', 'Oficial', '', '', '', 2),
+  ('Kaniser', 'Oficial', '', '', '', 3),
+  ('Darkmorrigan', 'Oficial', '', '', '', 4),
+  ('Zaenghun', 'Oficial', '', '', '', 5),
+  ('Bélcebuu', 'Raid Líder', '', '', '', 6),
+  ('Suuyeom', 'Raid Líder', '', '', '', 7),
+  ('Chulengo', 'Raid Líder', '', '', '', 8),
+  ('Frido', 'Raid Líder', '', '', '', 9),
+  ('Dortakus', 'Raid Líder', '', '', '', 10),
+  ('Sephiworm', 'Raid Líder', '', '', '', 11),
+  ('Gelatine', 'Raid Líder', '', '', '', 12);
 
 -- ── Recruitment ──────────────────────────────────────────────────────────────
 INSERT INTO recruitment_meta (id, intro, discord_url, whatsapp_url) VALUES
@@ -128,14 +139,16 @@ INSERT INTO feats (boss, raid, date, team, first_kill, sort) VALUES
 
 -- ── FAQ ──────────────────────────────────────────────────────────────────────
 INSERT INTO faq (q, a, sort) VALUES
-  ('¿Qué sistema de reparto de botín usáis?', 'Usamos Loot Council para el contenido de progresión: un grupo de oficiales reparte el equipo según mejora real del raid, asistencia y rendimiento. En contenido en farmeo pasamos a Soft Reserve (SR) para agilizar. La prioridad siempre es el progreso del grupo, no las estadísticas individuales.', 0),
-  ('¿Qué addons son obligatorios?', 'Pedimos Deadly Boss Mods (DBM) o BigWigs para los avisos de mecánicas, un medidor de daño/sanación (Details! o Recount) y WeakAuras para las mecánicas concretas de cada jefe. Compartimos nuestros paquetes de WeakAuras en Discord antes de cada raid nuevo.', 1),
-  ('¿Cuál es la política de asistencia?', 'No exigimos asistencia perfecta, pero sí avisar con antelación si no vas a poder asistir. Para entrar al roster de progresión pedimos una asistencia aproximada del 75% en las noches de raid fijadas. La vida real va primero; lo único que pedimos es comunicación.', 2),
-  ('¿Qué consumibles y encantamientos se esperan?', 'Que vengas con la mejor preparación razonable para tu nivel: comida de buff, elixires/pociones de flask, piedras de salud/maná y los encantamientos y gemas adecuados en todas las piezas. No hace falta que seas BiS, pero sí presentarte listo para rendir.', 3),
-  ('¿Hay requisito de edad o idioma?', 'Somos una comunidad mayoritariamente hispanohablante, así que el idioma de la guild es el español. Pedimos +18 por el ambiente del Discord de voz, aunque valoramos cada caso. Lo importante es buena actitud y saber estar.', 4),
-  ('¿Necesito experiencia previa de raid?', 'No es imprescindible, pero ayuda. Valoramos más la actitud, la disposición a aprender mecánicas y la constancia que tu historial. Si vienes de otro servidor o expansión, cuéntanoslo y lo tendremos en cuenta en la prueba.', 5),
-  ('¿Qué días y horario raideáis?', 'Raideamos en horario de noche entre semana (zona horaria europea). Los días concretos los confirmamos en el Discord según la fase actual. Avisamos con antelación de cualquier raid extra de progresión.', 6),
-  ('¿Cómo aplico a la guild?', 'Rellena el formulario de aplicación de esta página o escríbenos directamente por Discord. Cuéntanos tu clase, especialización, experiencia y disponibilidad, y un oficial te contactará para una prueba en el próximo raid.', 7);
+  ('¿Qué tipo de hermandad es Jefe de Guerra?', 'Somos una hermandad semi-hardcore de World of Warcraft: The Burning Crusade Classic. Progresamos en serio, con preparación y compromiso, pero manteniendo un buen ambiente hispanohablante. Tenemos varios equipos de raid (Cores) para cubrir distintos horarios.', 0),
+  ('¿Qué addons son obligatorios?', 'DBM o BigWigs (avisos de mecánicas), Loon BiS (para verificar tu equipo BiS), Gargul (gestión de loot y Soft Reserve) y un addon de aggro (tipo Omen). Deben estar instalados y actualizados antes del raid.', 1),
+  ('¿Qué requisitos de equipo y consumibles piden?', 'Preséntate con tu Pre-BiS gemado y encantado al máximo nivel disponible. Los consumibles son obligatorios: frascos, elixires y comida de buff. Venir sin consumibles afecta a tu loot (ver sistema de SR).', 2),
+  ('¿Cuál es la política de asistencia?', 'Para mantener el estatus de Raider Fijo se pide un mínimo del 85% de asistencia mensual. Bajar de ese 85% supone descender a Raider Suplente. La vida real va primero, pero pedimos avisar siempre con antelación.', 3),
+  ('¿Cómo funciona el sistema de loot?', 'Usamos Soft Reserve (SR) con Gargul. Cada raider parte de 1 SR base. Bonos: +1 SR por puntualidad (estar 10-15 min antes) y +1 SR por traer todos los consumibles (revisión de un oficial). Penalizaciones: -1 SR ese día por superar los 5 min de tolerancia, y -1 SR en la siguiente raid por faltar sin avisar. No se permite hacer SR por off-spec (rama secundaria).', 4),
+  ('¿Hay prioridades de loot por clase o rol?', 'Sí. Los tanques tienen prioridad en piezas Tier BiS para asegurar la progresión (verificado con Loon BiS por los raid leaders). Los cazadores eligen entre arma a dos manos o dos armas de una mano. Casters y healers eligen entre bastón o set de Main Hand + Off-hand según la fase. De trinkets físicos (Espinazo/Tsunami) máximo 1 por jugador hasta que todos los DPS tengan uno.', 5),
+  ('¿Cómo se reparten las monturas?', 'Puedes hacer 1 SR por la montura tras cumplir 5 semanas activas en tu core. Además, los jugadores con estatus Full BiS (ya tienen todos sus items BiS) pueden usar sus 3 SR específicamente para la montura.', 6),
+  ('¿Qué rangos hay y cómo progreso?', 'Entras como Raider Suplente (no rolea armas, trinkets ni monturas). Tras 3 semanas de asistencia constante pasas a Raider Fijo. Si te trasladas a otro core (avisando antes), vuelves a cumplir las 3 semanas para recuperar el estatus.', 7),
+  ('¿Qué sanciones existen?', 'Bajar del 85% mensual te degrada a Raider Suplente. Cambiar de core sin avisar al Raid Leader con días de antelación puede costarte tu lugar fijo; si reincides, la degradación a Suplente es permanente. La expulsión se reserva para ninjeo comprobado, toxicidad extrema o drama público.', 8),
+  ('¿Cómo aplico a la guild?', 'Rellena el formulario de aplicación de esta página o escríbenos por Discord. Cuéntanos tu clase, especialización, experiencia y disponibilidad, y un oficial te contactará para una prueba en el próximo raid.', 9);
 
 -- ── Community ────────────────────────────────────────────────────────────────
 INSERT INTO community_meta (id, discord_server_id, raid_timezone) VALUES

@@ -1,10 +1,16 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { reveal, type RevealDirection } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
-	import type { Team, RaidProgress } from '$lib/data/teams';
+	import {
+		guildLogsUrl,
+		wclGuildUrl,
+		type Team,
+		type RaidProgress
+	} from '$lib/data/teams';
 
 	let { teams }: { teams: Team[] } = $props();
 
@@ -53,6 +59,17 @@
 		</p>
 	{/if}
 
+	<div class="logs-cta" use:reveal={{ delay: 90 }}>
+		<Button
+			variant="ghost"
+			href={guildLogsUrl}
+			target="_blank"
+			rel="noopener noreferrer"
+		>
+			Ver nuestros logs
+		</Button>
+	</div>
+
 	<div class="grid">
 		{#each teams as team, i (team.id)}
 			<div
@@ -97,6 +114,18 @@
 						{#if team.note}
 							<p class="team-card__note">{team.note}</p>
 						{/if}
+
+						{#if team.wclGuildId}
+							<a
+								class="team-card__logs"
+								href={wclGuildUrl(team.wclGuildId)}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								Logs
+								<span class="team-card__logs-arrow" aria-hidden="true">↗</span>
+							</a>
+						{/if}
 					</Card>
 				</div>
 			</div>
@@ -120,6 +149,12 @@
 		text-align: center;
 		font-size: 0.8rem;
 		color: var(--color-steel-dim);
+	}
+
+	.logs-cta {
+		display: flex;
+		justify-content: center;
+		margin: -0.75rem auto clamp(2.5rem, 5vw, 3.5rem);
 	}
 
 	.grid {
@@ -241,6 +276,50 @@
 		font-size: 0.82rem;
 		line-height: 1.5;
 		color: var(--color-steel-dim);
+	}
+
+	/* Enlace sutil a los logs WCL del core. Acento acero → lava al pasar. */
+	.team-card__logs {
+		align-self: flex-start;
+		margin-top: 1.1rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-family: var(--font-display);
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		text-decoration: none;
+		color: var(--color-steel);
+		border-bottom: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);
+		transition:
+			color 0.2s ease,
+			border-color 0.2s ease,
+			transform 0.2s ease;
+	}
+	.team-card__logs:hover {
+		color: var(--color-ember);
+		border-color: color-mix(in srgb, var(--color-lava) 60%, transparent);
+		transform: translateY(-1px);
+	}
+	.team-card__logs:focus-visible {
+		outline: 2px solid var(--color-lava);
+		outline-offset: 2px;
+	}
+	.team-card__logs-arrow {
+		font-size: 0.85em;
+		transition: transform 0.2s ease;
+	}
+	.team-card__logs:hover .team-card__logs-arrow {
+		transform: translate(1px, -1px);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.team-card__logs:hover,
+		.team-card__logs:hover .team-card__logs-arrow {
+			transform: none;
+		}
 	}
 
 	@keyframes pill-blink {

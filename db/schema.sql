@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS teams (
   tk_total          INTEGER NOT NULL DEFAULT 4,
   recruiting        INTEGER NOT NULL DEFAULT 0,
   note              TEXT,
+  wcl_guild_id      INTEGER,
   sort              INTEGER NOT NULL DEFAULT 0
 );
 
@@ -132,4 +133,12 @@ CREATE TABLE IF NOT EXISTS raid_nights (
   weekday  INTEGER NOT NULL,   -- 0=Dom .. 6=Sáb
   time     TEXT NOT NULL,      -- 'HH:MM' en raid_timezone
   sort     INTEGER NOT NULL DEFAULT 0
+);
+
+-- ── WarcraftLogs cache (progreso + hazañas agregados de los 7 cores) ─────────
+-- Evita pegarle a la API de WCL en cada request (ver db/migrate-wcl-cache.sql).
+CREATE TABLE IF NOT EXISTS wcl_cache (
+  key        TEXT PRIMARY KEY,
+  json       TEXT NOT NULL,
+  fetched_at INTEGER NOT NULL   -- epoch ms (Date.now())
 );

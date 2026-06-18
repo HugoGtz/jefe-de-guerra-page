@@ -6,6 +6,8 @@ node_modules
 .env
 .env.*
 !.env.example
+# Cloudflare local dev secrets (vite dev reads these via getPlatformProxy).
+.dev.vars
 .DS_Store
 *.log
 vite.config.ts.timestamp-*

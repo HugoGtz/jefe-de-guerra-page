@@ -73,7 +73,7 @@
 <Hero guild={data.guild} />
 <About guild={data.guild} />
 <LavaDivider />
-<RaidProgress phases={data.phases} />
+<RaidProgress phases={data.phases} stats={data.stats} />
 <LavaDivider />
 <Feats feats={data.feats} />
 <LavaDivider />

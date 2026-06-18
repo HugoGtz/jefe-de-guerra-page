@@ -1,6 +1,6 @@
 /**
- * Oficiales y líderes de raid.
- * Nombres y datos son placeholders — el usuario debe confirmarlos.
+ * El Consejo de Guerra: oficiales y raid leaders de la hermandad.
+ * `wowClass`, `classLabel` y `line` son opcionales (se muestran si existen).
  */
 
 export type WowClass =
@@ -17,43 +17,30 @@ export type WowClass =
 export type Officer = {
 	/** Nombre del personaje. */
 	name: string;
-	/** Rol dentro de la guild (en español). */
+	/** Rol dentro de la guild (en español), p. ej. "Oficial" o "Raid Líder". */
 	role: string;
-	wowClass: WowClass;
-	/** Clase en español para mostrar. */
-	classLabel: string;
-	/** Frase corta / lema personal. */
-	line: string;
+	/** Clase (opcional). */
+	wowClass?: WowClass;
+	/** Clase en español para mostrar (opcional). */
+	classLabel?: string;
+	/** Frase corta / lema personal (opcional). */
+	line?: string;
 };
 
-// TODO: confirmar nombres, clases y roles reales con el usuario
 export const officers: Officer[] = [
-	{
-		name: 'Grommash',
-		role: 'Líder de Guild',
-		wowClass: 'Warrior',
-		classLabel: 'Guerrero',
-		line: 'Funda la estrategia y mantiene firme el estandarte de la Horda.'
-	},
-	{
-		name: 'Thalyssra',
-		role: 'Raid Leader',
-		wowClass: 'Shaman',
-		classLabel: 'Chamán',
-		line: 'Marca el ritmo de cada pull y no perdona una mecánica fallada.'
-	},
-	{
-		name: 'Drakthar',
-		role: 'Oficial',
-		wowClass: 'Warlock',
-		classLabel: 'Brujo',
-		line: 'Gestiona el loot y mantiene el orden en el caos del raid.'
-	},
-	{
-		name: 'Sylvara',
-		role: 'Reclutadora',
-		wowClass: 'Priest',
-		classLabel: 'Sacerdote',
-		line: 'La primera cara amable que verás al unirte a la hermandad.'
-	}
+	// ── Oficiales ──
+	{ name: 'Yuliox', role: 'Oficial' },
+	{ name: 'Gelvez', role: 'Oficial' },
+	{ name: 'Zorkian', role: 'Oficial' },
+	{ name: 'Kaniser', role: 'Oficial' },
+	{ name: 'Darkmorrigan', role: 'Oficial' },
+	{ name: 'Zaenghun', role: 'Oficial' },
+	// ── Raid Líderes ──
+	{ name: 'Bélcebuu', role: 'Raid Líder' },
+	{ name: 'Suuyeom', role: 'Raid Líder' },
+	{ name: 'Chulengo', role: 'Raid Líder' },
+	{ name: 'Frido', role: 'Raid Líder' },
+	{ name: 'Dortakus', role: 'Raid Líder' },
+	{ name: 'Sephiworm', role: 'Raid Líder' },
+	{ name: 'Gelatine', role: 'Raid Líder' }
 ];

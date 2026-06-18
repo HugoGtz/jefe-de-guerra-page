@@ -29,8 +29,12 @@
 								<p class="officer__role text-lava-glow">{officer.role}</p>
 							</div>
 						</div>
-						<p class="officer__class">{officer.classLabel}</p>
-						<p class="officer__line">{officer.line}</p>
+						{#if officer.classLabel}
+							<p class="officer__class">{officer.classLabel}</p>
+						{/if}
+						{#if officer.line}
+							<p class="officer__line">{officer.line}</p>
+						{/if}
 					</Card>
 				</div>
 			</div>
