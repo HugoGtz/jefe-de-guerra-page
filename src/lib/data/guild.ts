@@ -6,9 +6,9 @@
 export type RaidSchedule = {
 	/** Días de raid, p. ej. "Martes y Jueves". */
 	days: string;
-	/** Horario, p. ej. "21:00 – 00:00". */
+	/** Horario en hora de servidor, p. ej. "21:00 – 00:00". */
 	time: string;
-	/** Zona horaria de referencia, p. ej. "CET (hora de España)". */
+	/** Referencia horaria; siempre hora de servidor, p. ej. "ST". */
 	timezone: string;
 	/** Nota corta opcional sobre puntualidad / invocaciones. */
 	note?: string;
@@ -53,8 +53,7 @@ export const guild: Guild = {
 		days: 'Martes y Jueves',
 		// TODO: confirmar con el usuario
 		time: '21:00 – 00:00',
-		// TODO: confirmar con el usuario
-		timezone: 'CET · hora de España (Madrid)',
+		timezone: 'ST · hora de servidor',
 		// TODO: confirmar con el usuario
 		note: 'Se espera puntualidad: invocaciones 15 minutos antes del inicio.'
 	}

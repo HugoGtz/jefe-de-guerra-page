@@ -4,11 +4,9 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { scrollSpy } from '$lib/actions/scrollSpy';
 	import type { Guild } from '$lib/data/guild';
-	import type { Recruitment } from '$lib/data/recruitment';
 
 	// Datos de SSR (+layout.server.ts), expuestos vía $page.data en el layout.
 	const guild = $derived($page.data.guild as Guild);
-	const recruitment = $derived($page.data.recruitment as Recruitment);
 
 	const links = [
 		{ href: '#inicio', label: 'Inicio' },
@@ -17,7 +15,8 @@
 		{ href: '#equipos', label: 'Equipos' },
 		{ href: '#comunidad', label: 'Comunidad' },
 		{ href: '#reclutamiento', label: 'Reclutamiento' },
-		{ href: '#oficiales', label: 'Oficiales' }
+		{ href: '#oficiales', label: 'Oficiales' },
+		{ href: '#salon-fama', label: 'Salón de la Fama' }
 	];
 
 	// IDs de sección observados por el scroll-spy (sin el '#').
@@ -78,12 +77,7 @@
 		</ul>
 
 		<div class="nav__cta">
-			<Button
-				variant="primary"
-				href={recruitment.discordUrl}
-				target="_blank"
-				rel="noopener noreferrer">Únete</Button
-			>
+			<Button variant="primary" href="#aplica">Aplica</Button>
 		</div>
 
 		<button
@@ -107,12 +101,8 @@
 					</li>
 				{/each}
 			</ul>
-			<Button
-				variant="primary"
-				href={recruitment.discordUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="nav__mobile-cta">Únete al Discord</Button
+			<Button variant="primary" href="#aplica" onclick={close} class="nav__mobile-cta"
+				>Aplica</Button
 			>
 		</div>
 	{/if}

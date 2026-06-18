@@ -9,6 +9,7 @@
 	import Faq from '$lib/components/sections/Faq.svelte';
 	import Apply from '$lib/components/sections/Apply.svelte';
 	import Officers from '$lib/components/sections/Officers.svelte';
+	import HallOfFame from '$lib/components/sections/HallOfFame.svelte';
 	import LavaDivider from '$lib/components/LavaDivider.svelte';
 
 	// Datos de SSR (+layout.server.ts): mismas claves/shapes que $lib/data/*.
@@ -79,7 +80,7 @@
 <LavaDivider />
 <Teams teams={data.teams} />
 <LavaDivider />
-<Community guild={data.guild} community={data.community} discordUrl={data.recruitment.discordUrl} />
+<Community community={data.community} />
 <LavaDivider />
 <Recruitment recruitment={data.recruitment} />
 <LavaDivider />
@@ -88,3 +89,5 @@
 <Apply recruitment={data.recruitment} />
 <LavaDivider />
 <Officers officers={data.officers} />
+<LavaDivider />
+<HallOfFame hallOfFame={data.hallOfFame} />

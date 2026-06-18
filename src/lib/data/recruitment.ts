@@ -39,25 +39,26 @@ export const recruitment: Recruitment = {
 	intro:
 		'Buscamos reforzar el roster de cara a la Fase 2. Si quieres progresar en SSC y TK con un grupo serio pero sin dramas, este es tu sitio.',
 
-	// TODO: confirmar qué clases/roles se buscan realmente
 	needs: [
-		{ label: 'Sanadores', priority: 'alta' },
-		{ label: 'DPS a distancia', priority: 'alta' },
-		{ label: 'Tanque (Guerrero / Druida)', priority: 'media' },
-		{ label: 'DPS cuerpo a cuerpo', priority: 'media' },
+		{ label: 'Chamán elemental', priority: 'alta' },
+		{ label: 'Chamán mejora', priority: 'alta' },
+		{ label: 'Chamán restauración', priority: 'alta' },
+		{ label: 'Druida tanque', priority: 'media' },
+		{ label: 'Paladín protección', priority: 'media' },
+		{ label: 'Druida balance', priority: 'alta' },
 		{ label: 'Brujos', priority: 'media' },
-		{ label: 'Chamanes mejora', priority: 'baja' }
+		{ label: 'Cazadores', priority: 'baja' },
+		{ label: 'Sacerdote sombras', priority: 'media' }
 	],
 
 	requirements: [
-		'Nivel 70 con set y consumibles al día.',
 		'Disponibilidad para los días de raid fijados.',
 		'Buena actitud y mecánicas aprendidas.',
 		'Discord con micrófono.'
 	],
 
 	discordUrl: 'https://discord.com/invite/szcrkmkQQM',
-	whatsappUrl: 'https://chat.whatsapp.com/HBae8Qw03HcG0JflkUgAJE?s=cl&p=i&ilr=1',
+	whatsappUrl: 'https://chat.whatsapp.com/HHJkkOgIq7KB2iTZd0CcB5?s=cl&p=i&ilr=1',
 
 	// TODO: dejar VACÍO salvo que se decida postear directo al webhook (ver aviso
 	// de seguridad arriba). Lo recomendable es un proxy de servidor.

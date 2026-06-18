@@ -30,7 +30,7 @@ INSERT INTO guild (id, name, motto, badge, faction, server, game, schedule_days,
    'The Burning Crusade Classic',
    'Martes y Jueves',
    '21:00 – 00:00',
-   'CET · hora de España (Madrid)',
+   'ST · hora de servidor',
    'Se espera puntualidad: invocaciones 15 minutos antes del inicio.');
 
 -- ── About paragraphs ─────────────────────────────────────────────────────────
@@ -81,13 +81,13 @@ INSERT INTO bosses (raid_id, name, defeated, sort) VALUES
 
 -- ── Teams (Cores) ────────────────────────────────────────────────────────────
 INSERT INTO teams (id, name, schedule_days, schedule_time, schedule_timezone, ssc_kills, ssc_total, tk_kills, tk_total, recruiting, note, wcl_guild_id, sort) VALUES
-  ('core-1', 'Core 1', 'Mar · Jue', '21:00', 'CET', 6, 6, 3, 4, 0, 'Roster veterano · cupo completo', 826903, 0),
-  ('core-2', 'Core 2', 'Mié · Vie', '21:30', 'CET', 5, 6, 2, 4, 1, 'Buscamos sanadores y DPS a distancia', 826904, 1),
-  ('core-3', 'Core 3', 'Lun · Mié', '20:30', 'CET', 4, 6, 2, 4, 1, 'Tanque y DPS cuerpo a cuerpo', 826905, 2),
-  ('core-4', 'Core 4', 'Vie · Dom', '22:00', 'CET', 3, 6, 1, 4, 1, 'Roster en formación · todos los roles', 826907, 3),
-  ('core-5', 'Core 5', 'Sáb · Dom', '17:00', 'CET', 5, 6, 2, 4, 0, 'Horario diurno de fin de semana', 826908, 4),
-  ('core-6', 'Core 6', 'Lun · Jue', '21:00', 'CET', 2, 6, 0, 4, 1, 'Roster joven · buscamos todos los roles', 826909, 5),
-  ('core-7', 'Core 7', 'Mié · Sáb', '20:00', 'CET', 1, 6, 0, 4, 1, 'Nuevo core en formación', 826910, 6);
+  ('core-1', 'Core 1', 'Lun · Jue · Dom', '19:00 – 22:00', 'ST', 6, 6, 3, 4, 0, 'Roster veterano · cupo completo', 826903, 0),
+  ('core-2', 'Core 2', 'Mar · Mié · Jue', '19:00 – 22:00', 'ST', 5, 6, 2, 4, 1, 'Buscamos sanadores y DPS a distancia', 826904, 1),
+  ('core-3', 'Core 3', 'Sáb · Dom', '20:00 – 23:00', 'ST', 4, 6, 2, 4, 1, 'Tanque y DPS cuerpo a cuerpo', 826905, 2),
+  ('core-4', 'Core 4', 'Jue · Vie · Sáb', '07:30 – 10:30', 'ST', 3, 6, 1, 4, 1, 'Roster en formación · todos los roles', 826907, 3),
+  ('core-5', 'Core 5', 'Lun · Dom', '18:00 – 22:00', 'ST', 5, 6, 2, 4, 0, 'Roster consolidado', 826908, 4),
+  ('core-6', 'Core 6', 'Jue · Dom', '17:30 – 20:30', 'ST', 2, 6, 0, 4, 1, 'Roster joven · buscamos todos los roles', 826909, 5),
+  ('core-7', 'Core 7', 'Por confirmar', '', 'ST', 1, 6, 0, 4, 1, 'Nuevo core en formación', 826910, 6);
 
 -- ── Officers ─────────────────────────────────────────────────────────────────
 INSERT INTO officers (name, role, wow_class, class_label, line, sort) VALUES
@@ -110,18 +110,20 @@ INSERT INTO recruitment_meta (id, intro, discord_url, whatsapp_url) VALUES
   (1,
    'Buscamos reforzar el roster de cara a la Fase 2. Si quieres progresar en SSC y TK con un grupo serio pero sin dramas, este es tu sitio.',
    'https://discord.com/invite/szcrkmkQQM',
-   'https://chat.whatsapp.com/HBae8Qw03HcG0JflkUgAJE?s=cl&p=i&ilr=1');
+   'https://chat.whatsapp.com/HHJkkOgIq7KB2iTZd0CcB5?s=cl&p=i&ilr=1');
 
 INSERT INTO recruit_needs (label, priority, sort) VALUES
-  ('Sanadores', 'alta', 0),
-  ('DPS a distancia', 'alta', 1),
-  ('Tanque (Guerrero / Druida)', 'media', 2),
-  ('DPS cuerpo a cuerpo', 'media', 3),
-  ('Brujos', 'media', 4),
-  ('Chamanes mejora', 'baja', 5);
+  ('Chamán elemental', 'alta', 0),
+  ('Chamán mejora', 'alta', 1),
+  ('Chamán restauración', 'alta', 2),
+  ('Druida tanque', 'media', 3),
+  ('Paladín protección', 'media', 4),
+  ('Druida balance', 'alta', 5),
+  ('Brujos', 'media', 6),
+  ('Cazadores', 'baja', 7),
+  ('Sacerdote sombras', 'media', 8);
 
 INSERT INTO recruit_requirements (text, sort) VALUES
-  ('Nivel 70 con set y consumibles al día.', 0),
   ('Disponibilidad para los días de raid fijados.', 1),
   ('Buena actitud y mecánicas aprendidas.', 2),
   ('Discord con micrófono.', 3);
@@ -152,12 +154,22 @@ INSERT INTO faq (q, a, sort) VALUES
 
 -- ── Community ────────────────────────────────────────────────────────────────
 INSERT INTO community_meta (id, discord_server_id, raid_timezone) VALUES
-  (1, '', 'Europe/Madrid');
+  (1, '', 'ST');
 
+-- weekday: 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb. Hora de inicio (ST).
 INSERT INTO raid_nights (team, weekday, time, sort) VALUES
-  ('Core 1', 2, '21:00', 0),
-  ('Core 1', 4, '21:00', 1),
-  ('Core 2', 3, '21:30', 2),
-  ('Core 2', 5, '21:30', 3),
-  ('Core 3', 6, '17:00', 4),
-  ('Core 3', 0, '17:00', 5);
+  ('Core 1', 1, '19:00', 0),
+  ('Core 1', 4, '19:00', 1),
+  ('Core 1', 0, '19:00', 2),
+  ('Core 2', 2, '19:00', 3),
+  ('Core 2', 3, '19:00', 4),
+  ('Core 2', 4, '19:00', 5),
+  ('Core 3', 6, '20:00', 6),
+  ('Core 3', 0, '20:00', 7),
+  ('Core 4', 4, '07:30', 8),
+  ('Core 4', 5, '07:30', 9),
+  ('Core 4', 6, '07:30', 10),
+  ('Core 5', 1, '19:00', 11),
+  ('Core 5', 0, '18:00', 12),
+  ('Core 6', 4, '17:30', 13),
+  ('Core 6', 0, '17:30', 14);

@@ -8,6 +8,7 @@
 	import {
 		guildLogsUrl,
 		wclGuildUrl,
+		wclCalendarUrl,
 		type Team,
 		type RaidProgress
 	} from '$lib/data/teams';
@@ -42,8 +43,8 @@
 	const countLabel = $derived(countWord.charAt(0).toUpperCase() + countWord.slice(1));
 	const rosterNoun = $derived(teams.length === 1 ? 'roster marcha' : 'rosters marchan');
 
-	// Zona horaria de referencia para la nota compartida (tomada del primer
-	// equipo; todos comparten la misma zona). undefined si no hay equipos.
+	// Etiqueta horaria para la nota compartida (tomada del primer equipo;
+	// todos usan hora de servidor). undefined si no hay equipos.
 	const scheduleTimezone = $derived(teams[0]?.schedule.timezone);
 </script>
 
@@ -55,7 +56,7 @@
 
 	{#if scheduleTimezone}
 		<p class="tz-note" use:reveal={{ delay: 60 }}>
-			Horarios en {scheduleTimezone} (hora peninsular de España).
+			Horarios en hora de servidor ({scheduleTimezone}).
 		</p>
 	{/if}
 
@@ -93,9 +94,11 @@
 
 						<p class="team-card__schedule">
 							<span class="team-card__days">{team.schedule.days}</span>
-							<span class="team-card__sep" aria-hidden="true">·</span>
-							<span class="team-card__time">{team.schedule.time}</span>
-							<span class="team-card__tz">{team.schedule.timezone}</span>
+							{#if team.schedule.time}
+								<span class="team-card__sep" aria-hidden="true">·</span>
+								<span class="team-card__time">{team.schedule.time}</span>
+								<span class="team-card__tz">{team.schedule.timezone}</span>
+							{/if}
 						</p>
 
 						<div class="bars">
@@ -116,15 +119,26 @@
 						{/if}
 
 						{#if team.wclGuildId}
-							<a
-								class="team-card__logs"
-								href={wclGuildUrl(team.wclGuildId)}
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								Logs
-								<span class="team-card__logs-arrow" aria-hidden="true">↗</span>
-							</a>
+							<div class="team-card__links">
+								<a
+									class="team-card__logs"
+									href={wclGuildUrl(team.wclGuildId)}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Logs
+									<span class="team-card__logs-arrow" aria-hidden="true">↗</span>
+								</a>
+								<a
+									class="team-card__logs"
+									href={wclCalendarUrl(team.wclGuildId)}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Calendario
+									<span class="team-card__logs-arrow" aria-hidden="true">↗</span>
+								</a>
+							</div>
 						{/if}
 					</Card>
 				</div>
@@ -278,10 +292,18 @@
 		color: var(--color-steel-dim);
 	}
 
-	/* Enlace sutil a los logs WCL del core. Acento acero → lava al pasar. */
+	/* Fila de enlaces WCL del core (Logs · Calendario). Anclada al fondo
+	   de la tarjeta para que todas las tarjetas alineen sus enlaces. */
+	.team-card__links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.25rem;
+		margin-top: auto;
+		padding-top: 1.1rem;
+	}
+
+	/* Enlace sutil a WCL del core. Acento acero → lava al pasar. */
 	.team-card__logs {
-		align-self: flex-start;
-		margin-top: 1.1rem;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;

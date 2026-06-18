@@ -14,6 +14,9 @@ export type WowClass =
 	| 'Warlock'
 	| 'Druid';
 
+/** Rol de combate (raid role) derivado de la mejor spec en WarcraftLogs. */
+export type SpecRole = 'DPS' | 'Healer' | 'Tank';
+
 export type Officer = {
 	/** Nombre del personaje. */
 	name: string;
@@ -25,6 +28,12 @@ export type Officer = {
 	classLabel?: string;
 	/** Frase corta / lema personal (opcional). */
 	line?: string;
+	/** Mejor spec según WarcraftLogs (en inglés, p. ej. "Fury"). */
+	spec?: string;
+	/** Rol de combate de la mejor spec (DPS/Healer/Tank). */
+	specRole?: SpecRole;
+	/** Parse score (bestPerformanceAverage redondeado, 0–100) de WCL. */
+	score?: number;
 };
 
 export const officers: Officer[] = [

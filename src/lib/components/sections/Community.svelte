@@ -3,32 +3,24 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import type { Guild } from '$lib/data/guild';
 	import type { RaidNight } from '$lib/data/community';
 	import { getNextRaid, type NextRaid } from '$lib/utils/nextRaid';
 
 	type Community = {
 		discordServerId: string;
-		discordInvite: string;
 		raidTimezone: string;
 		raidNights: RaidNight[];
 	};
 
-	let {
-		community,
-		discordUrl
-	}: { guild: Guild; community: Community; discordUrl: string } = $props();
+	let { community }: { community: Community } = $props();
 
-	// Derivados del objeto de comunidad para conservar el resto del componente
-	// sin cambios. `discordInvite` cae a `discordUrl` si está vacío.
 	const discordServerId = $derived(community.discordServerId);
 	const raidNights = $derived(community.raidNights);
 	const raidTimezone = $derived(community.raidTimezone);
-	const discordInvite = $derived(community.discordInvite || discordUrl);
 
-	// El countdown se calcula SOLO en el cliente (depende de la hora actual y
-	// de la zona horaria). En SSR / antes de montar mostramos un placeholder
-	// estático para evitar saltos de hidratación.
+	// El countdown se calcula SOLO en el cliente (depende de la hora actual).
+	// En SSR / antes de montar mostramos un placeholder estático para evitar
+	// saltos de hidratación.
 	let mounted = $state(false);
 	let next = $state<NextRaid | null>(null);
 	let remaining = $state({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -48,7 +40,7 @@
 		const now = new Date();
 		// Recalcular el próximo raid si aún no hay uno o si ya pasó.
 		if (!next || next.date.getTime() <= now.getTime()) {
-			next = getNextRaid(raidNights, raidTimezone, now);
+			next = getNextRaid(raidNights, now);
 		}
 		if (!next) {
 			remaining = { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -114,7 +106,7 @@
 							</span>
 						{/each}
 					</div>
-					<p class="countdown__meta">{next.label}</p>
+					<p class="countdown__meta">{next.label} · {raidTimezone}</p>
 				{:else if mounted && !next}
 					<p class="countdown__meta countdown__meta--empty">
 						Próximamente anunciaremos los horarios.
@@ -153,23 +145,16 @@
 			{:else}
 				<Card class="discord-fallback">
 					<h3 class="discord-fallback__title text-engraved">
-						Únete a nuestro Discord
+						Únete a la hermandad
 					</h3>
 					<p class="discord-fallback__text">
-						Coordinamos raids, hablamos de tácticas y compartimos el día a día
-						de la hermandad. La voz de la guerra suena aquí.
+						Coordinamos raids, hablamos de tácticas y compartimos el día a día en
+						Discord y WhatsApp. Para entrar, primero aplica: al enviar el formulario
+						te damos acceso a la comunidad.
 					</p>
-					<a
-						class="discord-fallback__btn glow-red"
-						href={discordInvite}
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						Entrar al Discord
+					<a class="discord-fallback__btn glow-red" href="#aplica">
+						Aplica para unirte
 					</a>
-					<p class="discord-fallback__note">
-						El widget en vivo aparecerá aquí cuando se active el servidor.
-					</p>
 				</Card>
 			{/if}
 		</div>
@@ -327,11 +312,6 @@
 	}
 	.discord-fallback__btn:hover {
 		transform: translateY(-2px);
-	}
-	.discord-fallback__note {
-		margin: 0.3rem 0 0;
-		font-size: 0.78rem;
-		color: var(--color-steel-dim);
 	}
 
 	@media (min-width: 820px) {

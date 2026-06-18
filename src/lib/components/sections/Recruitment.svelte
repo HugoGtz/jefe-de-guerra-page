@@ -1,12 +1,29 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import CopyButton from '$lib/components/CopyButton.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
-	import type { Recruitment } from '$lib/data/recruitment';
+	import type { Recruitment, RecruitNeed } from '$lib/data/recruitment';
+	import { resolveRecruitNeed } from '$lib/wow-icons';
 
 	let { recruitment }: { recruitment: Recruitment } = $props();
+
+	type Priority = RecruitNeed['priority'];
+
+	const PRIORITY_ORDER: Record<Priority, number> = { alta: 0, media: 1, baja: 2 };
+	const PRIORITY_LABEL: Record<Priority, string> = {
+		alta: 'Prioridad alta',
+		media: 'Prioridad media',
+		baja: 'Prioridad baja'
+	};
+
+	// Resolve each need's icon/class/color once, then sort by urgency
+	// (Alta → Media → Baja) so the most-wanted roles read first.
+	const resolvedNeeds = $derived(
+		recruitment.needs
+			.map((need) => ({ need, resolved: resolveRecruitNeed(need.label) }))
+			.sort((a, b) => PRIORITY_ORDER[a.need.priority] - PRIORITY_ORDER[b.need.priority])
+	);
 </script>
 
 <Section id="reclutamiento" eyebrow="Reclutamiento" title="Únete a la lucha">
@@ -16,17 +33,38 @@
 		<div class="recruit__needs" use:reveal={{ delay: 100, direction: 'left', blur: true }}>
 			<h3 class="recruit__subtitle text-engraved">Buscamos</h3>
 			<ul class="needs">
-				{#each recruitment.needs as need, i (need.label)}
+				{#each resolvedNeeds as { need, resolved }, i (need.label)}
 					<li
 						class="need metal-border need--{need.priority}"
+						style={resolved.color ? `--class-color: ${resolved.color}` : ''}
 						use:reveal={{
-							delay: 140 + i * 60,
+							delay: 140 + i * 55,
 							threshold: 0.05,
 							direction: i % 2 === 0 ? 'left' : 'right'
 						}}
 					>
-						<span class="need__label">{need.label}</span>
-						<span class="need__priority">{need.priority}</span>
+						<span class="need__icon" aria-hidden="true">
+							{#if resolved.iconUrl}
+								<img
+									class="need__img"
+									src={resolved.iconUrl}
+									alt=""
+									width="40"
+									height="40"
+									loading="lazy"
+									decoding="async"
+								/>
+							{:else}
+								<span class="need__fallback">{need.label.charAt(0)}</span>
+							{/if}
+						</span>
+
+						<span class="need__body">
+							<span class="need__label">{need.label}</span>
+							<span class="need__priority">{PRIORITY_LABEL[need.priority]}</span>
+						</span>
+
+						<span class="need__flame" aria-hidden="true"></span>
 					</li>
 				{/each}
 			</ul>
@@ -49,28 +87,12 @@
 		<div class="recruit__cta surface" use:tilt={{ max: 4 }}>
 			<h3 class="recruit__cta-title text-lava-glow">¿Te sumas a la Horda?</h3>
 			<p class="recruit__cta-text">
-				Escríbenos por Discord, cuéntanos tu clase y experiencia, y te haremos una prueba en
-				el próximo raid.
+				Rellena el formulario contándonos tu clase y experiencia. Tras enviarlo te daremos
+				acceso a nuestro Discord y al grupo de WhatsApp, y te haremos una prueba en el
+				próximo raid.
 			</p>
 			<div class="recruit__cta-actions">
-				<Button
-					variant="primary"
-					href={recruitment.discordUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					beam
-					pulse>Unirse por Discord</Button
-				>
-				<Button
-					variant="ghost"
-					href={recruitment.whatsappUrl}
-					target="_blank"
-					rel="noopener noreferrer">Grupo de WhatsApp</Button
-				>
-				<Button variant="ghost" href="#aplica">Rellenar formulario</Button>
-			</div>
-			<div class="recruit__cta-copy">
-				<CopyButton value={recruitment.discordUrl} label="Copiar Discord" />
+				<Button variant="primary" href="#aplica" beam pulse>Rellenar formulario</Button>
 			</div>
 		</div>
 	</div>
@@ -97,49 +119,120 @@
 		margin: 0 0 1.25rem;
 	}
 
+	/* --- Buscamos: rich class/spec rows ------------------------------------ */
 	.needs {
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
+		display: grid;
+		gap: 0.6rem;
 	}
+
 	.need {
+		--class-color: var(--color-steel);
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+		padding: 0.6rem 0.8rem;
+		border-radius: 6px;
+		background-color: var(--color-stone);
+		overflow: hidden;
+	}
+	/* Left accent bar tinted by the class color. */
+	.need::before {
+		content: '';
+		position: absolute;
+		inset: 0 auto 0 0;
+		width: 3px;
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--class-color) 85%, transparent),
+			color-mix(in srgb, var(--class-color) 35%, transparent)
+		);
+	}
+
+	.need__icon {
+		position: relative;
+		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.6rem;
-		padding: 0.55rem 0.95rem;
-		border-radius: 4px;
-		background-color: var(--color-stone);
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--color-stone) 70%, #000);
+		border: 1px solid color-mix(in srgb, var(--class-color) 45%, transparent);
+		box-shadow:
+			inset 0 1px 0 rgba(229, 229, 229, 0.08),
+			0 0 10px color-mix(in srgb, var(--class-color) 22%, transparent);
+	}
+	.need__img {
+		width: 34px;
+		height: 34px;
+		border-radius: 6px;
+		object-fit: cover;
+	}
+	.need__fallback {
+		font-family: var(--font-display);
+		font-size: 1.15rem;
+		font-weight: 900;
+		color: color-mix(in srgb, var(--class-color) 80%, var(--color-silver));
+	}
+
+	.need__body {
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
 	}
 	.need__label {
 		font-family: var(--font-display);
-		font-weight: 600;
+		font-weight: 700;
 		color: var(--color-silver);
-		font-size: 0.92rem;
+		font-size: 0.98rem;
+		line-height: 1.15;
+		/* Subtle class tint on the name without hurting legibility. */
+		color: color-mix(in srgb, var(--class-color) 28%, var(--color-silver));
 	}
 	.need__priority {
-		font-size: 0.62rem;
+		font-size: 0.6rem;
 		font-weight: 700;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		padding: 0.12rem 0.45rem;
-		border-radius: 999px;
-	}
-	.need--alta .need__priority {
-		color: var(--color-ash);
-		background: linear-gradient(135deg, var(--color-lava), var(--color-ember));
-	}
-	.need--media .need__priority {
-		color: var(--color-silver);
-		background-color: color-mix(in srgb, var(--color-blood) 70%, transparent);
-	}
-	.need--baja .need__priority {
-		color: var(--color-steel);
-		background-color: color-mix(in srgb, var(--color-steel) 18%, transparent);
+		color: var(--color-steel-dim);
 	}
 
+	/* Priority "flame" indicator on the right: count + intensity by urgency. */
+	.need__flame {
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+	.need--alta {
+		background-color: color-mix(in srgb, var(--color-blood) 14%, var(--color-stone));
+	}
+	.need--alta .need__priority {
+		color: var(--color-ember);
+	}
+	.need--alta .need__flame {
+		background: radial-gradient(circle, var(--color-lava), var(--color-blood));
+		box-shadow:
+			0 0 8px rgba(255, 59, 33, 0.85),
+			0 0 16px rgba(161, 6, 19, 0.55);
+		animation: jdg-pulse 2.2s ease-in-out infinite;
+	}
+	.need--media .need__flame {
+		background: color-mix(in srgb, var(--color-blood) 70%, transparent);
+		box-shadow: 0 0 6px rgba(161, 6, 19, 0.45);
+	}
+	.need--baja .need__flame {
+		background: color-mix(in srgb, var(--color-steel) 35%, transparent);
+	}
+
+	/* --- Requisitos -------------------------------------------------------- */
 	.reqs {
 		list-style: none;
 		margin: 0;
@@ -164,6 +257,7 @@
 		box-shadow: 0 0 6px rgba(255, 59, 33, 0.5);
 	}
 
+	/* --- CTA (behavior unchanged) ----------------------------------------- */
 	.recruit__cta {
 		text-align: center;
 		padding: clamp(2rem, 5vw, 3rem);
@@ -188,9 +282,6 @@
 		align-items: center;
 		gap: 0.85rem;
 	}
-	.recruit__cta-copy {
-		margin-top: 1rem;
-	}
 
 	@media (min-width: 540px) {
 		.recruit__cta-actions {
@@ -201,6 +292,10 @@
 
 	@media (min-width: 720px) {
 		.recruit__grid {
+			grid-template-columns: 1fr 1fr;
+		}
+		/* Two-up needs grid on wide screens for density. */
+		.needs {
 			grid-template-columns: 1fr 1fr;
 		}
 	}

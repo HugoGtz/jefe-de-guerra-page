@@ -1,144 +1,143 @@
 -- Jefe de Guerra — D1 schema (guild dynamic content).
+-- GENERATED FILE — do not edit by hand.
+-- Source of truth: src/lib/server/db/schema.ts  (regenerate: npm run db:schema)
 -- Apply: wrangler d1 execute jefe-de-guerra --file=db/schema.sql [--local|--remote]
 
 PRAGMA foreign_keys = ON;
 
--- ── Guild identity (singleton row id=1) ──────────────────────────────────────
-CREATE TABLE IF NOT EXISTS guild (
-  id               INTEGER PRIMARY KEY CHECK (id = 1),
-  name             TEXT NOT NULL,
-  motto            TEXT NOT NULL,
-  badge            TEXT NOT NULL,
-  faction          TEXT NOT NULL,
-  server           TEXT NOT NULL,
-  game             TEXT NOT NULL,
-  schedule_days     TEXT NOT NULL,
-  schedule_time     TEXT NOT NULL,
-  schedule_timezone TEXT NOT NULL,
-  schedule_note     TEXT
+CREATE TABLE IF NOT EXISTS `about_paragraphs` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`kind` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL,
+	`text` text NOT NULL,
+	CONSTRAINT "about_paragraphs_kind" CHECK("about_paragraphs"."kind" IN ('who', 'vibe'))
 );
 
--- About paragraphs: kind = 'who' (quiénes somos) | 'vibe' (ambiente)
-CREATE TABLE IF NOT EXISTS about_paragraphs (
-  id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  kind  TEXT NOT NULL CHECK (kind IN ('who', 'vibe')),
-  sort  INTEGER NOT NULL DEFAULT 0,
-  text  TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS `bosses` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`raid_id` text NOT NULL,
+	`name` text NOT NULL,
+	`defeated` integer DEFAULT 0 NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL,
+	FOREIGN KEY (`raid_id`) REFERENCES `raids`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
--- ── Raid progression ─────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS phases (
-  id            TEXT PRIMARY KEY,
-  name          TEXT NOT NULL,
-  label         TEXT NOT NULL,
-  status        TEXT NOT NULL CHECK (status IN ('completed', 'in-progress', 'upcoming')),
-  status_label  TEXT NOT NULL,
-  sort          INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `community_meta` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`discord_server_id` text DEFAULT '' NOT NULL,
+	`raid_timezone` text DEFAULT 'ST' NOT NULL,
+	CONSTRAINT "community_meta_id_singleton" CHECK("community_meta"."id" = 1)
 );
 
-CREATE TABLE IF NOT EXISTS raids (
-  id        TEXT PRIMARY KEY,
-  phase_id  TEXT NOT NULL REFERENCES phases(id) ON DELETE CASCADE,
-  name      TEXT NOT NULL,
-  abbr      TEXT,
-  sort      INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `faq` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`q` text NOT NULL,
+	`a` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS bosses (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  raid_id   TEXT NOT NULL REFERENCES raids(id) ON DELETE CASCADE,
-  name      TEXT NOT NULL,
-  defeated  INTEGER NOT NULL DEFAULT 0,
-  sort      INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `feats` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`boss` text NOT NULL,
+	`raid` text NOT NULL,
+	`date` text NOT NULL,
+	`team` text,
+	`first_kill` integer DEFAULT 0 NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
--- ── Raid teams (Cores) ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS teams (
-  id                TEXT PRIMARY KEY,
-  name              TEXT NOT NULL,
-  schedule_days     TEXT NOT NULL,
-  schedule_time     TEXT NOT NULL,
-  schedule_timezone TEXT NOT NULL,
-  ssc_kills         INTEGER NOT NULL DEFAULT 0,
-  ssc_total         INTEGER NOT NULL DEFAULT 6,
-  tk_kills          INTEGER NOT NULL DEFAULT 0,
-  tk_total          INTEGER NOT NULL DEFAULT 4,
-  recruiting        INTEGER NOT NULL DEFAULT 0,
-  note              TEXT,
-  wcl_guild_id      INTEGER,
-  sort              INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `guild` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`motto` text NOT NULL,
+	`badge` text NOT NULL,
+	`faction` text NOT NULL,
+	`server` text NOT NULL,
+	`game` text NOT NULL,
+	`schedule_days` text NOT NULL,
+	`schedule_time` text NOT NULL,
+	`schedule_timezone` text NOT NULL,
+	`schedule_note` text,
+	CONSTRAINT "guild_id_singleton" CHECK("guild"."id" = 1)
 );
 
--- ── Officers ─────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS officers (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL,
-  role        TEXT NOT NULL,
-  wow_class   TEXT NOT NULL,
-  class_label TEXT NOT NULL,
-  line        TEXT NOT NULL,
-  sort        INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `officers` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`name` text NOT NULL,
+	`role` text NOT NULL,
+	`wow_class` text NOT NULL,
+	`class_label` text NOT NULL,
+	`line` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
--- ── Recruitment ──────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS recruitment_meta (
-  id           INTEGER PRIMARY KEY CHECK (id = 1),
-  intro        TEXT NOT NULL,
-  discord_url  TEXT NOT NULL,
-  whatsapp_url TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS `phases` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`label` text NOT NULL,
+	`status` text NOT NULL,
+	`status_label` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "phases_status" CHECK("phases"."status" IN ('completed', 'in-progress', 'upcoming'))
 );
 
-CREATE TABLE IF NOT EXISTS recruit_needs (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  label     TEXT NOT NULL,
-  priority  TEXT NOT NULL CHECK (priority IN ('alta', 'media', 'baja')),
-  sort      INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `raid_nights` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`team` text,
+	`weekday` integer NOT NULL,
+	`time` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS recruit_requirements (
-  id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  text  TEXT NOT NULL,
-  sort  INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `raids` (
+	`id` text PRIMARY KEY NOT NULL,
+	`phase_id` text NOT NULL,
+	`name` text NOT NULL,
+	`abbr` text,
+	`sort` integer DEFAULT 0 NOT NULL,
+	FOREIGN KEY (`phase_id`) REFERENCES `phases`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
--- ── Feats (últimas hazañas / kills) ──────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS feats (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  boss        TEXT NOT NULL,
-  raid        TEXT NOT NULL,
-  date        TEXT NOT NULL,           -- ISO yyyy-mm-dd
-  team        TEXT,
-  first_kill  INTEGER NOT NULL DEFAULT 0,
-  sort        INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `recruit_needs` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`label` text NOT NULL,
+	`priority` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "recruit_needs_priority" CHECK("recruit_needs"."priority" IN ('alta', 'media', 'baja'))
 );
 
--- ── FAQ ──────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS faq (
-  id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  q     TEXT NOT NULL,
-  a     TEXT NOT NULL,
-  sort  INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `recruit_requirements` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`text` text NOT NULL,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
--- ── Community (Discord widget + raid nights for the countdown) ───────────────
-CREATE TABLE IF NOT EXISTS community_meta (
-  id                INTEGER PRIMARY KEY CHECK (id = 1),
-  discord_server_id TEXT NOT NULL DEFAULT '',
-  raid_timezone     TEXT NOT NULL DEFAULT 'Europe/Madrid'
+CREATE TABLE IF NOT EXISTS `recruitment_meta` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`intro` text NOT NULL,
+	`discord_url` text NOT NULL,
+	`whatsapp_url` text NOT NULL,
+	CONSTRAINT "recruitment_meta_id_singleton" CHECK("recruitment_meta"."id" = 1)
 );
 
-CREATE TABLE IF NOT EXISTS raid_nights (
-  id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  team     TEXT,
-  weekday  INTEGER NOT NULL,   -- 0=Dom .. 6=Sáb
-  time     TEXT NOT NULL,      -- 'HH:MM' en raid_timezone
-  sort     INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS `teams` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`schedule_days` text NOT NULL,
+	`schedule_time` text NOT NULL,
+	`schedule_timezone` text NOT NULL,
+	`ssc_kills` integer DEFAULT 0 NOT NULL,
+	`ssc_total` integer DEFAULT 6 NOT NULL,
+	`tk_kills` integer DEFAULT 0 NOT NULL,
+	`tk_total` integer DEFAULT 4 NOT NULL,
+	`recruiting` integer DEFAULT 0 NOT NULL,
+	`note` text,
+	`wcl_guild_id` integer,
+	`sort` integer DEFAULT 0 NOT NULL
 );
 
--- ── WarcraftLogs cache (progreso + hazañas agregados de los 7 cores) ─────────
--- Evita pegarle a la API de WCL en cada request (ver db/migrate-wcl-cache.sql).
-CREATE TABLE IF NOT EXISTS wcl_cache (
-  key        TEXT PRIMARY KEY,
-  json       TEXT NOT NULL,
-  fetched_at INTEGER NOT NULL   -- epoch ms (Date.now())
+CREATE TABLE IF NOT EXISTS `wcl_cache` (
+	`key` text PRIMARY KEY NOT NULL,
+	`json` text NOT NULL,
+	`fetched_at` integer NOT NULL
 );

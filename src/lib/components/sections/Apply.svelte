@@ -122,7 +122,7 @@
 			}
 
 			status = 'success';
-			statusMessage = '¡Aplicación enviada! Un oficial te contactará por Discord.';
+			statusMessage = '¡Aplicación enviada! Un oficial revisará tu solicitud pronto.';
 			form = { ...empty };
 			errors = {};
 		} catch {
@@ -135,6 +135,28 @@
 
 <Section id="aplica" eyebrow="Da el paso" title="Aplica a la guild">
 	<div class="apply surface" use:reveal={{ blur: true }}>
+		{#if status === 'success'}
+			<div class="apply__success">
+				<h3 class="apply__success-title text-engraved">¡Bienvenido a la hueste!</h3>
+				<p class="apply__success-text">{statusMessage}</p>
+				<p class="apply__success-text">Ya puedes unirte a nuestros canales:</p>
+				<div class="apply__join">
+					<Button
+						variant="primary"
+						href={recruitment.discordUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						pulse>Unirse por Discord</Button
+					>
+					<Button
+						variant="ghost"
+						href={recruitment.whatsappUrl}
+						target="_blank"
+						rel="noopener noreferrer">Grupo de WhatsApp</Button
+					>
+				</div>
+			</div>
+		{:else}
 			<p class="apply__lead">
 				Rellena tus datos y tu aplicación llega directo a nuestros oficiales por Discord.
 			</p>
@@ -293,24 +315,15 @@
 						{sending ? 'Enviando…' : 'Enviar aplicación'}
 					</Button>
 				</div>
-				<p class="apply__alt">
-					¿Prefieres Discord?
-					<a href={recruitment.discordUrl} target="_blank" rel="noopener noreferrer"
-						>Escríbenos directamente</a
-					>.
-				</p>
 			</form>
 
-		<!-- Mensajes de estado anunciados a lectores de pantalla. -->
-		<p
-			class="apply__status"
-			class:apply__status--error={status === 'error'}
-			class:apply__status--success={status === 'success'}
-			role="status"
-			aria-live="polite"
-		>
-			{statusMessage}
-		</p>
+			{#if status === 'error'}
+				<!-- Error anunciado a lectores de pantalla. -->
+				<p class="apply__status apply__status--error" role="status" aria-live="polite">
+					{statusMessage}
+				</p>
+			{/if}
+		{/if}
 	</div>
 </Section>
 
@@ -337,19 +350,27 @@
 		color: var(--color-steel);
 		line-height: 1.65;
 	}
-	.apply__alt {
-		margin: 1.1rem 0 0;
+	/* Estado de éxito: bienvenida + botones de unirse (revelados al aplicar). */
+	.apply__success {
 		text-align: center;
-		font-size: 0.88rem;
-		color: var(--color-steel-dim);
+		padding: clamp(0.5rem, 3vw, 1.5rem) 0;
 	}
-	.apply__alt a {
-		color: var(--color-lava);
-		text-decoration: none;
-		border-bottom: 1px solid color-mix(in srgb, var(--color-lava) 45%, transparent);
+	.apply__success-title {
+		font-size: clamp(1.5rem, 4vw, 2rem);
+		margin: 0 0 0.75rem;
+		color: var(--color-silver);
 	}
-	.apply__alt a:hover {
-		color: var(--color-ember);
+	.apply__success-text {
+		margin: 0 0 0.6rem;
+		color: var(--color-steel);
+		line-height: 1.6;
+	}
+	.apply__join {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 1rem;
+		margin-top: 1.6rem;
 	}
 
 	.apply__grid {
@@ -446,10 +467,6 @@
 	}
 	.apply__status--error {
 		color: var(--color-ember);
-	}
-	.apply__status--success {
-		color: var(--color-silver);
-		text-shadow: 0 0 10px rgba(255, 59, 33, 0.4);
 	}
 
 	@media (min-width: 560px) {

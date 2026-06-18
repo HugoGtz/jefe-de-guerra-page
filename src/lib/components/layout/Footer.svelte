@@ -2,11 +2,9 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import { page } from '$app/stores';
 	import type { Guild } from '$lib/data/guild';
-	import type { Recruitment } from '$lib/data/recruitment';
 
 	// Datos de SSR (+layout.server.ts), expuestos vía $page.data en el layout.
 	const guild = $derived($page.data.guild as Guild);
-	const recruitment = $derived($page.data.recruitment as Recruitment);
 
 	const year = new Date().getFullYear();
 </script>
@@ -22,10 +20,10 @@
 		</div>
 
 		<div class="footer__links">
-			<a href={recruitment.discordUrl} target="_blank" rel="noopener noreferrer" class="footer__link">Discord</a>
-			<a href={recruitment.whatsappUrl} target="_blank" rel="noopener noreferrer" class="footer__link">WhatsApp</a>
 			<a href="#progreso" class="footer__link">Progreso</a>
+			<a href="#equipos" class="footer__link">Equipos</a>
 			<a href="#reclutamiento" class="footer__link">Reclutamiento</a>
+			<a href="#aplica" class="footer__link">Aplica</a>
 		</div>
 	</div>
 

@@ -1,11 +1,15 @@
 /**
- * Server-side guild data access layer.
+ * Server-side guild data access ORCHESTRATOR.
  *
- * Reads dynamic guild content from the Cloudflare D1 binding (`platform.env.DB`)
- * and maps the rows back into the exact shapes the UI already consumes (the
- * types defined in `$lib/data/*`). If there is no D1 binding, or any query
- * throws, it falls back to the static constants from `$lib/data/*` so the site
- * keeps working before/without a database.
+ * Builds the `GuildData` the UI consumes (the types in `$lib/data/*`) from the
+ * Cloudflare D1 binding (`platform.env.DB`) via a typed Drizzle client and a set
+ * of repositories (`$lib/server/repositories/*`). Repositories own the SQL and
+ * the row→domain mapping; this module owns composition, the WarcraftLogs live
+ * overrides (D1-cached) and the static-fallback policy.
+ *
+ * If there is no D1 binding, or any query throws, it falls back to the static
+ * constants from `$lib/data/*` so the site keeps working before/without a
+ * database — the site must never crash if D1 is down.
  */
 
 import { guild as staticGuild, type Guild } from '$lib/data/guild';
@@ -18,8 +22,7 @@ import {
 import { officers as staticOfficers, type Officer } from '$lib/data/officers';
 import {
 	recruitment as staticRecruitment,
-	type Recruitment,
-	type RecruitNeed
+	type Recruitment
 } from '$lib/data/recruitment';
 import { teams as staticTeams, type Team } from '$lib/data/teams';
 import { feats as staticFeats, type Feat } from '$lib/data/kills';
@@ -31,7 +34,33 @@ import {
 	raidNights as staticRaidNights,
 	type RaidNight
 } from '$lib/data/community';
-import { getWclData, type WclData, type WclFeat } from '$lib/server/warcraftlogs';
+import {
+	getWclData,
+	getWclOfficers,
+	getWclRankings,
+	type WclData,
+	type WclFeat,
+	type WclCharacter,
+	type HallOfFame,
+	type WclRankings
+} from '$lib/server/warcraftlogs';
+import { getDb, type Db } from '$lib/server/db/client';
+import {
+	getGuild,
+	getPhases,
+	getTeams,
+	getOfficers,
+	getRecruitment,
+	getFeats,
+	getFaq,
+	getCommunityMeta,
+	getRaidNights,
+	getCache,
+	setCache,
+	withRaidProgress,
+	phasePercent,
+	type CacheEntry
+} from '$lib/server/repositories';
 
 /** Guild-wide stats surfaced in the UI, derived from WCL (or manual fallback). */
 export type GuildStats = {
@@ -60,6 +89,8 @@ export type GuildData = {
 	feats: Feat[];
 	faq: FaqItem[];
 	stats: GuildStats;
+	/** Top-10 DPS / Healers / Tanks across all cores (WCL), or null if unavailable. */
+	hallOfFame: HallOfFame | null;
 	community: {
 		discordServerId: string;
 		discordInvite: string;
@@ -79,6 +110,7 @@ function staticFallback(): GuildData {
 		feats: staticFeats,
 		faq: staticFaq,
 		stats: computeStats(staticPhases, staticFeats, staticTeams, Date.now()),
+		hallOfFame: null,
 		community: {
 			discordServerId: staticDiscordServerId,
 			discordInvite: staticDiscordInvite,
@@ -88,35 +120,24 @@ function staticFallback(): GuildData {
 	};
 }
 
-// ── Derived-value helpers (mirror raids.ts buildRaid / phasePercent) ─────────
-
-/** Recompute kills/total/percent for a raid from its bosses. */
-function withRaidProgress(
-	id: string,
-	name: string,
-	bosses: Boss[],
-	abbr?: string
-): Raid {
-	const total = bosses.length;
-	const kills = bosses.filter((b) => b.defeated).length;
-	const percent = total === 0 ? 0 : Math.round((kills / total) * 100);
-	return { id, name, abbr, bosses, kills, total, percent };
-}
-
-/** Global phase percent = bosses killed / total across its raids. */
-function phasePercent(raids: Raid[]): number {
-	const total = raids.reduce((acc, r) => acc + r.total, 0);
-	const kills = raids.reduce((acc, r) => acc + r.kills, 0);
-	return total === 0 ? 0 : Math.round((kills / total) * 100);
-}
-
 // ── WarcraftLogs integration (live progress + feats, D1-cached) ──────────────
 
-/** How long a cached WCL aggregate stays fresh before we refetch (~20 min). */
-const WCL_CACHE_TTL_MS = 20 * 60 * 1000;
+/** How long a cached WCL aggregate stays fresh before we refetch (~10 min).
+   This is the "live" guild progress/feats query (1 cheap batched call). The
+   heavier officer/HoF caches stay long below to avoid the rate limit. */
+const WCL_CACHE_TTL_MS = 10 * 60 * 1000;
 const WCL_CACHE_KEY = 'guild';
 
-type WclCacheRow = { json: string; fetched_at: number };
+/** Officer enrichment (class/spec/score) — expensive, long TTL (~6h). */
+const WCL_OFFICERS_TTL_MS = 6 * 60 * 60 * 1000;
+const WCL_OFFICERS_KEY = 'officers';
+
+/**
+ * Report rankings (per-core roster + parses) — heaviest, longest TTL (~12h).
+ * ONE fetch feeds BOTH the Hall of Fame and reliable officer spec enrichment.
+ */
+const WCL_HOF_TTL_MS = 12 * 60 * 60 * 1000;
+const WCL_HOF_KEY = 'hall_of_fame';
 
 /** English boss name → our Feat raid bucket. Covers Phase 1 + Phase 2 bosses. */
 const BOSS_TO_RAID: Record<string, Feat['raid']> = {
@@ -186,28 +207,16 @@ function wclFeatToFeat(f: WclFeat): Feat {
 }
 
 /**
- * Fetch WCL data with a D1 cache (key='guild', TTL ~20 min). On fetch error,
+ * Fetch WCL data with a D1 cache (key='guild', TTL ~10 min). On fetch error,
  * falls back to stale cache if present, otherwise returns null. The cached
  * payload stores `killedBossNames` as an array (Sets aren't JSON-serializable).
  */
-async function loadWclCached(platform: App.Platform): Promise<WclData | null> {
-	const DB = platform.env.DB;
-	const env = platform.env;
+async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData | null> {
 	const now = Date.now();
 
-	let cachedRow: WclCacheRow | null = null;
-	try {
-		cachedRow = await DB.prepare(
-			'SELECT json, fetched_at FROM wcl_cache WHERE key = ?'
-		)
-			.bind(WCL_CACHE_KEY)
-			.first<WclCacheRow>();
-	} catch {
-		// Cache table may not exist yet — proceed to a fresh fetch.
-		cachedRow = null;
-	}
+	const cachedRow: CacheEntry | null = await getCache(db, WCL_CACHE_KEY);
 
-	const parseRow = (row: WclCacheRow): WclData | null => {
+	const parseRow = (row: CacheEntry): WclData | null => {
 		try {
 			const parsed = JSON.parse(row.json) as {
 				killedBossNames: string[];
@@ -230,7 +239,7 @@ async function loadWclCached(platform: App.Platform): Promise<WclData | null> {
 	};
 
 	// Fresh enough → use the cached value.
-	if (cachedRow && now - cachedRow.fetched_at < WCL_CACHE_TTL_MS) {
+	if (cachedRow && now - cachedRow.fetchedAt < WCL_CACHE_TTL_MS) {
 		const fresh = parseRow(cachedRow);
 		if (fresh) return fresh;
 	}
@@ -238,27 +247,110 @@ async function loadWclCached(platform: App.Platform): Promise<WclData | null> {
 	// Otherwise fetch live, then upsert the cache.
 	const fetched = await getWclData(env);
 	if (fetched) {
-		try {
-			const payload = JSON.stringify({
-				killedBossNames: [...fetched.killedBossNames],
-				perCore: fetched.perCore,
-				feats: fetched.feats
-			});
-			await DB.prepare(
-				'INSERT INTO wcl_cache (key, json, fetched_at) VALUES (?, ?, ?) ' +
-					'ON CONFLICT(key) DO UPDATE SET json = excluded.json, fetched_at = excluded.fetched_at'
-			)
-				.bind(WCL_CACHE_KEY, payload, now)
-				.run();
-		} catch {
-			// Caching is best-effort; ignore write failures.
-		}
+		const payload = JSON.stringify({
+			killedBossNames: [...fetched.killedBossNames],
+			perCore: fetched.perCore,
+			feats: fetched.feats
+		});
+		await setCache(db, WCL_CACHE_KEY, payload, now);
 		return fetched;
 	}
 
 	// Fetch failed → use stale cache if we have one.
 	if (cachedRow) return parseRow(cachedRow);
 	return null;
+}
+
+/**
+ * Generic D1-cached JSON fetch. Reads `key` from wcl_cache; if fresh (within
+ * `ttlMs`) returns the parsed value. Otherwise calls `fetcher`, upserts the
+ * result, and returns it. On fetch failure, falls back to stale cache. Fully
+ * resilient — never throws (returns null on total failure).
+ */
+async function loadJsonCached<T>(
+	db: Db,
+	key: string,
+	ttlMs: number,
+	fetcher: () => Promise<T | null>
+): Promise<T | null> {
+	const now = Date.now();
+
+	const cachedRow: CacheEntry | null = await getCache(db, key);
+
+	const parse = (row: CacheEntry): T | null => {
+		try {
+			return JSON.parse(row.json) as T;
+		} catch {
+			return null;
+		}
+	};
+
+	if (cachedRow && now - cachedRow.fetchedAt < ttlMs) {
+		const fresh = parse(cachedRow);
+		if (fresh) return fresh;
+	}
+
+	let fetched: T | null = null;
+	try {
+		fetched = await fetcher();
+	} catch {
+		fetched = null;
+	}
+
+	if (fetched) {
+		await setCache(db, key, JSON.stringify(fetched), now);
+		return fetched;
+	}
+
+	if (cachedRow) return parse(cachedRow);
+	return null;
+}
+
+/**
+ * Merge WCL enrichment into the base officers, preferring the RELIABLE source.
+ *
+ * Priority per officer (matched case-insensitively by name):
+ *  1. Report-rankings map (`reliable`, keyed lowercase): the class/spec/role the
+ *     player ACTUALLY played that night, plus the parse score. This is the
+ *     trustworthy source for spec in Fresh TBC.
+ *  2. Class-only fallback (`classOnly`, from a classID lookup): fills
+ *     class/classLabel/score but leaves spec EMPTY (rather than a noisy one).
+ *  3. Officers found in neither stay name + role only.
+ *
+ * In all cases a class already set in D1 wins over a derived one.
+ */
+function mergeOfficerWcl(
+	officers: Officer[],
+	reliable: Record<string, WclCharacter>,
+	classOnly: Record<string, WclCharacter>
+): Officer[] {
+	return officers.map((o) => {
+		const ch = reliable[o.name.toLowerCase()];
+		if (ch) {
+			return {
+				...o,
+				// Prefer WCL class when D1 didn't already provide one.
+				wowClass: o.wowClass ?? ch.wowClass,
+				classLabel: o.classLabel ?? ch.classLabel,
+				spec: ch.spec,
+				specRole: ch.specRole,
+				score: ch.score
+			};
+		}
+		// Fallback: class-only (reliable classID), but no (noisy) spec.
+		const fb = classOnly[o.name];
+		if (fb) {
+			return {
+				...o,
+				wowClass: o.wowClass ?? fb.wowClass,
+				classLabel: o.classLabel ?? fb.classLabel,
+				spec: undefined,
+				specRole: undefined,
+				score: fb.score
+			};
+		}
+		return o;
+	});
 }
 
 /**
@@ -374,225 +466,42 @@ function computeStats(
 	};
 }
 
-// ── Row shapes returned by D1 ────────────────────────────────────────────────
-
-type GuildRow = {
-	name: string;
-	motto: string;
-	badge: string;
-	faction: string;
-	server: string;
-	game: string;
-	schedule_days: string;
-	schedule_time: string;
-	schedule_timezone: string;
-	schedule_note: string | null;
-};
-type AboutRow = { kind: string; text: string };
-type PhaseRow = {
-	id: string;
-	name: string;
-	label: string;
-	status: string;
-	status_label: string;
-};
-type RaidRow = { id: string; phase_id: string; name: string; abbr: string | null };
-type BossRow = { raid_id: string; name: string; defeated: number };
-type TeamRow = {
-	id: string;
-	name: string;
-	schedule_days: string;
-	schedule_time: string;
-	schedule_timezone: string;
-	ssc_kills: number;
-	ssc_total: number;
-	tk_kills: number;
-	tk_total: number;
-	recruiting: number;
-	note: string | null;
-	wcl_guild_id: number | null;
-};
-type OfficerRow = {
-	name: string;
-	role: string;
-	wow_class: string;
-	class_label: string;
-	line: string;
-};
-type RecruitMetaRow = { intro: string; discord_url: string; whatsapp_url: string };
-type RecruitNeedRow = { label: string; priority: string };
-type RecruitReqRow = { text: string };
-type FeatRow = {
-	boss: string;
-	raid: string;
-	date: string;
-	team: string | null;
-	first_kill: number;
-};
-type FaqRow = { q: string; a: string };
-type CommunityMetaRow = { discord_server_id: string; raid_timezone: string };
-type RaidNightRow = { team: string | null; weekday: number; time: string };
-
 /**
- * Load all guild data. Uses D1 when the binding is present; otherwise (or on any
- * error) returns the static fallback from `$lib/data/*`.
+ * Load all guild data. Uses D1 (via Drizzle repositories) when the binding is
+ * present; otherwise (or on any error) returns the static fallback from
+ * `$lib/data/*`.
  */
 export async function loadGuildData(
 	platform: App.Platform | undefined
 ): Promise<GuildData> {
-	const DB = platform?.env?.DB;
-	if (!DB) return staticFallback();
+	const binding = platform?.env?.DB;
+	if (!binding) return staticFallback();
 
 	try {
-		const [
-			guildRes,
-			aboutRes,
-			phaseRes,
-			raidRes,
-			bossRes,
-			teamRes,
-			officerRes,
-			recruitMetaRes,
-			needRes,
-			reqRes,
-			featRes,
-			faqRes,
-			communityRes,
-			nightRes
-		] = await Promise.all([
-			DB.prepare('SELECT * FROM guild WHERE id = 1').first<GuildRow>(),
-			DB.prepare('SELECT kind, text FROM about_paragraphs ORDER BY kind, sort').all<AboutRow>(),
-			DB.prepare('SELECT id, name, label, status, status_label FROM phases ORDER BY sort').all<PhaseRow>(),
-			DB.prepare('SELECT id, phase_id, name, abbr FROM raids ORDER BY sort').all<RaidRow>(),
-			DB.prepare('SELECT raid_id, name, defeated FROM bosses ORDER BY sort').all<BossRow>(),
-			DB.prepare('SELECT * FROM teams ORDER BY sort').all<TeamRow>(),
-			DB.prepare('SELECT name, role, wow_class, class_label, line FROM officers ORDER BY sort').all<OfficerRow>(),
-			DB.prepare('SELECT intro, discord_url, whatsapp_url FROM recruitment_meta WHERE id = 1').first<RecruitMetaRow>(),
-			DB.prepare('SELECT label, priority FROM recruit_needs ORDER BY sort').all<RecruitNeedRow>(),
-			DB.prepare('SELECT text FROM recruit_requirements ORDER BY sort').all<RecruitReqRow>(),
-			DB.prepare('SELECT boss, raid, date, team, first_kill FROM feats ORDER BY sort').all<FeatRow>(),
-			DB.prepare('SELECT q, a FROM faq ORDER BY sort').all<FaqRow>(),
-			DB.prepare('SELECT discord_server_id, raid_timezone FROM community_meta WHERE id = 1').first<CommunityMetaRow>(),
-			DB.prepare('SELECT team, weekday, time FROM raid_nights ORDER BY sort').all<RaidNightRow>()
-		]);
+		const env = platform!.env;
+		const db = getDb(binding);
 
-		if (!guildRes || !recruitMetaRes || !communityRes) return staticFallback();
+		const [guild, phases, teams, officers, recruitment, feats, faq, communityMeta, raidNights] =
+			await Promise.all([
+				getGuild(db),
+				getPhases(db),
+				getTeams(db),
+				getOfficers(db),
+				getRecruitment(db),
+				getFeats(db),
+				getFaq(db),
+				getCommunityMeta(db),
+				getRaidNights(db)
+			]);
 
-		// ── Guild ──
-		const aboutRows = aboutRes.results ?? [];
-		const guild: Guild = {
-			name: guildRes.name,
-			motto: guildRes.motto,
-			badge: guildRes.badge,
-			faction: guildRes.faction,
-			server: guildRes.server,
-			game: guildRes.game,
-			aboutWhoWeAre: aboutRows.filter((r) => r.kind === 'who').map((r) => r.text),
-			aboutVibe: aboutRows.filter((r) => r.kind === 'vibe').map((r) => r.text),
-			schedule: {
-				days: guildRes.schedule_days,
-				time: guildRes.schedule_time,
-				timezone: guildRes.schedule_timezone,
-				note: guildRes.schedule_note ?? undefined
-			}
-		};
+		// Missing singleton rows → treat as "no data yet" and fall back.
+		if (!guild || !recruitment || !communityMeta) return staticFallback();
 
-		// ── Phases / raids / bosses (recompute progress) ──
-		const bossRows = bossRes.results ?? [];
-		const raidRows = raidRes.results ?? [];
-		const bossesByRaid = new Map<string, Boss[]>();
-		for (const b of bossRows) {
-			const list = bossesByRaid.get(b.raid_id) ?? [];
-			list.push({ name: b.name, defeated: b.defeated === 1 });
-			bossesByRaid.set(b.raid_id, list);
-		}
-		const raidsByPhase = new Map<string, Raid[]>();
-		for (const r of raidRows) {
-			const raid = withRaidProgress(
-				r.id,
-				r.name,
-				bossesByRaid.get(r.id) ?? [],
-				r.abbr ?? undefined
-			);
-			const list = raidsByPhase.get(r.phase_id) ?? [];
-			list.push(raid);
-			raidsByPhase.set(r.phase_id, list);
-		}
-		const phases: Phase[] = (phaseRes.results ?? []).map((p) => {
-			const raids = raidsByPhase.get(p.id) ?? [];
-			return {
-				id: p.id,
-				name: p.name,
-				label: p.label,
-				status: p.status as Phase['status'],
-				statusLabel: p.status_label,
-				percent: phasePercent(raids),
-				raids
-			};
-		});
-
-		// ── Officers ──
-		const officers: Officer[] = (officerRes.results ?? []).map((o) => ({
-			name: o.name,
-			role: o.role,
-			// Empty strings (unknown class/line) map to undefined → hidden in UI.
-			wowClass: (o.wow_class || undefined) as Officer['wowClass'],
-			classLabel: o.class_label || undefined,
-			line: o.line || undefined
-		}));
-
-		// ── Recruitment ──
-		const needs: RecruitNeed[] = (needRes.results ?? []).map((n) => ({
-			label: n.label,
-			priority: n.priority as RecruitNeed['priority']
-		}));
-		const recruitment: Recruitment = {
-			intro: recruitMetaRes.intro,
-			needs,
-			requirements: (reqRes.results ?? []).map((r) => r.text),
-			discordUrl: recruitMetaRes.discord_url,
-			whatsappUrl: recruitMetaRes.whatsapp_url,
-			applyWebhookUrl: ''
-		};
-
-		// ── Teams ──
-		const teams: Team[] = (teamRes.results ?? []).map((t) => ({
-			id: t.id,
-			name: t.name,
-			schedule: {
-				days: t.schedule_days,
-				time: t.schedule_time,
-				timezone: t.schedule_timezone
-			},
-			ssc: { kills: t.ssc_kills, total: t.ssc_total },
-			tk: { kills: t.tk_kills, total: t.tk_total },
-			recruiting: t.recruiting === 1,
-			note: t.note ?? undefined,
-			wclGuildId: t.wcl_guild_id ?? undefined
-		}));
-
-		// ── Feats ──
-		const feats: Feat[] = (featRes.results ?? []).map((f) => ({
-			boss: f.boss,
-			raid: f.raid as Feat['raid'],
-			date: f.date,
-			team: f.team ?? undefined,
-			firstKill: f.first_kill === 1
-		}));
-
-		// ── FAQ ──
-		const faq: FaqItem[] = (faqRes.results ?? []).map((f) => ({ q: f.q, a: f.a }));
-
-		// ── Community ──
-		const raidNights: RaidNight[] = (nightRes.results ?? []).map((n) => ({
-			team: n.team ?? undefined,
-			weekday: n.weekday,
-			time: n.time
-		}));
+		// ── Community (discordInvite mirrors the recruitment Discord URL) ──
 		const community = {
-			discordServerId: communityRes.discord_server_id,
+			discordServerId: communityMeta.discordServerId,
 			discordInvite: recruitment.discordUrl,
-			raidTimezone: communityRes.raid_timezone,
+			raidTimezone: communityMeta.raidTimezone,
 			raidNights
 		};
 
@@ -603,7 +512,7 @@ export async function loadGuildData(
 		let outFeats = feats;
 		let outTeams = teams;
 		try {
-			const wcl = await loadWclCached(platform!);
+			const wcl = await loadWclCached(db, env);
 			if (wcl) {
 				const overridden = applyWclOverride(phases, feats, wcl);
 				outPhases = overridden.phases;
@@ -614,18 +523,63 @@ export async function loadGuildData(
 			// Keep the manual progress + feats + teams on any WCL error.
 		}
 
+		// Report rankings — ONE cached fetch (~12h) feeds BOTH the Hall of Fame
+		// and reliable officer spec enrichment (best parse per character, with the
+		// class/spec/role they actually played).
+		let hallOfFame: HallOfFame | null = null;
+		let reliableChars: Record<string, WclCharacter> = {};
+		try {
+			const rankings = await loadJsonCached<WclRankings>(
+				db,
+				WCL_HOF_KEY,
+				WCL_HOF_TTL_MS,
+				() => getWclRankings(env)
+			);
+			// Guard against a stale cache row from the old (HallOfFame-only) shape.
+			if (rankings && rankings.hallOfFame) {
+				hallOfFame = rankings.hallOfFame;
+				reliableChars = rankings.characters ?? {};
+			}
+		} catch {
+			hallOfFame = null;
+		}
+
+		// Officer enrichment: reliable spec from the rankings map above, with a
+		// class-only fallback (classID lookup, cached ~6h) for officers absent from
+		// the rankings — so they at least get a class, but no noisy spec.
+		let outOfficers = officers;
+		try {
+			let classOnly: Record<string, WclCharacter> = {};
+			// Only spend the extra (cheap) classID call when an officer is missing
+			// from the reliable rankings map.
+			const needFallback = officers.some((o) => !reliableChars[o.name.toLowerCase()]);
+			if (needFallback) {
+				const enrich = await loadJsonCached<Record<string, WclCharacter>>(
+					db,
+					WCL_OFFICERS_KEY,
+					WCL_OFFICERS_TTL_MS,
+					() => getWclOfficers(env)
+				);
+				if (enrich) classOnly = enrich;
+			}
+			outOfficers = mergeOfficerWcl(officers, reliableChars, classOnly);
+		} catch {
+			// Keep base officers (name + role) on any failure.
+		}
+
 		// Stats are derived from whatever data we ended up with (WCL or manual).
 		const stats = computeStats(outPhases, outFeats, outTeams, Date.now());
 
 		return {
 			guild,
 			phases: outPhases,
-			officers,
+			officers: outOfficers,
 			recruitment,
 			teams: outTeams,
 			feats: outFeats,
 			faq,
 			stats,
+			hallOfFame,
 			community
 		};
 	} catch {

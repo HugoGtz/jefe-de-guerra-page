@@ -23,9 +23,9 @@ export type Team = {
 	schedule: {
 		/** Días de raid, p. ej. "Mar · Jue". */
 		days: string;
-		/** Hora de inicio, p. ej. "21:00". */
+		/** Hora de inicio en hora de servidor, p. ej. "21:00". */
 		time: string;
-		/** Zona horaria, p. ej. "CET". */
+		/** Referencia horaria; siempre hora de servidor, p. ej. "ST". */
 		timezone: string;
 	};
 	/** Avance en Caverna del Santuario Serpiente (6 bosses). */
@@ -50,12 +50,16 @@ export const guildLogsUrl = 'https://es.fresh.warcraftlogs.com/guild/id/792187';
 export const wclGuildUrl = (id: number) =>
 	'https://es.fresh.warcraftlogs.com/guild/id/' + id;
 
+/** Construye la URL del calendario WCL de una hermandad a partir de su ID. */
+export const wclCalendarUrl = (id: number) =>
+	'https://es.fresh.warcraftlogs.com/guild/calendar/' + id;
+
 // TODO: confirmar con el usuario (nombres, horarios, progreso, reclutamiento).
 export const teams: Team[] = [
 	{
 		id: 'core-1',
 		name: 'Core 1',
-		schedule: { days: 'Mar · Jue', time: '21:00', timezone: 'CET' }, // TODO: confirmar con el usuario
+		schedule: { days: 'Lun · Jue · Dom', time: '19:00 – 22:00', timezone: 'ST' },
 		ssc: { kills: 6, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 3, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
@@ -65,7 +69,7 @@ export const teams: Team[] = [
 	{
 		id: 'core-2',
 		name: 'Core 2',
-		schedule: { days: 'Mié · Vie', time: '21:30', timezone: 'CET' }, // TODO: confirmar con el usuario
+		schedule: { days: 'Mar · Mié · Jue', time: '19:00 – 22:00', timezone: 'ST' },
 		ssc: { kills: 5, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
@@ -75,7 +79,7 @@ export const teams: Team[] = [
 	{
 		id: 'core-3',
 		name: 'Core 3',
-		schedule: { days: 'Lun · Mié', time: '20:30', timezone: 'CET' }, // TODO: confirmar con el usuario
+		schedule: { days: 'Sáb · Dom', time: '20:00 – 23:00', timezone: 'ST' },
 		ssc: { kills: 4, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
@@ -85,7 +89,7 @@ export const teams: Team[] = [
 	{
 		id: 'core-4',
 		name: 'Core 4',
-		schedule: { days: 'Vie · Dom', time: '22:00', timezone: 'CET' }, // TODO: confirmar con el usuario
+		schedule: { days: 'Jue · Vie · Sáb', time: '07:30 – 10:30', timezone: 'ST' },
 		ssc: { kills: 3, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 1, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
@@ -95,17 +99,17 @@ export const teams: Team[] = [
 	{
 		id: 'core-5',
 		name: 'Core 5',
-		schedule: { days: 'Sáb · Dom', time: '17:00', timezone: 'CET' }, // TODO: confirmar con el usuario
+		schedule: { days: 'Lun · Dom', time: '18:00 – 22:00', timezone: 'ST' },
 		ssc: { kills: 5, total: 6 }, // TODO: confirmar con el usuario
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
-		note: 'Horario diurno de fin de semana', // TODO: confirmar con el usuario
+		note: 'Roster consolidado', // TODO: confirmar con el usuario
 		wclGuildId: 826908
 	},
 	{
 		id: 'core-6',
 		name: 'Core 6',
-		schedule: { days: 'Lun · Jue', time: '21:00', timezone: 'CET' }, // TODO: confirmar
+		schedule: { days: 'Jue · Dom', time: '17:30 – 20:30', timezone: 'ST' },
 		ssc: { kills: 2, total: 6 }, // TODO: confirmar
 		tk: { kills: 0, total: 4 }, // TODO: confirmar
 		recruiting: true, // TODO: confirmar
@@ -115,7 +119,7 @@ export const teams: Team[] = [
 	{
 		id: 'core-7',
 		name: 'Core 7',
-		schedule: { days: 'Mié · Sáb', time: '20:00', timezone: 'CET' }, // TODO: confirmar
+		schedule: { days: 'Por confirmar', time: '', timezone: 'ST' },
 		ssc: { kills: 1, total: 6 }, // TODO: confirmar
 		tk: { kills: 0, total: 4 }, // TODO: confirmar
 		recruiting: true, // TODO: confirmar
