@@ -8,19 +8,22 @@
 	// Datos de SSR (+layout.server.ts), expuestos vía $page.data en el layout.
 	const guild = $derived($page.data.guild as Guild);
 
+	// Anclas absolutas (`/#seccion`) para que funcionen también desde sub-rutas
+	// (p. ej. /equipos/[id]): navegan a la portada y hacen scroll a la sección.
+	// En la propia portada el scroll suave sigue funcionando igual.
 	const links = [
-		{ href: '#inicio', label: 'Inicio' },
-		{ href: '#la-guild', label: 'La Guild' },
-		{ href: '#progreso', label: 'Progreso' },
-		{ href: '#equipos', label: 'Equipos' },
-		{ href: '#comunidad', label: 'Comunidad' },
-		{ href: '#reclutamiento', label: 'Reclutamiento' },
-		{ href: '#oficiales', label: 'Oficiales' },
-		{ href: '#salon-fama', label: 'Salón de la Fama' }
+		{ href: '/#inicio', label: 'Inicio' },
+		{ href: '/#la-guild', label: 'La Guild' },
+		{ href: '/#progreso', label: 'Progreso' },
+		{ href: '/#equipos', label: 'Equipos' },
+		{ href: '/#comunidad', label: 'Comunidad' },
+		{ href: '/#reclutamiento', label: 'Reclutamiento' },
+		{ href: '/#oficiales', label: 'Oficiales' },
+		{ href: '/#salon-fama', label: 'Salón de la Fama' }
 	];
 
-	// IDs de sección observados por el scroll-spy (sin el '#').
-	const sectionIds = links.map((l) => l.href.slice(1));
+	// IDs de sección observados por el scroll-spy (sin el prefijo '/#').
+	const sectionIds = links.map((l) => l.href.replace('/#', ''));
 
 	let scrolled = $state(false);
 	let open = $state(false);
@@ -51,7 +54,7 @@
 >
 	<nav class="nav__inner" aria-label="Navegación principal">
 		<a
-			href="#inicio"
+			href="/#inicio"
 			class="nav__brand"
 			class:is-hidden={onHero}
 			aria-hidden={onHero}
@@ -64,20 +67,21 @@
 
 		<ul class="nav__links">
 			{#each links as link (link.href)}
-				<li>
-					<a
-						href={link.href}
-						class="nav__link"
-						class:is-active={activeId === link.href.slice(1)}
-						aria-current={activeId === link.href.slice(1) ? 'true' : undefined}
-						onclick={close}>{link.label}</a
-					>
-				</li>
+				{@const sectionId = link.href.replace('/#', '')}
+					<li>
+						<a
+							href={link.href}
+							class="nav__link"
+							class:is-active={activeId === sectionId}
+							aria-current={activeId === sectionId ? 'true' : undefined}
+							onclick={close}>{link.label}</a
+						>
+					</li>
 			{/each}
 		</ul>
 
 		<div class="nav__cta">
-			<Button variant="primary" href="#aplica">Aplica</Button>
+			<Button variant="primary" href="/#aplica">Aplica</Button>
 		</div>
 
 		<button
@@ -101,7 +105,7 @@
 					</li>
 				{/each}
 			</ul>
-			<Button variant="primary" href="#aplica" onclick={close} class="nav__mobile-cta"
+			<Button variant="primary" href="/#aplica" onclick={close} class="nav__mobile-cta"
 				>Aplica</Button
 			>
 		</div>

@@ -307,6 +307,53 @@ async function loadJsonCached<T>(
 }
 
 /**
+ * Load the report-rankings aggregate (Hall of Fame + reliable character map +
+ * per-core rosters) through the shared 12h D1 cache. Returns null when there is
+ * no DB binding, no creds, or anything fails — never throws. ONE source of truth
+ * for the rankings cache so `loadGuildData` and `loadCoreRoster` share the same
+ * cache key/TTL and never trigger a second fetch.
+ */
+export async function loadWclRankingsCached(
+	platform: App.Platform | undefined
+): Promise<WclRankings | null> {
+	try {
+		const binding = platform?.env?.DB;
+		if (!binding) return null;
+		const db = getDb(binding);
+		const env = platform!.env;
+		return await loadJsonCached<WclRankings>(db, WCL_HOF_KEY, WCL_HOF_TTL_MS, () =>
+			getWclRankings(env)
+		);
+	} catch {
+		return null;
+	}
+}
+
+/** A single roster member, as derived from recent WCL report rankings. */
+export type RosterMember = WclCharacter;
+
+/**
+ * Best-effort per-core roster for the given wclGuildId, from the shared 12h
+ * rankings cache (no extra fetch beyond what `loadGuildData` already warms).
+ *
+ * Fully resilient: missing DB / creds / wclGuildId, any error, or a stale cache
+ * row lacking `rosters` → null. Empty roster for the core → null.
+ */
+export async function loadCoreRoster(
+	platform: App.Platform | undefined,
+	wclGuildId: number | undefined
+): Promise<RosterMember[] | null> {
+	if (wclGuildId == null) return null;
+	try {
+		const rankings = await loadWclRankingsCached(platform);
+		const roster = rankings?.rosters?.[wclGuildId];
+		return roster && roster.length > 0 ? roster : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Merge WCL enrichment into the base officers, preferring the RELIABLE source.
  *
  * Priority per officer (matched case-insensitively by name):
@@ -529,12 +576,7 @@ export async function loadGuildData(
 		let hallOfFame: HallOfFame | null = null;
 		let reliableChars: Record<string, WclCharacter> = {};
 		try {
-			const rankings = await loadJsonCached<WclRankings>(
-				db,
-				WCL_HOF_KEY,
-				WCL_HOF_TTL_MS,
-				() => getWclRankings(env)
-			);
+			const rankings = await loadWclRankingsCached(platform);
 			// Guard against a stale cache row from the old (HallOfFame-only) shape.
 			if (rankings && rankings.hallOfFame) {
 				hallOfFame = rankings.hallOfFame;

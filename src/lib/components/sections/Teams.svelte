@@ -83,6 +83,14 @@
 			>
 				<div use:tilt={{ max: 5 }} class="cell__tilt">
 					<Card beam={team.recruiting} class="team-card">
+						<!-- Enlace estirado: cubre toda la tarjeta (::after inset:0) sin
+						     anidar <a> dentro de <a>. Los enlaces internos (Logs/Calendario)
+						     se elevan con z-index para seguir siendo clicables encima. -->
+						<a
+							class="team-card__overlay"
+							href="/equipos/{team.id}"
+							aria-label="Ver roster de {team.name}"
+						></a>
 						<header class="team-card__head">
 							<h3 class="team-card__name text-engraved">{team.name}</h3>
 							{#if team.recruiting}
@@ -187,6 +195,30 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
+		position: relative;
+	}
+
+	/* Enlace estirado al detalle del core: invisible, cubre toda la tarjeta. */
+	.team-card__overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		border-radius: inherit;
+		text-indent: -9999px;
+		overflow: hidden;
+	}
+	.team-card__overlay::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	/* Afordancia de hover (cursor + leve elevación) sobre toda la tarjeta. */
+	.cell__tilt:hover {
+		cursor: pointer;
+	}
+	.team-card__overlay:focus-visible {
+		outline: 2px solid var(--color-lava);
+		outline-offset: 2px;
 	}
 
 	.team-card__head {
@@ -300,6 +332,10 @@
 		gap: 1.25rem;
 		margin-top: auto;
 		padding-top: 1.1rem;
+		/* Por encima del enlace estirado para que Logs/Calendario sigan
+		   siendo clicables (sin anidar <a> dentro de <a>). */
+		position: relative;
+		z-index: 1;
 	}
 
 	/* Enlace sutil a WCL del core. Acento acero → lava al pasar. */

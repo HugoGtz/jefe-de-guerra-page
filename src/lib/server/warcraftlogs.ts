@@ -147,6 +147,13 @@ export type WclRankings = {
 	hallOfFame: HallOfFame;
 	/** name(lowercased) → reliable class/spec/role/score from report rankings. */
 	characters: Record<string, WclCharacter>;
+	/**
+	 * Per-core roster keyed by wclGuildId → that core's characters (best parse per
+	 * character within the core), sorted by score descending. Derived from the SAME
+	 * report rankings — no extra network requests. May be empty for cores with no
+	 * ranked characters.
+	 */
+	rosters: Record<number, WclCharacter[]>;
 };
 
 export type WclFeat = {
@@ -608,6 +615,8 @@ export async function getWclRankings(
 		// Phase 1 — recent report codes per core (single batched query).
 		const guildIds = list.map((c) => c.wclGuildId);
 		const idToName = new Map(list.map((c) => [c.wclGuildId, c.name]));
+		// The id IS the wclGuildId; keep an explicit map for roster bucketing.
+		const idToGuildId = new Map(list.map((c) => [c.wclGuildId, c.wclGuildId]));
 		type ReportCodes = { reports: { data: { code: string }[] } };
 		const codesData = await gql<Record<string, ReportCodes>>(
 			token,
@@ -615,12 +624,17 @@ export async function getWclRankings(
 		);
 		if (!codesData) return null;
 
-		// code → core display name.
+		// code → core display name, and code → core wclGuildId (for rosters).
 		const codeToCore = new Map<string, string>();
+		const codeToGuildId = new Map<string, number>();
 		guildIds.forEach((id, i) => {
 			const core = idToName.get(id) ?? `Core ${i + 1}`;
+			const guildId = idToGuildId.get(id) ?? id;
 			for (const r of codesData[`r${i}`]?.reports?.data ?? []) {
-				if (r?.code && !codeToCore.has(r.code)) codeToCore.set(r.code, core);
+				if (r?.code && !codeToCore.has(r.code)) {
+					codeToCore.set(r.code, core);
+					codeToGuildId.set(r.code, guildId);
+				}
 			}
 		});
 		const allCodes = [...codeToCore.keys()];
@@ -634,8 +648,16 @@ export async function getWclRankings(
 		]);
 		// name(lower) → best parse across ALL roles (reliable officer enrichment).
 		const characters = new Map<string, WclCharacter>();
+		// wclGuildId → (name(lower) → best parse within that core). Each core's
+		// roster keeps the single best parse per character seen in its reports.
+		const rosterByGuild = new Map<number, Map<string, WclCharacter>>();
 
-		const consider = (ch: RankChar | null | undefined, role: SpecRole, core: string) => {
+		const consider = (
+			ch: RankChar | null | undefined,
+			role: SpecRole,
+			core: string,
+			guildId: number | undefined
+		) => {
 			const name = ch?.name?.trim();
 			const pct = ch?.rankPercent;
 			if (!name || typeof pct !== 'number' || pct <= 0) return;
@@ -671,6 +693,27 @@ export async function getWclRankings(
 					score
 				});
 			}
+
+			// Per-core roster: bucket into the character's core, keeping the best
+			// parse per character WITHIN that core (with the class/spec/role of it).
+			if (guildId != null) {
+				let roster = rosterByGuild.get(guildId);
+				if (!roster) {
+					roster = new Map<string, WclCharacter>();
+					rosterByGuild.set(guildId, roster);
+				}
+				const prevMember = roster.get(key);
+				if (!prevMember || score > (prevMember.score ?? -1)) {
+					roster.set(key, {
+						name,
+						wowClass,
+						classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+						spec,
+						specRole: role,
+						score
+					});
+				}
+			}
 		};
 
 		// Phase 2 — report rankings, batched in chunks of report codes.
@@ -686,12 +729,13 @@ export async function getWclRankings(
 			chunk.forEach((code, i) => {
 				const fights = data[`q${i}`]?.report?.rankings?.data ?? [];
 				const core = codeToCore.get(code) ?? 'Core';
+				const guildId = codeToGuildId.get(code);
 				for (const fight of fights) {
 					const roles = fight?.roles;
 					if (!roles) continue;
-					for (const c of roles.tanks?.characters ?? []) consider(c, 'Tank', core);
-					for (const c of roles.healers?.characters ?? []) consider(c, 'Healer', core);
-					for (const c of roles.dps?.characters ?? []) consider(c, 'DPS', core);
+					for (const c of roles.tanks?.characters ?? []) consider(c, 'Tank', core, guildId);
+					for (const c of roles.healers?.characters ?? []) consider(c, 'Healer', core, guildId);
+					for (const c of roles.dps?.characters ?? []) consider(c, 'DPS', core, guildId);
 				}
 			});
 		}
@@ -705,7 +749,16 @@ export async function getWclRankings(
 			tanks: top('Tank')
 		};
 		if (hof.dps.length + hof.healers.length + hof.tanks.length === 0) return null;
-		return { hallOfFame: hof, characters: Object.fromEntries(characters) };
+
+		// Per-core rosters: sort each core's members by score descending.
+		const rosters: Record<number, WclCharacter[]> = {};
+		for (const [guildId, members] of rosterByGuild) {
+			rosters[guildId] = [...members.values()].sort(
+				(a, b) => (b.score ?? -1) - (a.score ?? -1)
+			);
+		}
+
+		return { hallOfFame: hof, characters: Object.fromEntries(characters), rosters };
 	} catch {
 		return null;
 	}

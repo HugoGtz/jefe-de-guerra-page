@@ -20,10 +20,10 @@
 		</div>
 
 		<div class="footer__links">
-			<a href="#progreso" class="footer__link">Progreso</a>
-			<a href="#equipos" class="footer__link">Equipos</a>
-			<a href="#reclutamiento" class="footer__link">Reclutamiento</a>
-			<a href="#aplica" class="footer__link">Aplica</a>
+			<a href="/#progreso" class="footer__link">Progreso</a>
+			<a href="/#equipos" class="footer__link">Equipos</a>
+			<a href="/#reclutamiento" class="footer__link">Reclutamiento</a>
+			<a href="/#aplica" class="footer__link">Aplica</a>
 		</div>
 	</div>
 
