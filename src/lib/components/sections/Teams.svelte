@@ -148,6 +148,12 @@
 								</a>
 							</div>
 						{/if}
+
+						<!-- Afordancia visible de que la tarjeta abre el roster. El enlace
+						     accesible es el overlay estirado; este texto es decorativo. -->
+						<p class="team-card__roster-cue" aria-hidden="true">
+							Ver roster <span class="team-card__roster-arrow">→</span>
+						</p>
 					</Card>
 				</div>
 			</div>
@@ -216,9 +222,50 @@
 	.cell__tilt:hover {
 		cursor: pointer;
 	}
+	/* El foco del enlace estirado resalta TODA la tarjeta (no solo el overlay
+	   invisible), dando un foco de teclado claramente visible. */
 	.team-card__overlay:focus-visible {
+		outline: none;
+	}
+	:global(.team-card):has(.team-card__overlay:focus-visible) {
 		outline: 2px solid var(--color-lava);
-		outline-offset: 2px;
+		outline-offset: 3px;
+	}
+
+	/* Afordancia "Ver roster →": señal visible de que la tarjeta es clicable
+	   (clave en táctil, donde no hay hover). Anclada al fondo de la tarjeta. */
+	.team-card__roster-cue {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin: 1.1rem 0 0;
+		margin-top: auto;
+		padding-top: 1.1rem;
+		font-family: var(--font-display);
+		font-size: 0.74rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--color-ember);
+		transition:
+			color 0.2s ease,
+			transform 0.2s ease;
+	}
+	/* Cuando hay fila de enlaces (Logs/Calendario), esa fila ya está anclada
+	   abajo; el cue la sigue sin volver a empujar con auto. */
+	.team-card__links + .team-card__roster-cue {
+		margin-top: 0.55rem;
+		padding-top: 0;
+	}
+	.team-card__roster-arrow {
+		transition: transform 0.2s ease;
+	}
+	/* Hover sobre cualquier parte de la tarjeta anima la flecha del cue. */
+	.cell__tilt:hover .team-card__roster-cue {
+		color: var(--color-lava);
+	}
+	.cell__tilt:hover .team-card__roster-arrow {
+		transform: translateX(3px);
 	}
 
 	.team-card__head {
@@ -375,7 +422,8 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.team-card__logs:hover,
-		.team-card__logs:hover .team-card__logs-arrow {
+		.team-card__logs:hover .team-card__logs-arrow,
+		.cell__tilt:hover .team-card__roster-arrow {
 			transform: none;
 		}
 	}

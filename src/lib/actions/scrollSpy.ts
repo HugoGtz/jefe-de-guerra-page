@@ -57,8 +57,10 @@ export const scrollSpy: Action<HTMLElement, ScrollSpyParams> = (node, params) =>
 			recompute();
 		},
 		{
-			// Recorta el viewport para que la sección "activa" sea la del tercio superior.
-			rootMargin: '-45% 0px -45% 0px',
+			// Recorta el viewport hacia su banda central, dejando una franja de
+			// activación amplia (~30%) para que las secciones altas no parpadeen
+			// a "ninguna activa" al desplazarse dentro de ellas.
+			rootMargin: '-35% 0px -35% 0px',
 			threshold: [0, 0.01, 0.25, 0.5, 0.75, 1]
 		}
 	);

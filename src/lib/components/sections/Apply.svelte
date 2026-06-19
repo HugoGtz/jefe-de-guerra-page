@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import Section from '$lib/components/layout/Section.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { reveal } from '$lib/actions/reveal';
@@ -48,6 +49,10 @@
 	// Campo trampa anti-bots: debe quedar vacío. Si un bot lo rellena, se descarta.
 	let honeypot = $state('');
 
+	// Refs para la gestión de foco tras enviar.
+	let formEl = $state<HTMLFormElement | null>(null);
+	let successTitleEl = $state<HTMLHeadingElement | null>(null);
+
 	// El formulario envía a una Cloudflare Pages Function (/api/apply) que guarda
 	// el webhook de Discord como SECRETO del servidor — nunca se expone al cliente.
 	const APPLY_ENDPOINT = '/api/apply';
@@ -92,6 +97,10 @@
 		if (!validate()) {
 			status = 'error';
 			statusMessage = 'Revisa los campos marcados antes de enviar.';
+			// Mover el foco al primer campo inválido para corregir sin buscar.
+			await tick();
+			const firstInvalid = formEl?.querySelector<HTMLElement>('[aria-invalid="true"]');
+			firstInvalid?.focus();
 			return;
 		}
 
@@ -125,6 +134,9 @@
 			statusMessage = '¡Aplicación enviada! Un oficial revisará tu solicitud pronto.';
 			form = { ...empty };
 			errors = {};
+			// Mover el foco al título de éxito (el formulario ya no existe en el DOM).
+			await tick();
+			successTitleEl?.focus();
 		} catch {
 			status = 'error';
 			statusMessage =
@@ -137,7 +149,13 @@
 	<div class="apply surface" use:reveal={{ blur: true }}>
 		{#if status === 'success'}
 			<div class="apply__success">
-				<h3 class="apply__success-title text-engraved">¡Bienvenido a la hueste!</h3>
+				<h3
+					class="apply__success-title text-engraved"
+					tabindex="-1"
+					bind:this={successTitleEl}
+				>
+					¡Bienvenido a la hueste!
+				</h3>
 				<p class="apply__success-text">{statusMessage}</p>
 				<p class="apply__success-text">Ya puedes unirte a nuestros canales:</p>
 				<div class="apply__join">
@@ -160,7 +178,7 @@
 			<p class="apply__lead">
 				Rellena tus datos y tu aplicación llega directo a nuestros oficiales por Discord.
 			</p>
-			<form class="apply__form" novalidate onsubmit={handleSubmit}>
+			<form class="apply__form" novalidate onsubmit={handleSubmit} bind:this={formEl}>
 				<!-- Honeypot anti-bots: oculto a usuarios; si se rellena, se descarta. -->
 				<input
 					class="apply__hp"
@@ -434,6 +452,16 @@
 	.field__select {
 		appearance: none;
 		cursor: pointer;
+		/* Cheurón on-theme dibujado como SVG inline (data-URI). Acento ámbar. */
+		padding-right: 2.4rem;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23ff7a45' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 0.9rem center;
+		background-size: 12px 8px;
+	}
+	.field__select:focus {
+		/* Cheurón más vivo (lava) al enfocar para reforzar el estado. */
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23ff3b21' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 	}
 	.field__textarea {
 		resize: vertical;

@@ -6,9 +6,9 @@
  */
 
 export type ParseTier = {
-	/** Hex color for the badge text / border accent. */
+	/** Hex color for the badge border / background tint / glow accent. */
 	color: string;
-	/** Lower-contrast variant for subtle backgrounds (rgba-ish). */
+	/** Spanish tier name (e.g. "Insano", "Épico") for accessible labels. */
 	label: string;
 };
 

@@ -26,7 +26,7 @@
 	/* Metals / neutrals */
 	--color-silver: #e5e5e5; /* logo text */
 	--color-steel: #b8bcc2; /* metallic border/grey */
-	--color-steel-dim: #8b8e95; /* muted grey text (raised for AA contrast on dark surfaces) */
+	--color-steel-dim: #9ca2aa; /* muted grey text — lightened to ≥4.5:1 AA on stone/iron */
 
 	/* Dark surfaces */
 	--color-ash: #0a0708; /* near-black warm base */
@@ -53,8 +53,18 @@
 		background-color: var(--color-ash);
 		color: var(--color-silver);
 		font-family: var(--font-sans);
-		/* Subtle layered "dark metal + faint red glow at edges" texture.
-		   Cheap: pure CSS gradients, fixed so it doesn't scroll-jank. */
+	}
+
+	/* Subtle layered "dark metal + faint red glow at edges" texture.
+	   Painted on a fixed pseudo-element (not `background-attachment: fixed`
+	   on <body>, which forces a full body repaint on every scroll in
+	   Chromium). Same visual result, no scroll-time repaint. */
+	body::before {
+		content: "";
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
 		background-image:
 			/* faint red glow bleeding from the corners */
 			radial-gradient(
@@ -81,7 +91,6 @@
 				transparent 1px,
 				transparent 3px
 			);
-		background-attachment: fixed;
 	}
 
 	h1,
@@ -172,6 +181,36 @@
 		text-shadow:
 			0 0 8px rgba(255, 59, 33, 0.55),
 			0 0 18px rgba(161, 6, 19, 0.4);
+	}
+
+	/* Enlace "saltar al contenido": fuera de pantalla hasta recibir foco
+	   por teclado, donde se hace visible y enfocable. Estilo on-theme
+	   (superficie de hierro + borde metálico + acento lava). */
+	.skip-link {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 100;
+		/* Sacar de la vista sin retirarlo del flujo de tabulación. */
+		transform: translateY(-150%);
+		padding: 0.625rem 1.125rem;
+		font-family: var(--font-display);
+		font-size: 0.875rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		text-decoration: none;
+		color: var(--color-silver);
+		background-color: var(--color-iron);
+		border: 1px solid var(--color-lava);
+		border-radius: 0 0 0.375rem 0;
+		box-shadow: 0 0 16px rgba(255, 59, 33, 0.45);
+		transition: transform 0.18s ease;
+	}
+	.skip-link:focus,
+	.skip-link:focus-visible {
+		transform: translateY(0);
+		outline: 2px solid var(--color-lava);
+		outline-offset: 2px;
 	}
 
 	/* Card surface: iron bg, metal border, slight inner gradient. */

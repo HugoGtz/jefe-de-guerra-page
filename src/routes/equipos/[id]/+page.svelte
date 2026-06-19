@@ -4,7 +4,7 @@
 	import { reveal } from '$lib/actions/reveal';
 	import { wclGuildUrl, wclCalendarUrl } from '$lib/data/teams';
 	import { classIconUrl, specIconUrl, CLASS_COLORS } from '$lib/wow-icons';
-	import { parseColor, roleLabelEs } from '$lib/parse';
+	import { parseTier, roleLabelEs } from '$lib/parse';
 	import type { WowClass } from '$lib/data/officers';
 
 	// Datos de SSR (+page.server.ts): el equipo (ya con override WCL de SSC/TK)
@@ -149,7 +149,11 @@
 										{/if}
 
 										<div class="member__body">
-											<span class="member__name" style={tint ? `color: ${tint}` : ''}>
+											<span
+												class="member__name"
+												title={member.name}
+												style={tint ? `color: ${tint}` : ''}
+											>
 												{member.name}
 											</span>
 											<span class="member__meta">
@@ -160,10 +164,12 @@
 										</div>
 
 										{#if member.score != null}
+											{@const tier = parseTier(member.score)}
 											<span
 												class="member__parse"
-												style="--parse-color: {parseColor(member.score)}"
-												title="Mejor parse en SSC/TK (WarcraftLogs)"
+												style="--parse-color: {tier.color}"
+												title={`Parse ${member.score} · ${tier.label} — mejor parse en SSC/TK (WarcraftLogs)`}
+												aria-label={`Parse ${member.score} · ${tier.label}`}
 											>
 												{member.score}
 											</span>
@@ -482,6 +488,7 @@
 	.member__dot {
 		margin: 0 0.3rem;
 	}
+	/* High-contrast number; tier color tints only the border/bg/glow. */
 	.member__parse {
 		flex-shrink: 0;
 		display: inline-flex;
@@ -494,9 +501,9 @@
 		font-size: 0.9rem;
 		font-weight: 900;
 		line-height: 1;
-		color: var(--parse-color);
-		background: color-mix(in srgb, var(--parse-color) 14%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 55%, transparent);
+		color: var(--color-silver);
+		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
+		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
 		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
 	}
 

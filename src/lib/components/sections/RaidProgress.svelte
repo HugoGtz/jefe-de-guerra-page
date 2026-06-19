@@ -391,12 +391,19 @@
 		gap: 0.6rem;
 		font-size: 0.88rem;
 		color: var(--color-steel-dim);
-		/* Encendido secuencial: fade + leve slide al entrar (clase .is-lit). */
-		opacity: 0;
-		transform: translateX(-8px);
+		/* Encendido secuencial: fade + leve slide al entrar (clase .is-lit).
+		   El estado oculto NO se aplica por defecto: la acción `reveal` añade
+		   `.is-hidden` vía JS, así que sin JS los bosses quedan visibles. */
 		transition:
 			opacity 0.45s ease,
 			transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	/* Estado oculto solo cuando JS está activo (lo aplica la acción reveal).
+	   El will-change vive aquí, así existe únicamente durante la transición de
+	   entrada y no deja 12+ capas GPU permanentes en carga. */
+	.boss:global(.is-hidden) {
+		opacity: 0;
+		transform: translateX(-8px);
 		will-change: opacity, transform;
 	}
 	.boss.is-lit {

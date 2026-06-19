@@ -23,6 +23,14 @@
 		let rafId = 0;
 		let visible = false;
 
+		// Re-arm the rAF loop only when it isn't already scheduled, so a stationary
+		// cursor lets the loop settle and stop instead of spinning forever.
+		const ensureTicking = () => {
+			if (rafId === 0) {
+				rafId = requestAnimationFrame(tick);
+			}
+		};
+
 		const onMove = (e: PointerEvent) => {
 			if (e.pointerType !== 'mouse') return;
 			targetX = e.clientX;
@@ -31,6 +39,7 @@
 				visible = true;
 				el.style.opacity = '1';
 			}
+			ensureTicking();
 		};
 
 		const onLeave = () => {
@@ -43,15 +52,24 @@
 			currentX += (targetX - currentX) * 0.12;
 			currentY += (targetY - currentY) * 0.12;
 			el.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%)`;
+
+			// Stop scheduling once the position has settled; pointermove re-arms it.
+			if (Math.abs(targetX - currentX) < 0.1 && Math.abs(targetY - currentY) < 0.1) {
+				currentX = targetX;
+				currentY = targetY;
+				el.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%)`;
+				rafId = 0;
+				return;
+			}
 			rafId = requestAnimationFrame(tick);
 		};
 
 		window.addEventListener('pointermove', onMove, { passive: true });
 		document.addEventListener('pointerleave', onLeave, { passive: true });
-		rafId = requestAnimationFrame(tick);
 
 		return () => {
-			cancelAnimationFrame(rafId);
+			if (rafId !== 0) cancelAnimationFrame(rafId);
+			rafId = 0;
 			window.removeEventListener('pointermove', onMove);
 			document.removeEventListener('pointerleave', onLeave);
 		};
@@ -67,19 +85,22 @@
 		left: 0;
 		/* Sobre la atmósfera (z:-1) pero por detrás del contenido. */
 		z-index: 0;
-		width: 520px;
-		height: 520px;
+		width: 420px;
+		height: 420px;
 		border-radius: 50%;
 		pointer-events: none;
 		opacity: 0;
 		transition: opacity 0.5s ease;
+		/* Soft glow built purely from a radial-gradient: a small hot core fades out
+		   with a steep edge falloff, reproducing the blur look without the cost of
+		   filter: blur(). */
 		background: radial-gradient(
 			circle,
-			rgba(255, 59, 33, 0.1),
-			rgba(161, 6, 19, 0.06) 40%,
-			transparent 70%
+			rgba(255, 59, 33, 0.13) 0%,
+			rgba(255, 59, 33, 0.08) 18%,
+			rgba(161, 6, 19, 0.045) 42%,
+			transparent 68%
 		);
-		filter: blur(12px);
 		will-change: transform, opacity;
 	}
 

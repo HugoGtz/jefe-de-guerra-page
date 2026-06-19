@@ -12,8 +12,11 @@
 </script>
 
 <section bind:this={heroEl} id="inicio" class="hero">
-	<!-- Resplandor rojo pulsante detrás del logo (decorativo, con parallax). -->
-	<div class="hero__glow-wrap" aria-hidden="true" use:parallax={{ speed: 0.18 }}>
+	<!-- Resplandor rojo estático detrás del logo (decorativo). SIN parallax ni
+	     blur/animación a propósito: cualquiera de esos promueve el glow a su
+	     propia capa GPU que, recortada por `.hero { overflow:hidden }`, dibuja su
+	     caja rectangular en la ruta ANGLE/Metal (el "cuadro" al hacer scroll). -->
+	<div class="hero__glow-wrap" aria-hidden="true">
 		<div class="hero__glow"></div>
 	</div>
 
@@ -130,18 +133,28 @@
 		filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
 		transform-origin: center;
 		/* Entrada "forja": fade + scale-up. */
-		animation: hero-forge 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+		animation: hero-forge 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 
 	.hero__name {
-		font-size: clamp(2rem, 9vw, 4.5rem);
+		/* Clamp afinado para que "JEFE DE GUERRA" no se recorte a 320–414px:
+		   mínimo más bajo + factor vw menor evitan el desborde con el
+		   inline-block de background-clip:text. */
+		font-size: clamp(1.8rem, 8vw, 4.5rem);
 		font-weight: 900;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
 		margin: 0;
 		line-height: 1.02;
 		max-width: 100%;
-		animation: hero-rise 0.9s ease-out 0.35s both;
+		animation: hero-rise 0.6s ease-out 0.15s both;
+	}
+	/* En pantallas estrechas, reducir el tracking para ganar holgura
+	   horizontal y garantizar que el título nunca desborde el viewport. */
+	@media (max-width: 414px) {
+		.hero__name {
+			letter-spacing: 0.01em;
+		}
 	}
 	/* Texto cromado plateado: el propio glifo es un gradiente metálico
 	   recortado al texto, con varios brillos que se desplazan en bucle
@@ -181,12 +194,12 @@
 		font-style: italic;
 		letter-spacing: 0.03em;
 		margin: 1rem 0 0;
-		animation: hero-rise 0.9s ease-out 0.5s both;
+		animation: hero-rise 0.6s ease-out 0.3s both;
 	}
 
 	.hero__badge {
 		margin-top: 1.5rem;
-		animation: hero-rise 0.9s ease-out 0.65s both;
+		animation: hero-rise 0.6s ease-out 0.45s both;
 	}
 
 	.hero__actions {
@@ -195,7 +208,7 @@
 		gap: 1rem;
 		justify-content: center;
 		margin-top: 2rem;
-		animation: hero-rise 0.9s ease-out 0.8s both;
+		animation: hero-rise 0.6s ease-out 0.6s both;
 	}
 
 	.hero__scroll {
@@ -210,7 +223,7 @@
 		gap: 0.5rem;
 		text-decoration: none;
 		color: var(--color-steel-dim);
-		animation: hero-rise 0.9s ease-out 1s both;
+		animation: hero-rise 0.6s ease-out 0.75s both;
 	}
 	.hero__scroll-text {
 		font-family: var(--font-display);
@@ -231,26 +244,23 @@
 		from {
 			opacity: 0;
 			transform: scale(0.78);
-			filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6)) brightness(0.5)
-				blur(6px);
+			filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6)) brightness(0.5);
 		}
 		to {
 			opacity: 1;
 			transform: scale(1);
-			filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6)) brightness(1) blur(0);
+			filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6)) brightness(1);
 		}
 	}
-	/* Entrada un punto más dramática: slide + leve scale + desenfoque→nítido. */
+	/* Entrada un punto más dramática: slide + leve scale (compositor-safe). */
 	@keyframes hero-rise {
 		from {
 			opacity: 0;
 			transform: translateY(22px) scale(0.97);
-			filter: blur(5px);
 		}
 		to {
 			opacity: 1;
 			transform: translateY(0) scale(1);
-			filter: blur(0);
 		}
 	}
 	@keyframes hero-pulse {

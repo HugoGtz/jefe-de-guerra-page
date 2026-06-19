@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getReducedMotion } from '$lib/utils/reducedMotion';
+	import { prefersReducedMotion } from '$lib/utils/reducedMotion';
 
 	// The dark "forge + lava glow" atmosphere is pure CSS (always rendered,
 	// GPU-safe). The transparent WebGL canvas on top carries only the floating
@@ -9,24 +9,28 @@
 	let mounted = $state(false);
 	let scene: import('$lib/three/EmberScene').EmberScene | null = null;
 
-	// Resolved once on the client. SSR/prerender returns false (util is SSR-safe),
-	// but the canvas is gated on `mounted` so it only appears after hydration.
-	const reducedMotion = getReducedMotion();
+	// Live reduced-motion preference. SSR-safe (the store defaults to false on the
+	// server) and updates reactively if the OS setting is toggled while open.
+	// `$`-auto-subscription gives us a reactive boolean.
+	const reducedMotion = $derived($prefersReducedMotion);
 
 	onMount(() => {
 		mounted = true;
 	});
 
 	// Runs (client-only) once the <canvas> is in the DOM. Dynamically imports
-	// three.js so it never touches the SSR/prerender bundle.
+	// three.js so it never touches the SSR/prerender bundle. The scene is created
+	// once; its loop is started/stopped reactively below.
 	$effect(() => {
-		if (!canvasEl || reducedMotion) return;
+		if (!canvasEl) return;
 
 		let cancelled = false;
 		import('$lib/three/EmberScene').then(({ EmberScene }) => {
 			if (cancelled || !canvasEl) return;
 			scene = new EmberScene(canvasEl);
-			scene.start();
+			// Start only if motion is currently allowed; the effect below keeps it
+			// in sync from here on.
+			if (!reducedMotion) scene.start();
 		});
 
 		return () => {
@@ -34,6 +38,16 @@
 			scene?.dispose();
 			scene = null;
 		};
+	});
+
+	// React to live reduced-motion changes: pause/resume the ember loop. The
+	// atmosphere's still state is handled by the class binding in the template.
+	$effect(() => {
+		if (reducedMotion) {
+			scene?.stop();
+		} else {
+			scene?.start();
+		}
 	});
 </script>
 
@@ -84,14 +98,17 @@
 	}
 
 	/* -------------------------------------------------------------------------
-	 * Glow divs — each absolutely positioned, blend multiplicative warmth.
-	 * will-change: transform, opacity only — compositor-only, 60fps.
+	 * Glow divs — each absolutely positioned, radial-gradient warmth.
+	 * NOTE: NO `will-change` here. Promoting these gradient divs to their own
+	 * compositor layer makes the ANGLE/Metal GPU path render the layer's hard
+	 * RECTANGULAR bounding box (a faint square in the glow, visible on scroll) —
+	 * the same class of Metal tiling artifact as the old procedural shader. The
+	 * slow transform breathe/drift still composites fine without the hint.
 	 * ------------------------------------------------------------------------- */
 	.glow {
 		position: absolute;
 		border-radius: 50%;
 		pointer-events: none;
-		will-change: transform, opacity;
 	}
 
 	/* Main forge glow — large ellipse sitting below the viewport bottom edge,
@@ -107,7 +124,7 @@
 			rgba(161, 6, 19, 0.18) 35%,
 			transparent 70%
 		);
-		animation: forge-breathe 7s ease-in-out infinite;
+		opacity: 0.85;
 	}
 
 	/* Left-side ember column — shifts slightly horizontally with a different period */
@@ -122,7 +139,7 @@
 			rgba(161, 6, 19, 0.10) 45%,
 			transparent 70%
 		);
-		animation: left-drift 11s ease-in-out infinite;
+		opacity: 0.7;
 	}
 
 	/* Right shoulder ambient glow — opposite phase to left for visual rhythm */
@@ -137,7 +154,7 @@
 			rgba(107, 4, 16, 0.08) 45%,
 			transparent 70%
 		);
-		animation: right-drift 13s ease-in-out infinite;
+		opacity: 0.6;
 	}
 
 	/* Top dark vignette — keeps text readable, never animates brightness upward */
@@ -152,7 +169,7 @@
 			transparent 70%
 		);
 		/* Subtle slow scale so it doesn't look completely frozen */
-		animation: vignette-breathe 18s ease-in-out infinite;
+		opacity: 0.95;
 	}
 
 	/* -------------------------------------------------------------------------
@@ -164,7 +181,8 @@
 		position: absolute;
 		border-radius: 50%;
 		pointer-events: none;
-		will-change: transform, opacity;
+		/* No `will-change` — see the .glow note (avoids the Metal rectangular
+		   layer artifact). The drift animation still composites without it. */
 	}
 
 	/* Fog blob A — drifts from lower-left toward center-right */
@@ -179,8 +197,7 @@
 			rgba(40, 10, 8, 0.08) 50%,
 			transparent 80%
 		);
-		animation: fog-drift-a 22s ease-in-out infinite;
-		opacity: 0.7;
+		opacity: 0.55;
 	}
 
 	/* Fog blob B — starts center-right, slower, creates layered depth */
@@ -195,111 +212,22 @@
 			rgba(30, 8, 6, 0.06) 50%,
 			transparent 80%
 		);
-		animation: fog-drift-b 28s ease-in-out infinite;
-		opacity: 0.6;
+		opacity: 0.45;
 	}
 
 	/* -------------------------------------------------------------------------
-	 * Keyframes — transform + opacity ONLY (compositor-safe, 60fps).
+	 * NOTE: the glow/fog divs are STATIC (no per-element transform/opacity
+	 * animation). An infinite transform animation keeps each div on its own
+	 * compositor layer, and the ANGLE/Metal GPU path then renders that layer's
+	 * hard RECTANGULAR bounding box (a faint square in the glow, visible while
+	 * scrolling) — the same Metal tiling artifact as the old procedural shader.
+	 * Static gradients paint into the single fixed `.atmosphere` layer (viewport
+	 * sized → no sub-rectangle). Motion/life comes from the ember canvas instead.
+	 * Do NOT reintroduce keyframe animations or `will-change` on these divs.
 	 * ------------------------------------------------------------------------- */
 
-	@keyframes forge-breathe {
-		0%, 100% {
-			opacity: 0.72;
-			transform: scaleY(1) translateY(0%);
-		}
-		40% {
-			opacity: 1.0;
-			transform: scaleY(1.09) translateY(-2%);
-		}
-		70% {
-			opacity: 0.82;
-			transform: scaleY(1.03) translateY(-1%);
-		}
-	}
-
-	@keyframes left-drift {
-		0%, 100% {
-			opacity: 0.6;
-			transform: translate(0%, 0%) scaleX(1);
-		}
-		35% {
-			opacity: 0.95;
-			transform: translate(6%, -4%) scaleX(1.08);
-		}
-		65% {
-			opacity: 0.75;
-			transform: translate(3%, -2%) scaleX(1.04);
-		}
-	}
-
-	@keyframes right-drift {
-		0%, 100% {
-			opacity: 0.55;
-			transform: translate(0%, 0%) scaleX(1);
-		}
-		45% {
-			opacity: 0.9;
-			transform: translate(-5%, -3%) scaleX(1.1);
-		}
-		75% {
-			opacity: 0.65;
-			transform: translate(-2%, -1%) scaleX(1.05);
-		}
-	}
-
-	@keyframes vignette-breathe {
-		0%, 100% {
-			opacity: 0.9;
-			transform: scaleX(1);
-		}
-		50% {
-			opacity: 1.0;
-			transform: scaleX(1.04);
-		}
-	}
-
-	@keyframes fog-drift-a {
-		0% {
-			opacity: 0.5;
-			transform: translate(0%, 0%);
-		}
-		30% {
-			opacity: 0.8;
-			transform: translate(12%, -5%);
-		}
-		65% {
-			opacity: 0.65;
-			transform: translate(20%, -8%);
-		}
-		100% {
-			opacity: 0.5;
-			transform: translate(0%, 0%);
-		}
-	}
-
-	@keyframes fog-drift-b {
-		0% {
-			opacity: 0.45;
-			transform: translate(0%, 0%);
-		}
-		40% {
-			opacity: 0.7;
-			transform: translate(-14%, -6%);
-		}
-		70% {
-			opacity: 0.55;
-			transform: translate(-22%, -10%);
-		}
-		100% {
-			opacity: 0.45;
-			transform: translate(0%, 0%);
-		}
-	}
-
 	/* -------------------------------------------------------------------------
-	 * Reduced motion: drop ALL animations; keep a rich, layered STATIC atmosphere.
-	 * Multiple static glows remain — it looks dark and atmospheric, not flat.
+	 * Reduced motion: the atmosphere is already static; nothing extra to drop.
 	 * ------------------------------------------------------------------------- */
 	@media (prefers-reduced-motion: reduce) {
 		.glow,

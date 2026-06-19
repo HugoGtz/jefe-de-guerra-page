@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { scrollSpy } from '$lib/actions/scrollSpy';
@@ -29,6 +29,10 @@
 	let open = $state(false);
 	let activeId = $state<string | null>(null);
 
+	// Refs para gestión de foco del menú móvil.
+	let toggleEl = $state<HTMLButtonElement | null>(null);
+	let mobileNavEl = $state<HTMLDivElement | null>(null);
+
 	// En la portada (hero) el logo grande ya está presente, así que el del
 	// navbar se oculta; aparece al hacer scroll a otras secciones.
 	const onHero = $derived(activeId === null || activeId === 'inicio');
@@ -42,10 +46,35 @@
 		return () => window.removeEventListener('scroll', onScroll);
 	});
 
-	function close() {
+	// Cierra el menú móvil. Si se cerró por teclado/Escape, devuelve el foco al
+	// botón toggle para no perder el lugar.
+	function close(returnFocus = false) {
 		open = false;
+		if (returnFocus) toggleEl?.focus();
+	}
+
+	// Alterna el menú móvil y, al abrirlo, mueve el foco al primer enlace.
+	async function toggleMenu() {
+		open = !open;
+		if (open) {
+			await tick();
+			const firstLink = mobileNavEl?.querySelector<HTMLElement>('a, button');
+			firstLink?.focus();
+		} else {
+			toggleEl?.focus();
+		}
+	}
+
+	// Escape cierra el menú móvil y devuelve el foco al toggle.
+	function onKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && open) {
+			event.preventDefault();
+			close(true);
+		}
 	}
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <header
 	class="nav"
@@ -59,7 +88,7 @@
 			class:is-hidden={onHero}
 			aria-hidden={onHero}
 			tabindex={onHero ? -1 : 0}
-			onclick={close}
+			onclick={() => close()}
 		>
 			<img src="/logo.webp" alt="" width="32" height="28" class="nav__brand-mark" />
 			<span class="nav__brand-name font-display">{guild.name}</span>
@@ -74,7 +103,7 @@
 							class="nav__link"
 							class:is-active={activeId === sectionId}
 							aria-current={activeId === sectionId ? 'true' : undefined}
-							onclick={close}>{link.label}</a
+							onclick={() => close()}>{link.label}</a
 						>
 					</li>
 			{/each}
@@ -86,9 +115,11 @@
 
 		<button
 			class="nav__toggle metal-border"
-			aria-label="Abrir menú"
+			aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
 			aria-expanded={open}
-			onclick={() => (open = !open)}
+			aria-controls="nav-mobile-menu"
+			bind:this={toggleEl}
+			onclick={toggleMenu}
 		>
 			<span class="nav__toggle-bar" class:is-open={open}></span>
 			<span class="nav__toggle-bar" class:is-open={open}></span>
@@ -97,15 +128,15 @@
 	</nav>
 
 	{#if open}
-		<div class="nav__mobile surface">
+		<div class="nav__mobile surface" id="nav-mobile-menu" bind:this={mobileNavEl}>
 			<ul class="nav__mobile-links">
 				{#each links as link (link.href)}
 					<li>
-						<a href={link.href} class="nav__link" onclick={close}>{link.label}</a>
+						<a href={link.href} class="nav__link" onclick={() => close()}>{link.label}</a>
 					</li>
 				{/each}
 			</ul>
-			<Button variant="primary" href="/#aplica" onclick={close} class="nav__mobile-cta"
+			<Button variant="primary" href="/#aplica" onclick={() => close()} class="nav__mobile-cta"
 				>Aplica</Button
 			>
 		</div>
@@ -281,7 +312,7 @@
 		width: 100%;
 	}
 
-	@media (min-width: 860px) {
+	@media (min-width: 940px) {
 		.nav__links {
 			display: flex;
 		}

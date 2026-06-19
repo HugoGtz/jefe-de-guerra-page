@@ -4,7 +4,7 @@
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
 	import type { Officer } from '$lib/data/officers';
-	import { parseColor } from '$lib/parse';
+	import { parseTier } from '$lib/parse';
 	import { classIconUrl, specIconUrl } from '$lib/wow-icons';
 
 	let { officers }: { officers: Officer[] } = $props();
@@ -44,7 +44,7 @@
 							{/if}
 
 							<div class="officer__body">
-								<h3 class="officer__name text-engraved">{officer.name}</h3>
+								<h3 class="officer__name text-engraved" title={officer.name}>{officer.name}</h3>
 								<p class="officer__role text-lava-glow">{officer.role}</p>
 								{#if officer.classLabel}
 									<p class="officer__class">{officer.classLabel}</p>
@@ -52,10 +52,12 @@
 							</div>
 
 							{#if officer.score != null}
+								{@const tier = parseTier(officer.score)}
 								<span
 									class="officer__parse"
-									style="--parse-color: {parseColor(officer.score)}"
-									title="Mejor parse medio en SSC/TK (WarcraftLogs)"
+									style="--parse-color: {tier.color}"
+									title={`Parse ${officer.score} · ${tier.label} — mejor parse medio en SSC/TK (WarcraftLogs)`}
+									aria-label={`Parse ${officer.score} · ${tier.label}`}
 								>
 									{officer.score}
 								</span>
@@ -138,7 +140,8 @@
 		margin: 0.1rem 0 0;
 	}
 
-	/* Parse badge: tier-colored pill (color via --parse-color inline). */
+	/* Parse badge: high-contrast number; tier color only tints the border,
+	   background and glow accent (via --parse-color inline) for legibility. */
 	.officer__parse {
 		flex-shrink: 0;
 		align-self: flex-start;
@@ -152,9 +155,9 @@
 		font-size: 0.85rem;
 		font-weight: 900;
 		line-height: 1;
-		color: var(--parse-color);
-		background: color-mix(in srgb, var(--parse-color) 14%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 55%, transparent);
+		color: var(--color-silver);
+		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
+		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
 		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 30%, transparent);
 	}
 

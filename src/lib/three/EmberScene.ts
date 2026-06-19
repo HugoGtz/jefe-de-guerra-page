@@ -139,6 +139,7 @@ interface EmberState {
 	twinkleFreq: Float32Array; // twinkle frequency (Hz) per ember
 	twinklePhase: Float32Array; // per-ember twinkle phase offset
 	layer: Uint8Array; //        0 / 1 / 2 — which depth layer
+	sizeDirty: boolean; //       set when any ember size changes (init/recycle)
 }
 
 function randomRange(min: number, max: number): number {
@@ -166,6 +167,8 @@ function initEmberAt(index: number, state: EmberState, yOverride?: number): void
 		size = randomRange(szMax * 0.85, szMax * 1.25);
 	}
 	state.sizes[index] = size;
+	// Size changed (initial seed or recycle) — flag a single GPU upload next frame.
+	state.sizeDirty = true;
 
 	state.baseAlpha[index] = LAYER_BASE_ALPHA[layer];
 	state.twinkleAmp[index] = LAYER_TWINKLE_AMPLITUDE[layer] * randomRange(0.5, 1.0);
@@ -185,7 +188,8 @@ function buildEmberState(): EmberState {
 		twinkleAmp: new Float32Array(EMBER_COUNT),
 		twinkleFreq: new Float32Array(EMBER_COUNT),
 		twinklePhase: new Float32Array(EMBER_COUNT),
-		layer: new Uint8Array(EMBER_COUNT)
+		layer: new Uint8Array(EMBER_COUNT),
+		sizeDirty: true
 	};
 
 	// Assign layers in contiguous blocks for simple index math.
@@ -239,6 +243,11 @@ export class EmberScene {
 	// Visibility
 	private onVisibilityChange: (() => void) | null = null;
 
+	// WebGL context loss/restore (iOS reclaims GPU contexts when backgrounded)
+	private onContextLost: ((e: Event) => void) | null = null;
+	private onContextRestored: (() => void) | null = null;
+	private contextLost = false;
+
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 		this.init();
@@ -281,6 +290,30 @@ export class EmberScene {
 			}
 		};
 		document.addEventListener('visibilitychange', this.onVisibilityChange);
+
+		// WebGL context loss/restore — prevent default so the browser fires a
+		// 'webglcontextrestored' event, then rebuild the GPU resources.
+		this.onContextLost = (e: Event) => {
+			e.preventDefault();
+			this.contextLost = true;
+			this.pauseRAF();
+		};
+		this.onContextRestored = () => {
+			this.contextLost = false;
+			// GPU-side geometry/material/texture were dropped — rebuild them.
+			this.disposeGpuResources();
+			this.buildEmbers();
+			// Re-apply renderer sizing for the (possibly new) context.
+			const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+			this.renderer.setPixelRatio(dpr);
+			this.renderer.setSize(this.width, this.height, false);
+			this.material.uniforms.uDPR.value = dpr;
+			if (this.running && !document.hidden) {
+				this.resumeRAF();
+			}
+		};
+		canvas.addEventListener('webglcontextlost', this.onContextLost, false);
+		canvas.addEventListener('webglcontextrestored', this.onContextRestored, false);
 	}
 
 	private buildEmbers(): void {
@@ -376,13 +409,30 @@ export class EmberScene {
 			this.onVisibilityChange = null;
 		}
 
+		if (this.onContextLost) {
+			this.canvas.removeEventListener('webglcontextlost', this.onContextLost, false);
+			this.onContextLost = null;
+		}
+		if (this.onContextRestored) {
+			this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored, false);
+			this.onContextRestored = null;
+		}
+
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
 
-		this.geometry.dispose();
-		this.material.dispose();
-		this.texture.dispose();
+		this.disposeGpuResources();
 		this.renderer.dispose();
+	}
+
+	/**
+	 * Dispose the per-scene GPU resources (geometry, material, texture) without
+	 * tearing down the renderer. Used on context restore (rebuild) and dispose.
+	 */
+	private disposeGpuResources(): void {
+		this.geometry?.dispose();
+		this.material?.dispose();
+		this.texture?.dispose();
 	}
 
 	// -----------------------------------------------------------------------
@@ -390,7 +440,7 @@ export class EmberScene {
 	// -----------------------------------------------------------------------
 
 	private resumeRAF(): void {
-		if (this.rafId !== null) return;
+		if (this.rafId !== null || this.contextLost) return;
 		this.lastTime = performance.now();
 		this.rafId = requestAnimationFrame((t) => this.loop(t));
 	}
@@ -456,8 +506,11 @@ export class EmberScene {
 
 		this.positionAttr.needsUpdate = true;
 		this.alphaAttr.needsUpdate = true;
-		// Sizes only change on recycle, but marking needsUpdate is cheap
-		this.sizeAttr.needsUpdate = true;
+		// Sizes only change on init/recycle — upload once when the flag is set.
+		if (this.state.sizeDirty) {
+			this.sizeAttr.needsUpdate = true;
+			this.state.sizeDirty = false;
+		}
 	}
 
 	// -----------------------------------------------------------------------

@@ -1,6 +1,10 @@
 import type { Action } from 'svelte/action';
 import { getReducedMotion } from '$lib/utils/reducedMotion';
 
+/** Tope del retardo de escalonado (ms). Evita que los últimos ítems de una
+ * lista aparezcan demasiado tarde (pop-in) cuando el usuario ya scrolleó. */
+const MAX_REVEAL_DELAY = 450;
+
 /** Dirección desde la que entra el elemento al revelarse. */
 export type RevealDirection = 'up' | 'left' | 'right';
 
@@ -40,6 +44,7 @@ export const reveal: Action<HTMLElement, RevealParams | undefined> = (
 		blur = false,
 		onreveal
 	}: RevealParams = params ?? {};
+	delay = Math.min(delay, MAX_REVEAL_DELAY);
 
 	const reduced = getReducedMotion();
 
@@ -95,7 +100,7 @@ export const reveal: Action<HTMLElement, RevealParams | undefined> = (
 
 	return {
 		update(next) {
-			delay = next?.delay ?? 0;
+			delay = Math.min(next?.delay ?? 0, MAX_REVEAL_DELAY);
 			threshold = next?.threshold ?? 0.15;
 			once = next?.once ?? true;
 			direction = next?.direction ?? 'up';

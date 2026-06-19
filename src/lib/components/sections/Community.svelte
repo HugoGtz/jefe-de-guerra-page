@@ -314,6 +314,20 @@
 		transform: translateY(-2px);
 	}
 
+	/* En pantallas muy estrechas el contador de 4 unidades + dos puntos queda
+	   apretado: reducimos el ancho de cada unidad y ocultamos los separadores. */
+	@media (max-width: 380px) {
+		.countdown {
+			gap: 0.2rem;
+		}
+		.countdown__unit {
+			min-width: 2.7rem;
+		}
+		.countdown__colon {
+			display: none;
+		}
+	}
+
 	@media (min-width: 820px) {
 		.layout {
 			grid-template-columns: 1fr 1fr;

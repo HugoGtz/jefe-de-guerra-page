@@ -66,6 +66,8 @@ export const parallax: Action<HTMLElement, ParallaxParams | undefined> = (
 			cancelAnimationFrame(frame);
 			window.removeEventListener('scroll', onScroll);
 			window.removeEventListener('resize', onScroll);
+			// Release the compositor-layer hint we added on setup.
+			node.style.willChange = '';
 		}
 	};
 };

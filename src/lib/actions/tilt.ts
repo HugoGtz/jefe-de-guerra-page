@@ -46,7 +46,17 @@ export const tilt: Action<HTMLElement, TiltParams | undefined> = (
 	};
 
 	node.style.transformStyle = 'preserve-3d';
-	node.style.transition = 'transform 0.2s ease';
+	// Append our transform transition to whatever the component already declares
+	// (e.g. box-shadow / border hover transitions on cards) instead of clobbering
+	// it. Drop any pre-existing `transform` transition the stylesheet set so ours
+	// is the single source of truth for transform timing.
+	const existing = getComputedStyle(node).transition;
+	const tiltTransition = 'transform 0.2s ease';
+	const preserved = existing
+		.split(',')
+		.map((part) => part.trim())
+		.filter((part) => part && part !== 'all 0s ease 0s' && !/^transform\b/.test(part));
+	node.style.transition = [...preserved, tiltTransition].join(', ');
 	node.addEventListener('pointermove', onMove);
 	node.addEventListener('pointerleave', reset);
 

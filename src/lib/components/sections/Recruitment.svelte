@@ -92,7 +92,7 @@
 				próximo raid.
 			</p>
 			<div class="recruit__cta-actions">
-				<Button variant="primary" href="#aplica" beam pulse>Rellenar formulario</Button>
+				<Button variant="primary" href="#aplica" beam>Rellenar formulario</Button>
 			</div>
 		</div>
 	</div>

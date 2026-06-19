@@ -2,7 +2,7 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { parseColor } from '$lib/parse';
+	import { parseTier } from '$lib/parse';
 	import { classIconUrl, specIconUrl } from '$lib/wow-icons';
 	import type { HallOfFame, HallOfFameEntry } from '$lib/server/warcraftlogs';
 
@@ -39,6 +39,7 @@
 						<ol class="hof__list">
 							{#each col.entries as entry, i (entry.name + entry.core)}
 								{@const icon = specIconUrl(entry.wowClass, entry.spec) ?? classIconUrl(entry.wowClass)}
+								{@const tier = parseTier(entry.score)}
 								<li class="hof__row">
 									<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
 									{#if icon}
@@ -57,6 +58,7 @@
 									<span class="hof__who">
 										<span
 											class="hof__name"
+											title={entry.name}
 											style={entry.classColor ? `color: ${entry.classColor}` : ''}
 											>{entry.name}</span
 										>
@@ -68,7 +70,9 @@
 									</span>
 									<span
 										class="hof__score"
-										style="--parse-color: {parseColor(entry.score)}">{entry.score}</span
+										style="--parse-color: {tier.color}"
+										title={`Parse ${entry.score} · ${tier.label}`}
+										aria-label={`Parse ${entry.score} · ${tier.label}`}>{entry.score}</span
 									>
 								</li>
 							{/each}
@@ -173,6 +177,7 @@
 	.hof__dot {
 		margin: 0 0.3rem;
 	}
+	/* High-contrast number; tier color tints only the border/bg/glow. */
 	.hof__score {
 		flex-shrink: 0;
 		min-width: 2.3rem;
@@ -183,9 +188,9 @@
 		font-size: 0.9rem;
 		font-weight: 900;
 		line-height: 1;
-		color: var(--parse-color);
-		background: color-mix(in srgb, var(--parse-color) 14%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 55%, transparent);
+		color: var(--color-silver);
+		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
+		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
 		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
 	}
 

@@ -11,6 +11,9 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
+<!-- Primer elemento enfocable: saltar la navegación e ir al contenido. -->
+<a href="#contenido" class="skip-link">Saltar al contenido</a>
+
 <!-- Fondo WebGL (se posiciona fixed / z-index:-1 por sí mismo). -->
 <WebGLBackground />
 
@@ -22,7 +25,7 @@
 
 <Navbar />
 
-<main>
+<main id="contenido" tabindex="-1">
 	{@render children()}
 </main>
 
@@ -45,9 +48,9 @@
 
 	:global(.reveal) {
 		transition:
-			opacity 0.7s ease,
-			transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-			filter 0.8s ease;
+			opacity 0.5s ease,
+			transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+			filter 0.5s ease;
 		transition-delay: var(--reveal-delay, 0ms);
 		will-change: opacity, transform;
 	}
@@ -64,10 +67,10 @@
 
 	/* Variantes direccionales: slide-in lateral en lugar de subir. */
 	:global(.reveal--left.is-hidden) {
-		transform: translateX(-44px) scale(0.97);
+		transform: translateX(-24px) scale(0.97);
 	}
 	:global(.reveal--right.is-hidden) {
-		transform: translateX(44px) scale(0.97);
+		transform: translateX(24px) scale(0.97);
 	}
 	:global(.reveal--left.is-revealed),
 	:global(.reveal--right.is-revealed) {
