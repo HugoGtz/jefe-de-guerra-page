@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- TODO: actualizar el dominio tras desplegar. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<url>
-		<loc>https://jefe-de-guerra.pages.dev/</loc>
+		<loc>https://jefedeguerra.com/</loc>
 		<changefreq>weekly</changefreq>
 		<priority>1.0</priority>
 	</url>

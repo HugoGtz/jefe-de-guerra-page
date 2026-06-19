@@ -15,9 +15,9 @@
 	// Datos de SSR (+layout.server.ts): mismas claves/shapes que $lib/data/*.
 	let { data } = $props();
 
-	// TODO: cambiar por el dominio real tras desplegar (Cloudflare Pages).
-	// Debe ser absoluto: Discord/WhatsApp/Twitter exigen URL absoluta en og:image.
-	const siteUrl = 'https://jefe-de-guerra.pages.dev';
+	// Dominio canónico. Debe ser absoluto: Discord/WhatsApp/Twitter exigen URL
+	// absoluta en og:image.
+	const siteUrl = 'https://jefedeguerra.com';
 	const ogImage = `${siteUrl}/og-image.png`;
 
 	// Datos estructurados (SEO). Ayuda a buscadores a entender la entidad.

@@ -42,6 +42,13 @@
    Base layer
    ============================================================ */
 @layer base {
+	/* Evita scroll/desplazamiento horizontal por elementos decorativos y por la
+	   animación `reveal` (que desliza ±44px en X). `clip` recorta sin crear un
+	   contenedor de scroll, así que el navbar sticky sigue funcionando. */
+	html {
+		overflow-x: clip;
+	}
+
 	body {
 		background-color: var(--color-ash);
 		color: var(--color-silver);

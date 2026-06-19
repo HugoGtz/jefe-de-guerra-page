@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# TODO: actualizar el dominio tras desplegar (Cloudflare Pages).
-Sitemap: https://jefe-de-guerra.pages.dev/sitemap.xml
+Sitemap: https://jefedeguerra.com/sitemap.xml
