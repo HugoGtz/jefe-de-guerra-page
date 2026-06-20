@@ -36,8 +36,12 @@ PRAGMA foreign_keys = ON;
 
 `;
 
-// Make every CREATE TABLE idempotent (recreate flow re-applies safely).
-const body = ddl.replace(/CREATE TABLE /g, 'CREATE TABLE IF NOT EXISTS ');
+// Make every CREATE TABLE / CREATE INDEX idempotent so re-applying the file to a
+// populated D1 is a no-op rather than an error (the project's "recreate" flow).
+const body = ddl
+	.replace(/CREATE TABLE (?!IF NOT EXISTS)/g, 'CREATE TABLE IF NOT EXISTS ')
+	.replace(/CREATE UNIQUE INDEX (?!IF NOT EXISTS)/g, 'CREATE UNIQUE INDEX IF NOT EXISTS ')
+	.replace(/CREATE INDEX (?!IF NOT EXISTS)/g, 'CREATE INDEX IF NOT EXISTS ');
 
 writeFileSync(OUT, header + body.trimStart().replace(/\s*$/, '\n'), 'utf8');
 console.log(`Wrote ${OUT}`);

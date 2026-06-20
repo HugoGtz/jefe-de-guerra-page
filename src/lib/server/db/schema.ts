@@ -181,6 +181,20 @@ export const raidNights = sqliteTable('raid_nights', {
 	sort: integer('sort').notNull().default(0)
 });
 
+// ── Admin users (panel de oficiales) ─────────────────────────────────────────
+// Replaces the single shared password. Any user is equal (flat roles): can edit
+// content AND manage other users. `must_change_password` forces onboarding on
+// first login. The password hash is PBKDF2 (see $lib/server/password.ts) and is
+// NEVER exposed to the client.
+export const users = sqliteTable('users', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	username: text('username').notNull().unique(),
+	passwordHash: text('password_hash').notNull(),
+	mustChangePassword: integer('must_change_password').notNull().default(0),
+	/** epoch ms (Date.now()) */
+	createdAt: integer('created_at').notNull()
+});
+
 // ── WarcraftLogs cache (progreso + hazañas agregados de los 7 cores) ─────────
 export const wclCache = sqliteTable('wcl_cache', {
 	key: text('key').primaryKey(),
@@ -205,3 +219,4 @@ export type FaqRow = typeof faq.$inferSelect;
 export type CommunityMetaRow = typeof communityMeta.$inferSelect;
 export type RaidNightRow = typeof raidNights.$inferSelect;
 export type WclCacheRow = typeof wclCache.$inferSelect;
+export type UserRow = typeof users.$inferSelect;

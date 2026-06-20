@@ -36,6 +36,12 @@
 			title: 'Comunidad',
 			desc: 'Discord, zona horaria y noches de raid.',
 			icon: 'chat'
+		},
+		{
+			href: '/admin/usuarios',
+			title: 'Usuarios',
+			desc: 'Crear y eliminar cuentas de oficiales.',
+			icon: 'users'
 		}
 	];
 </script>

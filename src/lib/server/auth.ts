@@ -2,12 +2,17 @@
  * Admin session auth — the SECURITY BOUNDARY for the /admin panel.
  *
  * Stateless signed sessions: a token is `base64url(payload).hexHmac` where the
- * payload is `{ exp }` (epoch ms, +7 days) and the HMAC-SHA256 key is derived
- * from `env.ADMIN_PASSWORD`. No separate secret is needed; rotating the password
- * invalidates every outstanding session for free.
+ * payload is `{ uid, exp }` (user id + epoch ms expiry, +7 days) and the
+ * HMAC-SHA256 key is derived from `env.ADMIN_PASSWORD`. No separate secret is
+ * needed; the key is just the session signing key (the per-user password lives
+ * hashed in the `users` table). The hook resolves `uid` back to a real user.
  *
  * Everything FAILS CLOSED: if `ADMIN_PASSWORD` is unset there is no key, so
  * `checkPassword` rejects and `verifySession` cannot validate any token.
+ *
+ * `checkPassword` is retained ONLY for the bootstrap window (empty `users`
+ * table): it compares a submitted password against the env `ADMIN_PASSWORD`
+ * default. Once a user exists, login verifies against the stored PBKDF2 hash.
  *
  * Runs on WebCrypto (Cloudflare Workers + Node 22 dev) — no Node `crypto`.
  */
@@ -109,47 +114,50 @@ export function checkPassword(input: string, env: AuthEnv): boolean {
 }
 
 /**
- * Create a signed session token valid for 7 days. Returns null when no key can
- * be derived (no `ADMIN_PASSWORD`) — callers must treat null as "cannot log in".
+ * Create a signed session token for `uid`, valid for 7 days. Returns null when
+ * no key can be derived (no `ADMIN_PASSWORD`) — callers must treat null as
+ * "cannot log in".
  */
-export async function createSession(env: AuthEnv): Promise<string | null> {
+export async function createSession(uid: number, env: AuthEnv): Promise<string | null> {
 	const key = await getKey(env);
 	if (!key) return null;
-	const payload = JSON.stringify({ exp: Date.now() + SESSION_MAX_AGE_S * 1000 });
+	const payload = JSON.stringify({ uid, exp: Date.now() + SESSION_MAX_AGE_S * 1000 });
 	const encodedPayload = base64urlEncode(payload);
 	const sig = await hmacHex(encodedPayload, key);
 	return `${encodedPayload}.${sig}`;
 }
 
 /**
- * Verify a session token: recompute the HMAC (constant-time), check it matches
- * and that the payload has not expired. Never throws; returns false on any
- * malformed/expired/unsigned input or when no key is available (FAIL CLOSED).
+ * Verify a session token: recompute the HMAC (constant-time), check it matches,
+ * that the payload carries a valid `uid` and has not expired. Returns the
+ * `{ uid }` on success or `null` on any malformed/expired/unsigned input or when
+ * no key is available (FAIL CLOSED). Never throws.
  */
 export async function verifySession(
 	token: string | undefined | null,
 	env: AuthEnv
-): Promise<boolean> {
+): Promise<{ uid: number } | null> {
 	try {
-		if (!token) return false;
+		if (!token) return null;
 		const dot = token.indexOf('.');
-		if (dot <= 0) return false;
+		if (dot <= 0) return null;
 		const encodedPayload = token.slice(0, dot);
 		const providedSig = token.slice(dot + 1);
-		if (!encodedPayload || !providedSig) return false;
+		if (!encodedPayload || !providedSig) return null;
 
 		const key = await getKey(env);
-		if (!key) return false;
+		if (!key) return null;
 
 		const expectedSig = await hmacHex(encodedPayload, key);
-		if (!timingSafeEqual(providedSig, expectedSig)) return false;
+		if (!timingSafeEqual(providedSig, expectedSig)) return null;
 
 		const json = base64urlDecode(encodedPayload);
-		if (!json) return false;
-		const payload = JSON.parse(json) as { exp?: unknown };
-		if (typeof payload.exp !== 'number') return false;
-		return Date.now() < payload.exp;
+		if (!json) return null;
+		const payload = JSON.parse(json) as { uid?: unknown; exp?: unknown };
+		if (typeof payload.exp !== 'number' || Date.now() >= payload.exp) return null;
+		if (typeof payload.uid !== 'number' || !Number.isInteger(payload.uid)) return null;
+		return { uid: payload.uid };
 	} catch {
-		return false;
+		return null;
 	}
 }

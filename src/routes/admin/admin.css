@@ -6,8 +6,12 @@
    ash / stone / iron and --font-display / --font-sans.
    ============================================================ */
 
-/* ----- Local admin tokens (derived from brand) ------------- */
-.admin-shell {
+/* ----- Local admin tokens (derived from brand) -------------
+   On :root (not .admin-shell) so they also reach the LOGIN page, which renders
+   outside the shell wrapper. admin.css only loads on /admin routes, so this is
+   effectively admin-scoped. Without this the login input had undefined
+   background/border vars → invisible field. */
+:root {
 	--admin-gap: 1rem;
 	--admin-radius: 0.625rem;
 	--admin-radius-sm: 0.45rem;

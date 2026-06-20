@@ -9,7 +9,9 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			/** True when the request carries a valid admin session cookie. */
+			/** The authenticated admin user, or null when not logged in. */
+			user: { id: number; username: string; mustChange: boolean } | null;
+			/** Convenience flag mirroring `!!user` (kept for compatibility). */
 			admin: boolean;
 		}
 		// interface PageData {}

@@ -50,3 +50,14 @@ export {
 	type CommunityMetaUpdate
 } from './community.repository';
 export { getCache, setCache, type CacheEntry } from './wclCache.repository';
+export {
+	countUsers,
+	getByUsername,
+	getById,
+	createUser,
+	updatePassword,
+	listUsers,
+	deleteUser,
+	type UserListItem,
+	type CreateUserInput
+} from './users.repository';

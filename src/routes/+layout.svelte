@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/stores';
 	import WebGLBackground from '$lib/components/WebGLBackground.svelte';
 	import Navbar from '$lib/components/layout/Navbar.svelte';
 	import Footer from '$lib/components/layout/Footer.svelte';
@@ -9,30 +10,41 @@
 	import BackToTop from '$lib/components/BackToTop.svelte';
 
 	let { children }: { children: Snippet } = $props();
+
+	// El /admin tiene su propio shell (sidebar, etc.) en su +layout; NO debe
+	// heredar el chrome público (navbar, footer, fondo WebGL, cursor glow…),
+	// que además provocaba doble menú y fondo de embers dentro del panel.
+	const isAdmin = $derived(
+		$page.url.pathname === '/admin' || $page.url.pathname.startsWith('/admin/')
+	);
 </script>
 
-<!-- Primer elemento enfocable: saltar la navegación e ir al contenido. -->
-<a href="#contenido" class="skip-link">Saltar al contenido</a>
-
-<!-- Fondo WebGL (se posiciona fixed / z-index:-1 por sí mismo). -->
-<WebGLBackground />
-
-<!-- Resplandor rojo ambiental que sigue al cursor (fixed, detrás del contenido). -->
-<CursorGlow />
-
-<!-- Barra de progreso de scroll (fija, por encima del navbar). -->
-<ScrollProgress />
-
-<Navbar />
-
-<main id="contenido" tabindex="-1">
+{#if isAdmin}
 	{@render children()}
-</main>
+{:else}
+	<!-- Primer elemento enfocable: saltar la navegación e ir al contenido. -->
+	<a href="#contenido" class="skip-link">Saltar al contenido</a>
 
-<Footer />
+	<!-- Fondo WebGL (se posiciona fixed / z-index:-1 por sí mismo). -->
+	<WebGLBackground />
 
-<!-- Botón flotante "volver arriba" (fixed, por debajo del navbar). -->
-<BackToTop />
+	<!-- Resplandor rojo ambiental que sigue al cursor (fixed, detrás del contenido). -->
+	<CursorGlow />
+
+	<!-- Barra de progreso de scroll (fija, por encima del navbar). -->
+	<ScrollProgress />
+
+	<Navbar />
+
+	<main id="contenido" tabindex="-1">
+		{@render children()}
+	</main>
+
+	<Footer />
+
+	<!-- Botón flotante "volver arriba" (fixed, por debajo del navbar). -->
+	<BackToTop />
+{/if}
 
 <!--
 	Estilos globales para la action `reveal` (fade + slide-in al entrar en

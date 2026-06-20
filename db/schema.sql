@@ -136,6 +136,15 @@ CREATE TABLE IF NOT EXISTS `teams` (
 	`sort` integer DEFAULT 0 NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS `users` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`username` text NOT NULL,
+	`password_hash` text NOT NULL,
+	`must_change_password` integer DEFAULT 0 NOT NULL,
+	`created_at` integer NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS `users_username_unique` ON `users` (`username`);
 CREATE TABLE IF NOT EXISTS `wcl_cache` (
 	`key` text PRIMARY KEY NOT NULL,
 	`json` text NOT NULL,
