@@ -38,11 +38,14 @@ import {
 	getWclData,
 	getWclOfficers,
 	getWclRankings,
+	getWclCharacter,
 	type WclData,
 	type WclFeat,
 	type WclCharacter,
 	type HallOfFame,
-	type WclRankings
+	type WclRankings,
+	type WclCharacterDetail,
+	type WclRecentKill
 } from '$lib/server/warcraftlogs';
 import { getDb, type Db } from '$lib/server/db/client';
 import {
@@ -136,8 +139,11 @@ const WCL_OFFICERS_KEY = 'officers';
  * Report rankings (per-core roster + parses) — heaviest, longest TTL (~12h).
  * ONE fetch feeds BOTH the Hall of Fame and reliable officer spec enrichment.
  */
-const WCL_HOF_TTL_MS = 12 * 60 * 60 * 1000;
+const WCL_HOF_TTL_MS = 6 * 60 * 60 * 1000;
 const WCL_HOF_KEY = 'hall_of_fame';
+
+/** Per-character detail (internal player page) — cached ~6h, keyed per name. */
+const WCL_CHARACTER_TTL_MS = 6 * 60 * 60 * 1000;
 
 /** English boss name → our Feat raid bucket. Covers Phase 1 + Phase 2 bosses. */
 const BOSS_TO_RAID: Record<string, Feat['raid']> = {
@@ -350,6 +356,48 @@ export async function loadCoreRoster(
 		return roster && roster.length > 0 ? roster : null;
 	} catch {
 		return null;
+	}
+}
+
+/**
+ * Per-character SSC/TK detail for the internal player page (`/jugador/[name]`),
+ * through a per-name 6h D1 cache. Returns null when there is no DB binding, no
+ * creds, the character has no logs, or anything fails — never throws. The page
+ * renders a friendly empty state on null (NOT a hard 404).
+ */
+export async function loadWclCharacterCached(
+	platform: App.Platform | undefined,
+	name: string
+): Promise<WclCharacterDetail | null> {
+	try {
+		const binding = platform?.env?.DB;
+		if (!binding || !name.trim()) return null;
+		const db = getDb(binding);
+		const env = platform!.env;
+		const key = 'char:' + name.toLowerCase();
+		return await loadJsonCached<WclCharacterDetail>(db, key, WCL_CHARACTER_TTL_MS, () =>
+			getWclCharacter(env, name)
+		);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * The player's recent-kills histórico, read straight from the shared rankings
+ * cache (`recentByPlayer`) — no extra fetch beyond what the Hall of Fame already
+ * warms. Resilient: missing DB / creds / stale cache row lacking the field → [].
+ */
+export async function loadPlayerRecentKills(
+	platform: App.Platform | undefined,
+	name: string
+): Promise<WclRecentKill[]> {
+	try {
+		if (!name.trim()) return [];
+		const rankings = await loadWclRankingsCached(platform);
+		return rankings?.recentByPlayer?.[name.toLowerCase()] ?? [];
+	} catch {
+		return [];
 	}
 }
 

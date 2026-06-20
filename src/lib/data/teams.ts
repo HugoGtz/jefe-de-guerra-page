@@ -54,6 +54,10 @@ export const wclGuildUrl = (id: number) =>
 export const wclCalendarUrl = (id: number) =>
 	'https://es.fresh.warcraftlogs.com/guild/calendar/' + id;
 
+/** URL del perfil de un personaje en WarcraftLogs (US · Dreamscythe). */
+export const wclCharacterUrl = (name: string) =>
+	'https://es.fresh.warcraftlogs.com/character/us/dreamscythe/' + encodeURIComponent(name);
+
 // TODO: confirmar con el usuario (nombres, horarios, progreso, reclutamiento).
 export const teams: Team[] = [
 	{

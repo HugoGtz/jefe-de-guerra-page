@@ -40,7 +40,12 @@
 							{#each col.entries as entry, i (entry.name + entry.core)}
 								{@const icon = specIconUrl(entry.wowClass, entry.spec) ?? classIconUrl(entry.wowClass)}
 								{@const tier = parseTier(entry.score)}
-								<li class="hof__row">
+								<li>
+									<a
+										class="hof__row"
+										href={`/jugador/${encodeURIComponent(entry.name)}`}
+										aria-label={`Ver los parses de ${entry.name}`}
+									>
 									<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
 									{#if icon}
 										<span class="hof__icons" aria-hidden="false">
@@ -74,6 +79,7 @@
 										title={`Parse ${entry.score} · ${tier.label}`}
 										aria-label={`Parse ${entry.score} · ${tier.label}`}>{entry.score}</span
 									>
+									</a>
 								</li>
 							{/each}
 						</ol>
@@ -126,6 +132,27 @@
 		border-radius: 4px;
 		background: color-mix(in srgb, var(--color-stone) 60%, transparent);
 		border: 1px solid color-mix(in srgb, var(--color-steel) 14%, transparent);
+		/* Cada fila enlaza al perfil del jugador en WarcraftLogs. */
+		text-decoration: none;
+		color: inherit;
+		transition:
+			border-color 0.18s ease,
+			background-color 0.18s ease,
+			transform 0.18s ease;
+	}
+	.hof__row:hover {
+		border-color: color-mix(in srgb, var(--color-lava) 55%, transparent);
+		background: color-mix(in srgb, var(--color-stone) 80%, transparent);
+		transform: translateY(-1px);
+	}
+	.hof__row:focus-visible {
+		outline: 2px solid var(--color-lava);
+		outline-offset: 2px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.hof__row:hover {
+			transform: none;
+		}
 	}
 	.hof__rank {
 		flex-shrink: 0;

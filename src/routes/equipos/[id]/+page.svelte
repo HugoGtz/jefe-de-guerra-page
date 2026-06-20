@@ -28,11 +28,6 @@
 	function memberIcon(wowClass: WowClass | undefined, spec: string | undefined): string | null {
 		return specIconUrl(wowClass, spec?.toLowerCase()) ?? classIconUrl(wowClass);
 	}
-
-	/** URL del personaje en WarcraftLogs (ES, Fresh, US/Dreamscythe). */
-	function characterUrl(name: string): string {
-		return `https://es.fresh.warcraftlogs.com/character/us/dreamscythe/${encodeURIComponent(name)}`;
-	}
 </script>
 
 <svelte:head>
@@ -126,9 +121,8 @@
 						<li use:reveal={{ delay: Math.min(i * 50, 400), blur: true }}>
 							<a
 								class="member"
-								href={characterUrl(member.name)}
-								target="_blank"
-								rel="noopener noreferrer"
+								href={`/jugador/${encodeURIComponent(member.name)}`}
+								aria-label={`Ver los parses de ${member.name}`}
 							>
 								<Card class="member-card">
 									<div class="member__row">

@@ -18,6 +18,10 @@ import { teams as staticTeams } from '$lib/data/teams';
 import { officers as staticOfficers } from '$lib/data/officers';
 import type { WowClass, SpecRole } from '$lib/data/officers';
 
+/** Re-export so the WCL layer can offer it too; the impl lives in the shared
+    (non-server) parse module so components can import it directly. */
+export { formatDuration } from '$lib/parse';
+
 const OAUTH_URL = 'https://www.warcraftlogs.com/oauth/token';
 const GRAPHQL_URL = 'https://fresh.warcraftlogs.com/api/v2/client';
 
@@ -32,6 +36,23 @@ const SERVER_SLUG = 'dreamscythe';
 const SERVER_REGION = 'us';
 /** Top N per role surfaced in the Hall of Fame. */
 const HOF_TOP_N = 10;
+
+/**
+ * Parent/umbrella guild "Jefe de Guerra" (its OWN WCL logs — the most active
+ * source). The GLOBAL views (Hall of Fame, recent feats, global progress) are
+ * built from the parent PLUS the 7 cores, deduped. Per-core cards/rosters still
+ * read their own core id; the parent is just an extra source in the aggregate
+ * (its bucket is keyed by this id and ignored by the per-core lookups).
+ */
+const PARENT_GUILD = { wclGuildId: 792187, name: 'General' };
+
+/** Default aggregate sources for the global queries: parent + every core. */
+function defaultSources(): { wclGuildId: number; name: string }[] {
+	const cores = staticTeams
+		.filter((t): t is typeof t & { wclGuildId: number } => typeof t.wclGuildId === 'number')
+		.map((t) => ({ wclGuildId: t.wclGuildId, name: t.name }));
+	return [PARENT_GUILD, ...cores];
+}
 
 // ── TBC class IDs → English class + Spanish label ────────────────────────────
 
@@ -118,6 +139,76 @@ export type WclCharacter = {
 	score?: number;
 };
 
+/** A single all-stars entry (per spec) for the player-detail page. */
+export type WclAllStarsEntry = {
+	/** Spec name (English, as WCL reports it). */
+	spec: string;
+	/** Rounded all-stars points earned this partition. */
+	points: number;
+	/** Rounded maximum possible all-stars points. */
+	possiblePoints: number;
+	/** World rank for this spec, or null when unranked. */
+	world: number | null;
+	/** Region rank for this spec, or null when unranked. */
+	region: number | null;
+	/** Server rank for this spec, or null when unranked. */
+	server: number | null;
+	/** Rounded all-stars percentile (0–100), or null when unranked. */
+	rankPercent: number | null;
+};
+
+/** A single SSC/TK boss row for the player-detail page. */
+export type WclBossDetail = {
+	/** Boss/encounter name (English). */
+	encounterName: string;
+	/** Rounded best rankPercent (0–100), or null when no parse. */
+	best: number | null;
+	/** Rounded median rankPercent (0–100), or null when no parse. */
+	median: number | null;
+	/** Total kills logged for this boss. */
+	kills: number;
+	/** Rounded best amount (DPS/HPS per second), or null. */
+	amount: number | null;
+	/** Item level of the best parse, or null. */
+	ilvl: number | null;
+	/** Fastest kill duration in milliseconds, or null when none. */
+	fastestKillMs: number | null;
+	/** Spec played on the best parse, or null. */
+	spec: string | null;
+};
+
+/**
+ * Full per-character detail for the internal player page. Built from ONE
+ * `characterData.character` query (SSC/TK zoneRankings). Every field is
+ * defensive; the whole thing is `null` when the character has no logs.
+ */
+export type WclCharacterDetail = {
+	/** Canonical name as WCL returned it (falls back to the requested name). */
+	name: string;
+	/** Internal WowClass (from classID), or null when unknown. */
+	wowClass: WowClass | null;
+	/** Spanish class label, or null. */
+	classLabel: string | null;
+	/** Hex class color, or null. */
+	classColor: string | null;
+	/** Dominant spec (top all-stars spec, else most-common ranking spec), or null. */
+	mainSpec: string | null;
+	/** Combat role derived from mainSpec. */
+	role: SpecRole;
+	/** Ranking metric ('dps' | 'hps' | …), or null. */
+	metric: string | null;
+	/** Rounded best performance average (0–100). */
+	bestAvg: number;
+	/** Rounded median performance average (0–100). */
+	median: number;
+	/** Best ranks from the top all-stars spec (null when unranked). */
+	bestRanks: { world: number | null; region: number | null; server: number | null };
+	/** Per-spec all-stars breakdown (sorted by points desc). */
+	allStars: WclAllStarsEntry[];
+	/** Per-boss SSC/TK breakdown (sorted by best % desc, then by kills). */
+	bosses: WclBossDetail[];
+};
+
 /** One Hall-of-Fame entry (best parse for a character in a given role). */
 export type HallOfFameEntry = {
 	name: string;
@@ -154,6 +245,26 @@ export type WclRankings = {
 	 * ranked characters.
 	 */
 	rosters: Record<number, WclCharacter[]>;
+	/**
+	 * Per-player recent-kills history, keyed by name(lowercased) → newest-first list
+	 * of kills (boss · date · parse · core). Derived from the SAME report rankings
+	 * (each fight's encounter + the report's startTime), so it rides this cache with
+	 * NO extra network requests. Optional: stale cache rows lacking it → empty
+	 * histórico (additive, never crashes).
+	 */
+	recentByPlayer?: Record<string, WclRecentKill[]>;
+};
+
+/** A single recent kill for the player-detail "histórico" section. */
+export type WclRecentKill = {
+	/** Boss/encounter name (English). */
+	boss: string;
+	/** ISO 'yyyy-mm-dd' derived from the report startTime. */
+	date: string;
+	/** Rounded rankPercent (0–100) for that fight, or null when none. */
+	parse: number | null;
+	/** Core/guild display name where the kill happened. */
+	core: string;
 };
 
 export type WclFeat = {
@@ -261,11 +372,7 @@ export async function getWclData(
 	cores?: { wclGuildId: number; name: string }[]
 ): Promise<WclData | null> {
 	try {
-		const list =
-			cores ??
-			staticTeams
-				.filter((t): t is typeof t & { wclGuildId: number } => typeof t.wclGuildId === 'number')
-				.map((t) => ({ wclGuildId: t.wclGuildId, name: t.name }));
+		const list = cores ?? defaultSources();
 		if (list.length === 0) return null;
 
 		const token = await getToken(env);
@@ -512,6 +619,216 @@ export async function getWclOfficers(
 	}
 }
 
+// ── Per-character detail (internal player page) ──────────────────────────────
+//
+// Source: ONE `characterData.character(...).zoneRankings(zoneID:1056)` query.
+// The JSON scalar carries `bestPerformanceAverage`, `medianPerformanceAverage`,
+// `metric`, an `allStars[]` array (per-spec points + world/region/server ranks)
+// and a `rankings[]` array (one per SSC/TK boss). All fields are defensive: WCL
+// returns `"-"` strings for unranked numbers and may omit/null anything, so we
+// coerce carefully and never throw.
+
+/** Coerce a WCL rank value (number, numeric string, or "-") to a number|null. */
+function toRankNumber(value: unknown): number | null {
+	if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+	if (typeof value === 'string') {
+		const n = Number(value.replace(/[^\d.-]/g, ''));
+		return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+	}
+	return null;
+}
+
+/** Round a finite number, else null. */
+function roundOrNull(value: unknown): number | null {
+	return typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : null;
+}
+
+/** Round a finite number, else 0 (for averages that should display as a value). */
+function roundOrZero(value: unknown): number {
+	return typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : 0;
+}
+
+/** A single all-stars entry as it appears in the zoneRankings JSON scalar. */
+type AllStarsNode = {
+	spec?: string | null;
+	points?: number | null;
+	possiblePoints?: number | null;
+	rank?: number | string | null;
+	regionRank?: number | string | null;
+	serverRank?: number | string | null;
+	rankPercent?: number | string | null;
+};
+/** A single boss ranking as it appears in the zoneRankings JSON scalar. */
+type RankingNode = {
+	encounter?: { id?: number | null; name?: string | null } | null;
+	rankPercent?: number | null;
+	medianPercent?: number | null;
+	totalKills?: number | null;
+	fastestKill?: number | null;
+	bestAmount?: number | null;
+	spec?: string | null;
+	bestSpec?: string | null;
+	bestRank?: { ilvl?: number | null } | null;
+};
+/** Full zoneRankings JSON scalar shape used by the player-detail page. */
+type ZoneRankingsFull = {
+	bestPerformanceAverage?: number | null;
+	medianPerformanceAverage?: number | null;
+	metric?: string | null;
+	allStars?: AllStarsNode[] | null;
+	rankings?: RankingNode[] | null;
+};
+type CharacterDetailNode = {
+	name?: string | null;
+	classID?: number | null;
+	zoneRankings?: ZoneRankingsFull | null;
+} | null;
+
+/** Build the single-character query for the detail page. */
+function buildCharacterDetailQuery(name: string): string {
+	return `query {
+  characterData {
+    character(name: "${gqlStr(name)}", serverSlug: "${SERVER_SLUG}", serverRegion: "${SERVER_REGION}") {
+      name
+      classID
+      zoneRankings(zoneID: ${SSC_TK_ZONE_ID})
+    }
+  }
+}`;
+}
+
+/**
+ * Pick the dominant spec for the detail header: the all-stars spec with the most
+ * points; falling back to the most-common spec across boss rankings. Returns
+ * null when nothing is logged.
+ */
+function pickMainSpec(zr: ZoneRankingsFull): string | null {
+	const allStars = zr.allStars ?? [];
+	let best: string | null = null;
+	let bestPoints = -1;
+	for (const a of allStars) {
+		const pts = typeof a.points === 'number' ? a.points : -1;
+		if (a.spec && pts > bestPoints) {
+			best = a.spec;
+			bestPoints = pts;
+		}
+	}
+	if (best) return best;
+	// Fallback: most-common (best)spec across boss rankings.
+	const counts = new Map<string, number>();
+	for (const r of zr.rankings ?? []) {
+		const s = r.bestSpec ?? r.spec;
+		if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
+	}
+	let common: string | null = null;
+	let commonCount = -1;
+	for (const [s, c] of counts) {
+		if (c > commonCount) {
+			common = s;
+			commonCount = c;
+		}
+	}
+	return common;
+}
+
+/**
+ * Fetch + shape ONE character's SSC/TK detail for the internal player page.
+ *
+ * Single GraphQL query. Resilient: missing creds, an unresolved character, no
+ * logged parses, or any error all yield `null` (the page renders a friendly
+ * empty state). Never throws.
+ */
+export async function getWclCharacter(
+	env: WclEnv,
+	name: string
+): Promise<WclCharacterDetail | null> {
+	try {
+		if (!name.trim()) return null;
+		const token = await getToken(env);
+		if (!token) return null;
+
+		const data = await gql<{ characterData?: { character?: CharacterDetailNode } }>(
+			token,
+			buildCharacterDetailQuery(name)
+		);
+		const node = data?.characterData?.character ?? null;
+		const zr = node?.zoneRankings ?? null;
+		// No rankings at all → treat as "no logs" (empty state).
+		if (!node || !zr) return null;
+
+		const hasAllStars = (zr.allStars?.length ?? 0) > 0;
+		const hasRankings = (zr.rankings ?? []).some((r) => (r.totalKills ?? 0) > 0);
+		if (!hasAllStars && !hasRankings) return null;
+
+		const classId = node.classID ?? null;
+		const wowClass = classId != null ? (CLASS_ID_TO_CLASS[classId] ?? null) : null;
+		const classLabel = wowClass ? CLASS_LABEL_ES[wowClass] : null;
+		const classColor = wowClass ? CLASS_COLOR[wowClass] : null;
+
+		const mainSpec = pickMainSpec(zr);
+		const role = roleForSpec(mainSpec);
+
+		// All-stars per spec, sorted by points desc.
+		const allStars: WclAllStarsEntry[] = (zr.allStars ?? [])
+			.filter((a): a is AllStarsNode & { spec: string } => !!a?.spec)
+			.map((a) => ({
+				spec: a.spec,
+				points: roundOrZero(a.points),
+				possiblePoints: roundOrZero(a.possiblePoints),
+				world: toRankNumber(a.rank),
+				region: toRankNumber(a.regionRank),
+				server: toRankNumber(a.serverRank),
+				rankPercent:
+					typeof a.rankPercent === 'number' && Number.isFinite(a.rankPercent)
+						? Math.round(a.rankPercent)
+						: null
+			}))
+			.sort((a, b) => b.points - a.points);
+
+		// Best ranks come from the top all-stars spec (highest points).
+		const topAllStars = allStars[0];
+		const bestRanks = {
+			world: topAllStars?.world ?? null,
+			region: topAllStars?.region ?? null,
+			server: topAllStars?.server ?? null
+		};
+
+		// Per-boss rows. Keep only bosses with a parse or a kill; sort by best % desc,
+		// then by kills desc, so the strongest content surfaces first.
+		const bosses: WclBossDetail[] = (zr.rankings ?? [])
+			.map((r) => ({
+				encounterName: r.encounter?.name ?? 'Desconocido',
+				best: roundOrNull(r.rankPercent),
+				median: roundOrNull(r.medianPercent),
+				kills: typeof r.totalKills === 'number' ? r.totalKills : 0,
+				amount: roundOrNull(r.bestAmount),
+				ilvl: typeof r.bestRank?.ilvl === 'number' ? r.bestRank.ilvl : null,
+				fastestKillMs:
+					typeof r.fastestKill === 'number' && r.fastestKill > 0 ? r.fastestKill : null,
+				spec: r.bestSpec ?? r.spec ?? null
+			}))
+			.filter((b) => b.kills > 0 || b.best != null)
+			.sort((a, b) => (b.best ?? -1) - (a.best ?? -1) || b.kills - a.kills);
+
+		return {
+			name: node.name?.trim() || name,
+			wowClass,
+			classLabel,
+			classColor,
+			mainSpec,
+			role,
+			metric: zr.metric ?? null,
+			bestAvg: roundOrZero(zr.bestPerformanceAverage),
+			median: roundOrZero(zr.medianPerformanceAverage),
+			bestRanks,
+			allStars,
+			bosses
+		};
+	} catch {
+		return null;
+	}
+}
+
 // ── Hall of Fame ─────────────────────────────────────────────────────────────
 //
 // Source: `reportData.report(code).rankings`. That JSON scalar is an array of
@@ -543,6 +860,10 @@ type RankChar = {
 	rankPercent?: number | null;
 };
 type RankFight = {
+	/** Per-fight encounter (the boss) — used to build the per-player histórico. */
+	encounter?: { id?: number | null; name?: string | null } | null;
+	/** 1 when this fight is a kill. */
+	kill?: number | null;
 	roles?: {
 		tanks?: { characters?: RankChar[] | null } | null;
 		healers?: { characters?: RankChar[] | null } | null;
@@ -551,6 +872,9 @@ type RankFight = {
 };
 /** The `rankings` JSON scalar is an object wrapping the fights in `data`. */
 type ReportRankings = { data?: RankFight[] | null } | null;
+
+/** Max recent kills kept per player in the histórico. */
+const MAX_RECENT_PER_PLAYER = 12;
 
 /**
  * Reports per core to pull rankings from. Kept low — each report is one inner
@@ -572,12 +896,17 @@ function buildReportCodesQuery(guildIds: number[]): string {
 	return `query {\n  ${blocks}\n}`;
 }
 
-/** Batched query: `rankings` JSON for several report codes (1 request). */
+/**
+ * Batched query: `rankings` JSON + `startTime` for several report codes (1
+ * request). `startTime` lets us date each fight for the per-player histórico;
+ * the per-fight boss lives inside the `rankings` JSON scalar (each fight's
+ * `encounter.name`).
+ */
 function buildReportRankingsQuery(codes: string[]): string {
 	const blocks = codes
 		.map(
 			(code, i) => `q${i}: reportData {
-    report(code: "${gqlStr(code)}") { rankings }
+    report(code: "${gqlStr(code)}") { startTime rankings }
   }`
 		)
 		.join('\n  ');
@@ -602,11 +931,7 @@ export async function getWclRankings(
 	cores?: { wclGuildId: number; name: string }[]
 ): Promise<WclRankings | null> {
 	try {
-		const list =
-			cores ??
-			staticTeams
-				.filter((t): t is typeof t & { wclGuildId: number } => typeof t.wclGuildId === 'number')
-				.map((t) => ({ wclGuildId: t.wclGuildId, name: t.name }));
+		const list = cores ?? defaultSources();
 		if (list.length === 0) return null;
 
 		const token = await getToken(env);
@@ -651,6 +976,30 @@ export async function getWclRankings(
 		// wclGuildId → (name(lower) → best parse within that core). Each core's
 		// roster keeps the single best parse per character seen in its reports.
 		const rosterByGuild = new Map<number, Map<string, WclCharacter>>();
+		// name(lower) → raw recent kills (one per fight the player was in). Deduped,
+		// sorted and capped at the end. Powers the player-detail "histórico".
+		const recentRaw = new Map<string, WclRecentKill[]>();
+
+		/** Record one fight a player was present in (for the histórico). */
+		const recordKill = (
+			ch: RankChar | null | undefined,
+			boss: string,
+			date: string,
+			core: string
+		) => {
+			const name = ch?.name?.trim();
+			if (!name || !boss) return;
+			const key = name.toLowerCase();
+			const list = recentRaw.get(key) ?? [];
+			const pct = ch?.rankPercent;
+			list.push({
+				boss,
+				date,
+				parse: typeof pct === 'number' && pct > 0 ? Math.round(pct) : null,
+				core
+			});
+			recentRaw.set(key, list);
+		};
 
 		const consider = (
 			ch: RankChar | null | undefined,
@@ -720,22 +1069,35 @@ export async function getWclRankings(
 		const CHUNK = 4;
 		for (let start = 0; start < allCodes.length; start += CHUNK) {
 			const chunk = allCodes.slice(start, start + CHUNK);
-			const data = await gql<Record<string, { report: { rankings: ReportRankings } | null }>>(
-				token,
-				buildReportRankingsQuery(chunk)
-			);
+			const data = await gql<
+				Record<string, { report: { startTime?: number | null; rankings: ReportRankings } | null }>
+			>(token, buildReportRankingsQuery(chunk));
 			if (!data) continue; // Skip a failed chunk; keep what we have.
 
 			chunk.forEach((code, i) => {
-				const fights = data[`q${i}`]?.report?.rankings?.data ?? [];
+				const report = data[`q${i}`]?.report;
+				const fights = report?.rankings?.data ?? [];
 				const core = codeToCore.get(code) ?? 'Core';
 				const guildId = codeToGuildId.get(code);
+				// Date for this report's kills (for the histórico). May be missing.
+				const date =
+					typeof report?.startTime === 'number' ? toIsoDate(report.startTime) : null;
 				for (const fight of fights) {
 					const roles = fight?.roles;
 					if (!roles) continue;
-					for (const c of roles.tanks?.characters ?? []) consider(c, 'Tank', core, guildId);
-					for (const c of roles.healers?.characters ?? []) consider(c, 'Healer', core, guildId);
-					for (const c of roles.dps?.characters ?? []) consider(c, 'DPS', core, guildId);
+					const boss = fight?.encounter?.name ?? null;
+					for (const c of roles.tanks?.characters ?? []) {
+						consider(c, 'Tank', core, guildId);
+						if (boss && date) recordKill(c, boss, date, core);
+					}
+					for (const c of roles.healers?.characters ?? []) {
+						consider(c, 'Healer', core, guildId);
+						if (boss && date) recordKill(c, boss, date, core);
+					}
+					for (const c of roles.dps?.characters ?? []) {
+						consider(c, 'DPS', core, guildId);
+						if (boss && date) recordKill(c, boss, date, core);
+					}
 				}
 			});
 		}
@@ -758,7 +1120,29 @@ export async function getWclRankings(
 			);
 		}
 
-		return { hallOfFame: hof, characters: Object.fromEntries(characters), rosters };
+		// Per-player histórico: dedupe each player's kills by boss+date (keeping the
+		// highest parse), sort newest-first (then by parse), cap per player.
+		const recentByPlayer: Record<string, WclRecentKill[]> = {};
+		for (const [key, kills] of recentRaw) {
+			const byBossDate = new Map<string, WclRecentKill>();
+			for (const k of kills) {
+				const id = `${k.boss}::${k.date}`;
+				const prev = byBossDate.get(id);
+				if (!prev || (k.parse ?? -1) > (prev.parse ?? -1)) byBossDate.set(id, k);
+			}
+			const deduped = [...byBossDate.values()].sort(
+				(a, b) =>
+					(a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || (b.parse ?? -1) - (a.parse ?? -1)
+			);
+			recentByPlayer[key] = deduped.slice(0, MAX_RECENT_PER_PLAYER);
+		}
+
+		return {
+			hallOfFame: hof,
+			characters: Object.fromEntries(characters),
+			rosters,
+			recentByPlayer
+		};
 	} catch {
 		return null;
 	}

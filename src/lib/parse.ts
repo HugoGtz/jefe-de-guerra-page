@@ -33,3 +33,16 @@ export function roleLabelEs(role: 'DPS' | 'Healer' | 'Tank'): string {
 	if (role === 'Tank') return 'Tanque';
 	return 'DPS';
 }
+
+/**
+ * Format a kill duration (milliseconds) as "m:ss" (e.g. 271299 → "4:31").
+ * Returns null for missing/zero durations so the UI can omit it. Lives here
+ * (not in the server-only WCL layer) so it is safe to import from components.
+ */
+export function formatDuration(ms: number | null | undefined): string | null {
+	if (typeof ms !== 'number' || !Number.isFinite(ms) || ms <= 0) return null;
+	const totalSeconds = Math.round(ms / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
