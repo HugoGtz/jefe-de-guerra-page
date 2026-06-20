@@ -1,0 +1,804 @@
+/* ============================================================
+   Jefe de Guerra — Panel de oficiales (admin)
+   Same forge brand as the public site, but calmer / utilitarian.
+   Clarity over flash. Tokens come from app.css (@theme):
+   --color-lava / blood / ember / silver / steel / steel-dim /
+   ash / stone / iron and --font-display / --font-sans.
+   ============================================================ */
+
+/* ----- Local admin tokens (derived from brand) ------------- */
+.admin-shell {
+	--admin-gap: 1rem;
+	--admin-radius: 0.625rem;
+	--admin-radius-sm: 0.45rem;
+	--admin-border: color-mix(in srgb, var(--color-steel) 22%, transparent);
+	--admin-border-strong: color-mix(in srgb, var(--color-steel) 40%, transparent);
+	--admin-surface: var(--color-iron);
+	--admin-surface-2: color-mix(in srgb, var(--color-iron) 70%, #000);
+	--admin-field-bg: color-mix(in srgb, var(--color-ash) 65%, #000);
+	--admin-muted: var(--color-steel-dim);
+	--admin-sidebar-w: 16rem;
+}
+
+/* ============================================================
+   App shell — sidebar + content
+   ============================================================ */
+.admin-shell {
+	min-height: 100dvh;
+	display: grid;
+	grid-template-columns: var(--admin-sidebar-w) minmax(0, 1fr);
+}
+
+/* ---- Sidebar (desktop) ---- */
+.admin-sidebar {
+	position: sticky;
+	top: 0;
+	align-self: start;
+	height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	padding: 1.5rem 1rem;
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--color-stone) 92%, #000),
+		var(--color-ash)
+	);
+	border-right: 1px solid var(--admin-border);
+	box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.4);
+	overflow-y: auto;
+}
+
+.admin-brand {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0 0.4rem;
+	text-decoration: none;
+	color: var(--color-silver);
+}
+.admin-brand:hover {
+	color: var(--color-silver);
+}
+.admin-brand .mark {
+	flex: 0 0 auto;
+	width: 2.25rem;
+	height: 2.25rem;
+	display: grid;
+	place-items: center;
+	border-radius: 0.5rem;
+	font-family: var(--font-display);
+	font-weight: 900;
+	font-size: 1.05rem;
+	color: var(--color-silver);
+	background: linear-gradient(
+		180deg,
+		var(--color-blood),
+		var(--color-crimson-deep)
+	);
+	border: 1px solid color-mix(in srgb, var(--color-lava) 45%, transparent);
+	box-shadow:
+		inset 0 1px 0 rgba(229, 229, 229, 0.18),
+		0 0 10px rgba(161, 6, 19, 0.4);
+}
+.admin-brand .brand-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.15;
+}
+.admin-brand .brand-title {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 0.95rem;
+	letter-spacing: 0.02em;
+}
+.admin-brand .brand-sub {
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--admin-muted);
+}
+
+/* ---- Nav ---- */
+.admin-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+.admin-nav .nav-label {
+	padding: 0 0.7rem 0.35rem;
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--admin-muted);
+}
+.admin-nav a {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 0.7rem;
+	border-radius: var(--admin-radius-sm);
+	text-decoration: none;
+	color: var(--color-steel);
+	font-size: 0.92rem;
+	font-weight: 500;
+	border: 1px solid transparent;
+	transition:
+		background-color 0.18s ease,
+		color 0.18s ease,
+		border-color 0.18s ease;
+}
+.admin-nav a .nav-ico {
+	flex: 0 0 auto;
+	width: 1.1rem;
+	height: 1.1rem;
+	opacity: 0.85;
+}
+.admin-nav a:hover {
+	color: var(--color-silver);
+	background: color-mix(in srgb, var(--color-steel) 8%, transparent);
+}
+.admin-nav a[aria-current='page'] {
+	color: var(--color-silver);
+	background: color-mix(in srgb, var(--color-blood) 22%, transparent);
+	border-color: color-mix(in srgb, var(--color-lava) 40%, transparent);
+}
+.admin-nav a[aria-current='page'] .nav-ico {
+	opacity: 1;
+	color: var(--color-ember);
+}
+
+.admin-sidebar-foot {
+	margin-top: auto;
+	padding-top: 1rem;
+	border-top: 1px solid var(--admin-border);
+}
+
+/* ---- Content column ---- */
+.admin-main {
+	min-width: 0;
+	padding: 2rem clamp(1rem, 4vw, 3rem) 5rem;
+}
+.admin-content {
+	max-width: 60rem;
+	margin: 0 auto;
+}
+
+/* ============================================================
+   Mobile top bar + drawer
+   ============================================================ */
+.admin-topbar-mobile {
+	display: none;
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.6rem 1rem;
+	background: color-mix(in srgb, var(--color-stone) 95%, #000);
+	border-bottom: 1px solid var(--admin-border);
+	backdrop-filter: blur(6px);
+}
+.admin-menu-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--admin-radius-sm);
+	border: 1px solid var(--admin-border-strong);
+	background: var(--admin-surface);
+	color: var(--color-silver);
+	font: inherit;
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+.admin-menu-btn:hover {
+	border-color: color-mix(in srgb, var(--color-lava) 45%, transparent);
+}
+.admin-scrim {
+	display: none;
+}
+
+/* ============================================================
+   Page header
+   ============================================================ */
+.admin-page-head {
+	margin-bottom: 1.5rem;
+}
+.admin-content h1 {
+	font-size: clamp(1.5rem, 3vw, 1.9rem);
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	margin: 0;
+	color: var(--color-silver);
+	text-shadow:
+		0 1px 0 rgba(0, 0, 0, 0.7),
+		0 -1px 0 rgba(229, 229, 229, 0.06);
+}
+.admin-page-head .lead {
+	margin: 0.5rem 0 0;
+	max-width: 46rem;
+	color: var(--admin-muted);
+	font-size: 0.95rem;
+	line-height: 1.5;
+}
+
+/* Section headings inside cards / forms */
+.admin-content h2 {
+	font-family: var(--font-display);
+	font-size: 1.05rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	margin: 1.75rem 0 1rem;
+	padding-bottom: 0.5rem;
+	color: var(--color-silver);
+	border-bottom: 1px solid var(--admin-border);
+}
+.admin-content h2:first-child {
+	margin-top: 0;
+}
+.admin-content h2 .hint {
+	font-family: var(--font-sans);
+	font-weight: 400;
+	font-size: 0.78rem;
+	color: var(--admin-muted);
+	letter-spacing: 0;
+}
+
+.admin-content a {
+	color: var(--color-ember);
+}
+.admin-content a:hover {
+	color: var(--color-lava);
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.admin-card {
+	background-color: var(--admin-surface);
+	background-image: linear-gradient(
+		180deg,
+		rgba(229, 229, 229, 0.03),
+		rgba(0, 0, 0, 0.22)
+	);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius);
+	padding: clamp(1.1rem, 3vw, 1.6rem);
+	margin-bottom: 1.25rem;
+	box-shadow:
+		inset 0 1px 0 rgba(229, 229, 229, 0.04),
+		0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Card header for repeatable item cards (teams/officers/faq) */
+.admin-card-head {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	margin: 0 0 1.1rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--admin-border);
+}
+.admin-card-head h2 {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.admin-card-head .badge {
+	font-family: var(--font-sans);
+	font-size: 0.72rem;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	color: var(--admin-muted);
+	padding: 0.1rem 0.5rem;
+	border-radius: 999px;
+	border: 1px solid var(--admin-border);
+	background: var(--admin-surface-2);
+}
+
+/* ============================================================
+   Form fields
+   ============================================================ */
+.admin-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-bottom: 1rem;
+}
+.admin-field label {
+	font-weight: 600;
+	font-size: 0.85rem;
+	letter-spacing: 0.01em;
+	color: var(--color-steel);
+}
+
+.admin-field input[type='text'],
+.admin-field input[type='number'],
+.admin-field input[type='url'],
+.admin-field input[type='password'],
+.admin-field textarea,
+.admin-field select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid var(--admin-border-strong);
+	border-radius: var(--admin-radius-sm);
+	background: var(--admin-field-bg);
+	color: var(--color-silver);
+	font: inherit;
+	font-size: 0.92rem;
+	transition:
+		border-color 0.16s ease,
+		box-shadow 0.16s ease,
+		background-color 0.16s ease;
+}
+.admin-field input::placeholder,
+.admin-field textarea::placeholder {
+	color: color-mix(in srgb, var(--color-steel-dim) 70%, transparent);
+}
+.admin-field input:hover,
+.admin-field textarea:hover,
+.admin-field select:hover {
+	border-color: color-mix(in srgb, var(--color-steel) 55%, transparent);
+}
+.admin-field input:focus-visible,
+.admin-field textarea:focus-visible,
+.admin-field select:focus-visible {
+	outline: none;
+	border-color: var(--color-lava);
+	box-shadow: 0 0 0 3px rgba(255, 59, 33, 0.22);
+	background: color-mix(in srgb, var(--color-ash) 50%, #000);
+}
+
+.admin-field textarea {
+	min-height: 6.5rem;
+	line-height: 1.5;
+	resize: vertical;
+}
+
+.admin-field select {
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca2aa' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	padding-right: 2rem;
+}
+.admin-field select option {
+	background: var(--color-stone);
+	color: var(--color-silver);
+}
+
+.admin-field .hint {
+	font-size: 0.78rem;
+	line-height: 1.45;
+	color: var(--admin-muted);
+}
+
+/* Rows: responsive grid of fields */
+.admin-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+.admin-row .admin-field {
+	flex: 1 1 12rem;
+	margin-bottom: 1rem;
+}
+
+/* A field cell that only holds an action button (e.g. "Quitar"). */
+.admin-field-action {
+	flex: 0 0 auto;
+	justify-content: flex-end;
+}
+.admin-field-action label {
+	visibility: hidden;
+}
+
+/* Checkbox row */
+.admin-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	margin-bottom: 1rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius-sm);
+	background: var(--admin-surface-2);
+	cursor: pointer;
+}
+.admin-check input[type='checkbox'] {
+	width: 1.05rem;
+	height: 1.05rem;
+	accent-color: var(--color-blood);
+	cursor: pointer;
+}
+.admin-check label {
+	font-weight: 600;
+	font-size: 0.88rem;
+	color: var(--color-silver);
+	cursor: pointer;
+}
+
+/* ============================================================
+   Repeatable list rows (needs / raid nights)
+   Tidy bordered rows with an aligned remove affordance.
+   ============================================================ */
+.admin-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+.admin-list-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 1rem;
+	padding: 0.9rem;
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius-sm);
+	background: var(--admin-surface-2);
+}
+.admin-list-row .admin-field {
+	flex: 1 1 10rem;
+	margin-bottom: 0;
+}
+.admin-list-empty {
+	padding: 1rem;
+	border: 1px dashed var(--admin-border-strong);
+	border-radius: var(--admin-radius-sm);
+	color: var(--admin-muted);
+	font-size: 0.88rem;
+	text-align: center;
+	margin-bottom: 1rem;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.admin-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	padding: 0.6rem 1.1rem;
+	border: 1px solid transparent;
+	border-radius: var(--admin-radius-sm);
+	font: inherit;
+	font-weight: 600;
+	font-size: 0.9rem;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background-color 0.16s ease,
+		border-color 0.16s ease,
+		box-shadow 0.16s ease,
+		transform 0.1s ease;
+}
+.admin-btn:active {
+	transform: translateY(1px);
+}
+.admin-btn:focus-visible {
+	outline: 2px solid var(--color-lava);
+	outline-offset: 2px;
+}
+
+/* Primary — blood/lava fill */
+.admin-btn {
+	color: var(--color-silver);
+	background: linear-gradient(
+		180deg,
+		var(--color-blood),
+		var(--color-crimson-deep)
+	);
+	border-color: color-mix(in srgb, var(--color-lava) 35%, transparent);
+	box-shadow: inset 0 1px 0 rgba(229, 229, 229, 0.12);
+}
+.admin-btn:hover {
+	border-color: color-mix(in srgb, var(--color-lava) 70%, transparent);
+	box-shadow:
+		inset 0 1px 0 rgba(229, 229, 229, 0.18),
+		0 0 14px rgba(255, 59, 33, 0.3);
+}
+
+/* Secondary — quiet metal */
+.admin-btn.secondary {
+	color: var(--color-silver);
+	background: var(--admin-surface);
+	border-color: var(--admin-border-strong);
+	box-shadow: inset 0 1px 0 rgba(229, 229, 229, 0.05);
+}
+.admin-btn.secondary:hover {
+	border-color: color-mix(in srgb, var(--color-steel) 65%, transparent);
+	background: color-mix(in srgb, var(--color-iron) 80%, var(--color-steel));
+	box-shadow: none;
+}
+
+/* Destructive — outlined, fills on hover */
+.admin-btn.danger {
+	color: color-mix(in srgb, var(--color-lava) 80%, var(--color-silver));
+	background: transparent;
+	border-color: color-mix(in srgb, var(--color-blood) 55%, transparent);
+	box-shadow: none;
+}
+.admin-btn.danger:hover {
+	color: var(--color-silver);
+	background: color-mix(in srgb, var(--color-crimson-deep) 70%, transparent);
+	border-color: var(--color-blood);
+	box-shadow: none;
+}
+
+.admin-btn.ghost {
+	background: transparent;
+	border-color: transparent;
+	color: var(--admin-muted);
+	box-shadow: none;
+}
+.admin-btn.ghost:hover {
+	color: var(--color-silver);
+	background: color-mix(in srgb, var(--color-steel) 10%, transparent);
+	box-shadow: none;
+}
+
+/* Logout button in sidebar — full width quiet */
+.admin-logout {
+	width: 100%;
+}
+
+.admin-actions {
+	display: flex;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	align-items: center;
+	margin-top: 1.25rem;
+}
+/* The form footer with the primary save action, visually separated. */
+.admin-actions.footer {
+	margin-top: 1.5rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--admin-border);
+}
+
+/* ============================================================
+   Feedback messages
+   ============================================================ */
+.admin-msg {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	padding: 0.7rem 0.95rem;
+	border-radius: var(--admin-radius-sm);
+	margin: 0 0 1.25rem;
+	font-size: 0.92rem;
+	line-height: 1.45;
+}
+.admin-msg .msg-ico {
+	flex: 0 0 auto;
+	width: 1.15rem;
+	height: 1.15rem;
+	margin-top: 0.05rem;
+}
+.admin-msg.ok {
+	color: #bbf7d0;
+	background: color-mix(in srgb, #166534 28%, var(--color-iron));
+	border: 1px solid rgba(34, 197, 94, 0.45);
+}
+.admin-msg.ok .msg-ico {
+	color: #4ade80;
+}
+.admin-msg.err {
+	color: #fecaca;
+	background: color-mix(in srgb, var(--color-blood) 22%, var(--color-iron));
+	border: 1px solid rgba(248, 113, 113, 0.5);
+}
+.admin-msg.err .msg-ico {
+	color: #f87171;
+}
+
+/* ============================================================
+   Dashboard link cards
+   ============================================================ */
+.admin-dash-links {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+	gap: 1rem;
+}
+.admin-dash-links a {
+	display: flex;
+	height: 100%;
+	gap: 0.85rem;
+	padding: 1.15rem;
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius);
+	text-decoration: none;
+	color: var(--color-silver);
+	background-color: var(--admin-surface);
+	background-image: linear-gradient(
+		180deg,
+		rgba(229, 229, 229, 0.03),
+		rgba(0, 0, 0, 0.2)
+	);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	transition:
+		border-color 0.18s ease,
+		transform 0.18s ease,
+		box-shadow 0.18s ease;
+}
+.admin-dash-links a:hover {
+	color: var(--color-silver);
+	border-color: color-mix(in srgb, var(--color-lava) 50%, transparent);
+	transform: translateY(-2px);
+	box-shadow:
+		0 6px 18px rgba(0, 0, 0, 0.45),
+		0 0 14px rgba(255, 59, 33, 0.12);
+}
+.admin-dash-links .card-ico {
+	flex: 0 0 auto;
+	width: 2.4rem;
+	height: 2.4rem;
+	display: grid;
+	place-items: center;
+	border-radius: 0.5rem;
+	color: var(--color-ember);
+	background: color-mix(in srgb, var(--color-blood) 16%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-lava) 30%, transparent);
+}
+.admin-dash-links .card-ico svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+.admin-dash-links .card-body {
+	min-width: 0;
+}
+.admin-dash-links strong {
+	display: block;
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 0.98rem;
+	margin-bottom: 0.25rem;
+}
+.admin-dash-links span {
+	display: block;
+	font-size: 0.85rem;
+	line-height: 1.45;
+	color: var(--admin-muted);
+}
+
+/* ============================================================
+   Login (centered card)
+   ============================================================ */
+.admin-login-page {
+	min-height: 100dvh;
+	display: grid;
+	place-items: center;
+	padding: 1.5rem;
+}
+.admin-login-card {
+	width: 100%;
+	max-width: 26rem;
+	padding: clamp(1.5rem, 5vw, 2.25rem);
+	border-radius: var(--admin-radius);
+	background-color: var(--color-iron);
+	background-image: linear-gradient(
+		180deg,
+		rgba(229, 229, 229, 0.04),
+		rgba(0, 0, 0, 0.28)
+	);
+	border: 1px solid var(--admin-border-strong);
+	box-shadow:
+		inset 0 1px 0 rgba(229, 229, 229, 0.06),
+		0 12px 40px rgba(0, 0, 0, 0.55),
+		0 0 30px rgba(161, 6, 19, 0.12);
+}
+.admin-login-card .login-brand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.85rem;
+	text-align: center;
+	margin-bottom: 1.75rem;
+}
+.admin-login-card .mark {
+	width: 3rem;
+	height: 3rem;
+	display: grid;
+	place-items: center;
+	border-radius: 0.6rem;
+	font-family: var(--font-display);
+	font-weight: 900;
+	font-size: 1.35rem;
+	color: var(--color-silver);
+	background: linear-gradient(
+		180deg,
+		var(--color-blood),
+		var(--color-crimson-deep)
+	);
+	border: 1px solid color-mix(in srgb, var(--color-lava) 45%, transparent);
+	box-shadow:
+		inset 0 1px 0 rgba(229, 229, 229, 0.18),
+		0 0 16px rgba(161, 6, 19, 0.4);
+}
+.admin-login-card h1 {
+	font-size: 1.4rem;
+	font-weight: 700;
+	margin: 0;
+	color: var(--color-silver);
+}
+.admin-login-card .sub {
+	margin: 0.4rem 0 0;
+	font-size: 0.9rem;
+	color: var(--admin-muted);
+	line-height: 1.45;
+}
+.admin-login-card form {
+	display: flex;
+	flex-direction: column;
+}
+.admin-login-card .admin-btn {
+	margin-top: 0.5rem;
+	width: 100%;
+	padding-top: 0.75rem;
+	padding-bottom: 0.75rem;
+}
+
+/* ============================================================
+   Responsive — collapse sidebar into a drawer
+   ============================================================ */
+@media (max-width: 60rem) {
+	.admin-shell {
+		grid-template-columns: 1fr;
+	}
+	.admin-topbar-mobile {
+		display: flex;
+	}
+	.admin-sidebar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 50;
+		width: min(82vw, 18rem);
+		height: 100dvh;
+		transform: translateX(-100%);
+		transition: transform 0.22s ease;
+	}
+	.admin-shell[data-nav-open='true'] .admin-sidebar {
+		transform: translateX(0);
+		box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+	}
+	.admin-shell[data-nav-open='true'] .admin-scrim {
+		display: block;
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		background: rgba(0, 0, 0, 0.55);
+		backdrop-filter: blur(1px);
+	}
+	.admin-main {
+		padding: 1.25rem clamp(0.9rem, 4vw, 2rem) 4rem;
+	}
+}
+
+@media (max-width: 30rem) {
+	.admin-list-row .admin-field-action {
+		flex: 1 1 100%;
+	}
+	.admin-list-row .admin-field-action .admin-btn {
+		width: 100%;
+	}
+}
+
+/* Honor reduced motion for the drawer + card hovers. */
+@media (prefers-reduced-motion: reduce) {
+	.admin-sidebar,
+	.admin-dash-links a,
+	.admin-btn {
+		transition: none;
+	}
+}

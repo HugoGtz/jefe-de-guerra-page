@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { parallax } from '$lib/actions/parallax';
 	import { cursorTilt } from '$lib/actions/cursorTilt';
 	import type { Guild } from '$lib/data/guild';
 
@@ -96,8 +95,6 @@
 			rgba(161, 6, 19, 0.18) 38%,
 			transparent 68%
 		);
-		filter: blur(8px);
-		animation: hero-pulse 4.5s ease-in-out infinite;
 	}
 
 	.hero__content {
@@ -263,17 +260,6 @@
 			transform: translateY(0) scale(1);
 		}
 	}
-	@keyframes hero-pulse {
-		0%,
-		100% {
-			opacity: 0.75;
-			transform: scale(0.96);
-		}
-		50% {
-			opacity: 1;
-			transform: scale(1.05);
-		}
-	}
 	@keyframes hero-bounce {
 		0%,
 		100% {
@@ -312,9 +298,6 @@
 			animation: none;
 			opacity: 1;
 			transform: none;
-		}
-		.hero__glow {
-			animation: none;
 		}
 		.hero__scroll-chevron {
 			animation: none;

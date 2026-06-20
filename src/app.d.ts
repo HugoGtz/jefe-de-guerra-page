@@ -8,7 +8,10 @@ import type {
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			/** True when the request carries a valid admin session cookie. */
+			admin: boolean;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		interface Platform {
