@@ -14,7 +14,12 @@
  * persisted in the `users` table.
  */
 
-const PBKDF2_ITERATIONS = 100_000;
+// 30k (not 100k) so the change-password request — which runs TWO PBKDF2 ops
+// (verify current + hash new) — fits Cloudflare's per-request CPU limit. A
+// single 100k op fit (login/bootstrap worked in prod); 2×30k = 60k stays well
+// under that proven budget. Hashes are self-describing (`pbkdf2$<iters>$…`), so
+// verifyPassword honors each hash's own iteration count regardless of this.
+const PBKDF2_ITERATIONS = 30_000;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 const PREFIX = 'pbkdf2';
