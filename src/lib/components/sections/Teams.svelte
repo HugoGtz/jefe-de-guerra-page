@@ -19,9 +19,8 @@
 	// on-reveal, para que las barras hagan el barrido animado al entrar.
 	let revealed = $state<Record<string, boolean>>({});
 
-	function pct(p: RaidProgress): number {
-		return p.total === 0 ? 0 : Math.round((p.kills / p.total) * 100);
-	}
+	// El porcentaje viene ya calculado del servidor (p.percent); 0 de respaldo.
+	const pct = (p: RaidProgress): number => p.percent ?? 0;
 
 	// Valor de barra: 0 hasta que el equipo se revela (dispara la transición).
 	function barValue(teamId: string, p: RaidProgress): number {

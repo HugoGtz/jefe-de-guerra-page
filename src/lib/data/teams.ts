@@ -14,6 +14,12 @@ export type RaidProgress = {
 	kills: number;
 	/** Total de bosses de la raid. */
 	total: number;
+	/**
+	 * Porcentaje (0–100) ya calculado en el servidor para que el cliente no lo
+	 * derive. Se rellena en la capa de datos antes de enviar al cliente; los datos
+	 * estáticos pueden omitirlo (se normaliza al cargar).
+	 */
+	percent?: number;
 };
 
 export type Team = {
@@ -38,6 +44,13 @@ export type Team = {
 	note?: string;
 	/** ID de hermandad en WarcraftLogs (Fresh/Anniversary) para enlazar a sus logs. */
 	wclGuildId?: number;
+	/**
+	 * ID del "raid team" (tag) de este core dentro de la guild padre 792187.
+	 * Los logs están fragmentados: algunos cores suben a su `wclGuildId` propio,
+	 * otros (p. ej. Core 4) suben a la guild padre con este tag. La capa WCL usa
+	 * este id para atribuir al core correcto los reports que viven en el padre.
+	 */
+	wclTagId?: number;
 };
 
 /**
@@ -68,7 +81,8 @@ export const teams: Team[] = [
 		tk: { kills: 3, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
 		note: 'Roster veterano · cupo completo', // TODO: confirmar con el usuario
-		wclGuildId: 826903
+		wclGuildId: 826903,
+		wclTagId: 76393
 	},
 	{
 		id: 'core-2',
@@ -78,7 +92,8 @@ export const teams: Team[] = [
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
 		note: 'Buscamos sanadores y DPS a distancia', // TODO: confirmar con el usuario
-		wclGuildId: 826904
+		wclGuildId: 826904,
+		wclTagId: 76394
 	},
 	{
 		id: 'core-3',
@@ -88,7 +103,8 @@ export const teams: Team[] = [
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
 		note: 'Tanque y DPS cuerpo a cuerpo', // TODO: confirmar con el usuario
-		wclGuildId: 826905
+		wclGuildId: 826905,
+		wclTagId: 76395
 	},
 	{
 		id: 'core-4',
@@ -98,7 +114,8 @@ export const teams: Team[] = [
 		tk: { kills: 1, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: true, // TODO: confirmar con el usuario
 		note: 'Roster en formación · todos los roles', // TODO: confirmar con el usuario
-		wclGuildId: 826907
+		wclGuildId: 826907,
+		wclTagId: 76396
 	},
 	{
 		id: 'core-5',
@@ -108,7 +125,8 @@ export const teams: Team[] = [
 		tk: { kills: 2, total: 4 }, // TODO: confirmar con el usuario
 		recruiting: false, // TODO: confirmar con el usuario
 		note: 'Roster consolidado', // TODO: confirmar con el usuario
-		wclGuildId: 826908
+		wclGuildId: 826908,
+		wclTagId: 76397
 	},
 	{
 		id: 'core-6',
@@ -118,7 +136,8 @@ export const teams: Team[] = [
 		tk: { kills: 0, total: 4 }, // TODO: confirmar
 		recruiting: true, // TODO: confirmar
 		note: 'Roster joven · buscamos todos los roles', // TODO: confirmar
-		wclGuildId: 826909
+		wclGuildId: 826909,
+		wclTagId: 76398
 	},
 	{
 		id: 'core-7',
@@ -128,6 +147,7 @@ export const teams: Team[] = [
 		tk: { kills: 0, total: 4 }, // TODO: confirmar
 		recruiting: true, // TODO: confirmar
 		note: 'Nuevo core en formación', // TODO: confirmar
-		wclGuildId: 826910
+		wclGuildId: 826910,
+		wclTagId: 76399
 	}
 ];

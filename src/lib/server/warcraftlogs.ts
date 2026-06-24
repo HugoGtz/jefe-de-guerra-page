@@ -31,6 +31,14 @@ const REPORTS_PER_GUILD = 25;
 const MAX_FEATS = 10;
 /** SSC/TK zone used for all character rankings. */
 const SSC_TK_ZONE_ID = 1056;
+/**
+ * Partition for character zoneRankings. SSC/TK (1056) has P1 (id 1) and P2
+ * (id 2, the WCL default). `-1` aggregates ALL partitions so a character's
+ * best parse is captured regardless of the Fresh phase it happened in (the
+ * default would silently show only the latest partition). Set to a specific
+ * id to scope to one phase.
+ */
+const WCL_PARTITION = -1;
 /** Server slug / region for every character lookup. */
 const SERVER_SLUG = 'dreamscythe';
 const SERVER_REGION = 'us';
@@ -38,20 +46,64 @@ const SERVER_REGION = 'us';
 const HOF_TOP_N = 10;
 
 /**
- * Parent/umbrella guild "Jefe de Guerra" (its OWN WCL logs — the most active
- * source). The GLOBAL views (Hall of Fame, recent feats, global progress) are
- * built from the parent PLUS the 7 cores, deduped. Per-core cards/rosters still
- * read their own core id; the parent is just an extra source in the aggregate
- * (its bucket is keyed by this id and ignored by the per-core lookups).
+ * The guild's logs are FRAGMENTED across two WCL representations:
+ *  - Most cores upload to their OWN guild object (`wclGuildId`, e.g. 826903).
+ *  - Some cores (e.g. Core 4) instead upload to the PARENT guild "Jefe de Guerra"
+ *    (792187) under their raid-team TAG (`wclTagId`); their own guild object is
+ *    then empty.
+ * No single source holds everything, so the global queries pull the parent PLUS
+ * every core guild object, and attribute each report to its core via `resolveCore`
+ * (by source for core guilds; by `guildTag` for parent reports). This is what lets
+ * a parent report tagged "Core 4" land in the Core 4 bucket instead of "General".
  */
-const PARENT_GUILD = { wclGuildId: 792187, name: 'General' };
+type WclSource = { wclGuildId: number; name: string; isParent?: boolean };
+
+const PARENT_GUILD: WclSource = { wclGuildId: 792187, name: 'General', isParent: true };
 
 /** Default aggregate sources for the global queries: parent + every core. */
-function defaultSources(): { wclGuildId: number; name: string }[] {
+function defaultSources(): WclSource[] {
 	const cores = staticTeams
 		.filter((t): t is typeof t & { wclGuildId: number } => typeof t.wclGuildId === 'number')
 		.map((t) => ({ wclGuildId: t.wclGuildId, name: t.name }));
 	return [PARENT_GUILD, ...cores];
+}
+
+/**
+ * tagID → core, for cores whose raids are logged on the PARENT guild under a
+ * raid-team tag rather than their own guild object. Built from the static teams'
+ * `wclTagId`. Lets a parent report be bucketed into the right core.
+ */
+function tagToCore(): Map<number, { wclGuildId: number; name: string }> {
+	const m = new Map<number, { wclGuildId: number; name: string }>();
+	for (const t of staticTeams) {
+		if (typeof t.wclTagId === 'number' && typeof t.wclGuildId === 'number') {
+			m.set(t.wclTagId, { wclGuildId: t.wclGuildId, name: t.name });
+		}
+	}
+	return m;
+}
+
+/** A report's owning raid-team tag (only populated on the parent guild's reports). */
+type GuildTag = { id?: number | null; name?: string | null } | null;
+
+/**
+ * Resolve which core a report belongs to. Reports from a core's own guild object
+ * map straight to that core; reports from the PARENT are attributed by their
+ * raid-team tag (falling back to the parent's "General" bucket when untagged or
+ * tagged with an unknown team).
+ */
+function resolveCore(
+	source: WclSource,
+	guildTag: GuildTag,
+	tagMap: Map<number, { wclGuildId: number; name: string }>
+): { wclGuildId: number; name: string } {
+	if (!source.isParent) return { wclGuildId: source.wclGuildId, name: source.name };
+	const tagId = guildTag?.id ?? null;
+	if (tagId != null) {
+		const core = tagMap.get(tagId);
+		if (core) return core;
+	}
+	return { wclGuildId: source.wclGuildId, name: source.name };
 }
 
 // ── TBC class IDs → English class + Spanish label ────────────────────────────
@@ -253,6 +305,30 @@ export type WclRankings = {
 	 * histórico (additive, never crashes).
 	 */
 	recentByPlayer?: Record<string, WclRecentKill[]>;
+	/**
+	 * Best-parse leaderboard per class: WowClass → top characters by score (desc).
+	 * Derived from the same `characters` map — NO extra network requests. Optional:
+	 * stale cache rows lacking it → treated as absent.
+	 */
+	byClass?: Record<string, WclCharacter[]>;
+	/**
+	 * Best-parse leaderboard per boss: encounter name → top entries by parse (desc).
+	 * One best parse per character per boss, from the same report rankings. Optional.
+	 */
+	byBoss?: Record<string, BossLeaderEntry[]>;
+};
+
+/** One per-boss leaderboard entry (best parse for a character on that boss). */
+export type BossLeaderEntry = {
+	name: string;
+	wowClass?: WowClass;
+	classLabel?: string;
+	classColor?: string;
+	spec?: string;
+	/** Core/guild display name where the parse happened. */
+	core: string;
+	/** Rounded rankPercent (0–100). */
+	score: number;
 };
 
 /** A single recent kill for the player-detail "histórico" section. */
@@ -278,11 +354,28 @@ export type WclFeat = {
 	firstKill: boolean;
 };
 
+/** Cheap per-core activity stats, derived from the SAME reports as `getWclData`. */
+export type WclCoreStats = {
+	/** Distinct reports (raid nights) logged for this core. */
+	raids: number;
+	/** Total boss kills logged across those reports. */
+	totalKills: number;
+	/** ISO 'yyyy-mm-dd' of the most recent report, or null. */
+	lastRaid: string | null;
+	/** Fastest kill per boss: boss name → fastest clear duration in ms. */
+	fastestByBoss: Record<string, number>;
+};
+
 export type WclData = {
 	/** Union of every boss name killed across all cores. */
 	killedBossNames: Set<string>;
 	/** Per-core (wclGuildId → killed boss names) so each Core card shows ITS progress. */
 	perCore: Record<number, string[]>;
+	/**
+	 * Per-core (wclGuildId → activity stats) from the same reports — NO extra
+	 * network cost. Optional: stale cache rows lacking it → treated as absent.
+	 */
+	perCoreStats?: Record<number, WclCoreStats>;
 	feats: WclFeat[];
 };
 
@@ -325,12 +418,14 @@ async function getToken(env: WclEnv): Promise<string | null> {
 
 // ── GraphQL query shape ──────────────────────────────────────────────────────
 
-type FightNode = { name: string; encounterID: number };
+type FightNode = { name: string; encounterID: number; startTime?: number; endTime?: number };
 type ReportNode = {
 	code: string;
 	title: string;
 	startTime: number;
 	zone: { id: number; name: string } | null;
+	/** Raid-team tag (populated on parent-guild reports; null elsewhere). */
+	guildTag: GuildTag;
 	fights: FightNode[];
 };
 type GuildReports = { reports: { data: ReportNode[] } };
@@ -346,7 +441,8 @@ function buildBatchedQuery(guildIds: number[]): string {
         title
         startTime
         zone { id name }
-        fights(killType: Kills) { name encounterID }
+        guildTag { id name }
+        fights(killType: Kills) { name encounterID startTime endTime }
       }
     }
   }`
@@ -363,13 +459,14 @@ function toIsoDate(epochMs: number): string {
  * Fetch + aggregate live progress and feats from WCL for the given core guilds.
  *
  * @param env  Object with WCL_CLIENT_ID / WCL_CLIENT_SECRET (from platform.env).
- * @param cores Optional list of { wclGuildId, name } cores; defaults to the
- *              static teams that have a wclGuildId.
+ * @param cores Optional list of sources; defaults to the parent guild + the
+ *              static teams that have a wclGuildId. Reports are attributed to a
+ *              core via `resolveCore` (by tag for parent reports).
  * @returns Aggregated data, or `null` if creds are missing or anything fails.
  */
 export async function getWclData(
 	env: WclEnv,
-	cores?: { wclGuildId: number; name: string }[]
+	cores?: WclSource[]
 ): Promise<WclData | null> {
 	try {
 		const list = cores ?? defaultSources();
@@ -379,7 +476,7 @@ export async function getWclData(
 		if (!token) return null;
 
 		const guildIds = list.map((c) => c.wclGuildId);
-		const idToName = new Map(list.map((c) => [c.wclGuildId, c.name]));
+		const tagMap = tagToCore();
 
 		const res = await fetch(GRAPHQL_URL, {
 			method: 'POST',
@@ -400,33 +497,53 @@ export async function getWclData(
 		const killedBossNames = new Set<string>();
 		// wclGuildId → set of killed boss names for that single core.
 		const perCoreSets = new Map<number, Set<string>>();
+		// wclGuildId → activity stats accumulator for that core.
+		const statsByCore = new Map<number, WclCoreStats>();
 		// boss+core → earliest kill candidate (one feat per boss per core).
 		const perBossCore = new Map<string, WclFeat>();
 
-		guildIds.forEach((id, i) => {
+		list.forEach((source, i) => {
 			const block = json.data?.[`g${i}`];
 			const reports = block?.reports?.data ?? [];
-			const team = idToName.get(id) ?? `Core ${i + 1}`;
-			let coreSet = perCoreSets.get(id);
-			if (!coreSet) {
-				coreSet = new Set<string>();
-				perCoreSets.set(id, coreSet);
-			}
 			for (const report of reports) {
+				// Attribute each report to its core (by tag for parent reports).
+				const core = resolveCore(source, report.guildTag, tagMap);
+				let coreSet = perCoreSets.get(core.wclGuildId);
+				if (!coreSet) {
+					coreSet = new Set<string>();
+					perCoreSets.set(core.wclGuildId, coreSet);
+				}
+				let stats = statsByCore.get(core.wclGuildId);
+				if (!stats) {
+					stats = { raids: 0, totalKills: 0, lastRaid: null, fastestByBoss: {} };
+					statsByCore.set(core.wclGuildId, stats);
+				}
 				const date = toIsoDate(report.startTime);
+				// Each report is one raid night; track count + most recent date.
+				stats.raids += 1;
+				if (!stats.lastRaid || date > stats.lastRaid) stats.lastRaid = date;
 				for (const fight of report.fights ?? []) {
 					if (!fight?.name) continue;
 					killedBossNames.add(fight.name);
 					coreSet.add(fight.name);
+					stats.totalKills += 1;
+					// Fastest clear of this boss for the core (fight duration in ms).
+					if (typeof fight.startTime === 'number' && typeof fight.endTime === 'number') {
+						const dur = fight.endTime - fight.startTime;
+						if (dur > 0) {
+							const prev = stats.fastestByBoss[fight.name];
+							if (prev == null || dur < prev) stats.fastestByBoss[fight.name] = dur;
+						}
+					}
 
-					const key = `${fight.name}::${team}`;
+					const key = `${fight.name}::${core.name}`;
 					const existing = perBossCore.get(key);
 					// Keep the EARLIEST date for this boss+core (first kill for the core).
 					if (!existing || date < existing.date) {
 						perBossCore.set(key, {
 							boss: fight.name,
 							date,
-							team,
+							team: core.name,
 							encounterID: fight.encounterID,
 							firstKill: false
 						});
@@ -451,7 +568,10 @@ export async function getWclData(
 		const perCore: Record<number, string[]> = {};
 		for (const [id, set] of perCoreSets) perCore[id] = [...set];
 
-		return { killedBossNames, perCore, feats: feats.slice(0, MAX_FEATS) };
+		const perCoreStats: Record<number, WclCoreStats> = {};
+		for (const [id, s] of statsByCore) perCoreStats[id] = s;
+
+		return { killedBossNames, perCore, perCoreStats, feats: feats.slice(0, MAX_FEATS) };
 	} catch {
 		return null;
 	}
@@ -572,7 +692,7 @@ function buildCharacterQuery(names: string[]): string {
     character(name: "${gqlStr(name)}", serverSlug: "${SERVER_SLUG}", serverRegion: "${SERVER_REGION}") {
       name
       classID
-      zoneRankings(zoneID: ${SSC_TK_ZONE_ID})
+      zoneRankings(zoneID: ${SSC_TK_ZONE_ID}, partition: ${WCL_PARTITION})
     }
   }`
 		)
@@ -691,7 +811,7 @@ function buildCharacterDetailQuery(name: string): string {
     character(name: "${gqlStr(name)}", serverSlug: "${SERVER_SLUG}", serverRegion: "${SERVER_REGION}") {
       name
       classID
-      zoneRankings(zoneID: ${SSC_TK_ZONE_ID})
+      zoneRankings(zoneID: ${SSC_TK_ZONE_ID}, partition: ${WCL_PARTITION})
     }
   }
 }`;
@@ -882,13 +1002,13 @@ const MAX_RECENT_PER_PLAYER = 12;
  */
 const HOF_REPORTS_PER_CORE = 4;
 
-/** Batched query: recent report codes per core (1 request). */
+/** Batched query: recent report codes (+ owning tag) per core (1 request). */
 function buildReportCodesQuery(guildIds: number[]): string {
 	const blocks = guildIds
 		.map(
 			(id, i) => `r${i}: reportData {
     reports(guildID: ${id}, limit: ${HOF_REPORTS_PER_CORE}, zoneID: ${SSC_TK_ZONE_ID}) {
-      data { code }
+      data { code guildTag { id name } }
     }
   }`
 		)
@@ -913,22 +1033,52 @@ function buildReportRankingsQuery(codes: string[]): string {
 	return `query {\n  ${blocks}\n}`;
 }
 
+/** Chunk size for the batched zoneRankings roster fetch (expensive scalar). */
+const ZONE_SCORE_CHUNK = 20;
+
 /**
- * Build the Hall of Fame AND a reliable per-character map in ONE fetch.
+ * Fetch each roster name's `zoneRankings.bestPerformanceAverage` — the SAME
+ * metric the /jugador/NAME detail page shows as its headline. Batched in chunks
+ * (the scalar is expensive) and resilient: a failed chunk or unresolved name
+ * just yields no entry, so callers fall back to the report-parse score. Returns
+ * name(lowercased) → rounded score.
+ */
+async function fetchZoneScores(token: string, names: string[]): Promise<Map<string, number>> {
+	const out = new Map<string, number>();
+	for (let i = 0; i < names.length; i += ZONE_SCORE_CHUNK) {
+		const chunk = names.slice(i, i + ZONE_SCORE_CHUNK);
+		const data = await gql<Record<string, { character: CharacterNode }>>(
+			token,
+			buildCharacterQuery(chunk)
+		);
+		if (!data) continue; // Skip a failed chunk; keep what we have.
+		chunk.forEach((name, j) => {
+			const node = data[`c${j}`]?.character ?? null;
+			if (!node) return;
+			const ch = toWclCharacter(name, node);
+			if (typeof ch.score === 'number') out.set(name.toLowerCase(), ch.score);
+		});
+	}
+	return out;
+}
+
+/**
+ * Build the Hall of Fame AND a reliable per-character map.
  *
- * Both are derived from the SAME report rankings (`roles.{tanks,healers,dps}`),
- * which record the spec/role/class a player ACTUALLY played that night — far
- * more reliable in Fresh TBC than `zoneRankings.bestSpec`. The HoF keeps the
- * best parse per character per ROLE (top N per role); the character map keeps
- * the single best parse per character across every role (used to enrich
- * officers with class/spec/specRole/score).
+ * Roster/role/class/core are discovered from report rankings
+ * (`roles.{tanks,healers,dps}`) — what each player ACTUALLY played, far more
+ * reliable in Fresh TBC than `zoneRankings.bestSpec`. The SCORE, however, is the
+ * player's `zoneRankings.bestPerformanceAverage` (fetched per roster name), so
+ * the Hall of Fame / rosters / per-class boards rank by the SAME number the
+ * /jugador/NAME page shows — everything stays coherent. Report-parse scores are
+ * the fallback when a name has no zoneRankings.
  *
- * Two-phase (report codes per core, then rankings per report in batched chunks)
- * and fully resilient — returns null on any failure or if empty.
+ * Phases: report codes per core → report rankings (chunked) → roster zone scores
+ * (chunked). Fully resilient — returns null on any failure or if empty.
  */
 export async function getWclRankings(
 	env: WclEnv,
-	cores?: { wclGuildId: number; name: string }[]
+	cores?: WclSource[]
 ): Promise<WclRankings | null> {
 	try {
 		const list = cores ?? defaultSources();
@@ -939,10 +1089,8 @@ export async function getWclRankings(
 
 		// Phase 1 — recent report codes per core (single batched query).
 		const guildIds = list.map((c) => c.wclGuildId);
-		const idToName = new Map(list.map((c) => [c.wclGuildId, c.name]));
-		// The id IS the wclGuildId; keep an explicit map for roster bucketing.
-		const idToGuildId = new Map(list.map((c) => [c.wclGuildId, c.wclGuildId]));
-		type ReportCodes = { reports: { data: { code: string }[] } };
+		const tagMap = tagToCore();
+		type ReportCodes = { reports: { data: { code: string; guildTag: GuildTag }[] } };
 		const codesData = await gql<Record<string, ReportCodes>>(
 			token,
 			buildReportCodesQuery(guildIds)
@@ -950,15 +1098,15 @@ export async function getWclRankings(
 		if (!codesData) return null;
 
 		// code → core display name, and code → core wclGuildId (for rosters).
+		// Parent reports are attributed to the right core by their raid-team tag.
 		const codeToCore = new Map<string, string>();
 		const codeToGuildId = new Map<string, number>();
-		guildIds.forEach((id, i) => {
-			const core = idToName.get(id) ?? `Core ${i + 1}`;
-			const guildId = idToGuildId.get(id) ?? id;
+		list.forEach((source, i) => {
 			for (const r of codesData[`r${i}`]?.reports?.data ?? []) {
 				if (r?.code && !codeToCore.has(r.code)) {
-					codeToCore.set(r.code, core);
-					codeToGuildId.set(r.code, guildId);
+					const core = resolveCore(source, r.guildTag, tagMap);
+					codeToCore.set(r.code, core.name);
+					codeToGuildId.set(r.code, core.wclGuildId);
 				}
 			}
 		});
@@ -979,6 +1127,35 @@ export async function getWclRankings(
 		// name(lower) → raw recent kills (one per fight the player was in). Deduped,
 		// sorted and capped at the end. Powers the player-detail "histórico".
 		const recentRaw = new Map<string, WclRecentKill[]>();
+		// boss name → (name(lower) → best parse on that boss). Per-boss leaderboard.
+		const byBossMap = new Map<string, Map<string, BossLeaderEntry>>();
+
+		/** Record a player's best parse on a given boss (per-boss leaderboard). */
+		const considerBoss = (ch: RankChar | null | undefined, boss: string, core: string) => {
+			const name = ch?.name?.trim();
+			const pct = ch?.rankPercent;
+			if (!name || !boss || typeof pct !== 'number' || pct <= 0) return;
+			const score = Math.round(pct);
+			const key = name.toLowerCase();
+			let bucket = byBossMap.get(boss);
+			if (!bucket) {
+				bucket = new Map<string, BossLeaderEntry>();
+				byBossMap.set(boss, bucket);
+			}
+			const prev = bucket.get(key);
+			if (!prev || score > prev.score) {
+				const wowClass = ch?.class ? CLASS_NAME_TO_CLASS[ch.class] : undefined;
+				bucket.set(key, {
+					name,
+					wowClass,
+					classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+					classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
+					spec: ch?.spec ?? undefined,
+					core,
+					score
+				});
+			}
+		};
 
 		/** Record one fight a player was present in (for the histórico). */
 		const recordKill = (
@@ -1088,18 +1265,42 @@ export async function getWclRankings(
 					const boss = fight?.encounter?.name ?? null;
 					for (const c of roles.tanks?.characters ?? []) {
 						consider(c, 'Tank', core, guildId);
+						if (boss) considerBoss(c, boss, core);
 						if (boss && date) recordKill(c, boss, date, core);
 					}
 					for (const c of roles.healers?.characters ?? []) {
 						consider(c, 'Healer', core, guildId);
+						if (boss) considerBoss(c, boss, core);
 						if (boss && date) recordKill(c, boss, date, core);
 					}
 					for (const c of roles.dps?.characters ?? []) {
 						consider(c, 'DPS', core, guildId);
+						if (boss) considerBoss(c, boss, core);
 						if (boss && date) recordKill(c, boss, date, core);
 					}
 				}
 			});
+		}
+
+		// Phase 3 — coherent scores: replace each player's report-parse score with
+		// their zoneRankings bestPerformanceAverage (the same metric /jugador/NAME
+		// shows). Falls back to the report parse for names without zoneRankings, so
+		// no one disappears. One fetch per ~20 names, riding this 1h cache.
+		const rosterNames = [...characters.values()].map((c) => c.name);
+		const zoneScores = await fetchZoneScores(token, rosterNames);
+		const scoreFor = (name: string, fallback: number): number =>
+			zoneScores.get(name.toLowerCase()) ?? fallback;
+
+		for (const bucket of best.values()) {
+			for (const e of bucket.values()) e.score = scoreFor(e.name, e.score);
+		}
+		for (const c of characters.values()) {
+			if (c.score != null) c.score = scoreFor(c.name, c.score);
+		}
+		for (const roster of rosterByGuild.values()) {
+			for (const m of roster.values()) {
+				if (m.score != null) m.score = scoreFor(m.name, m.score);
+			}
 		}
 
 		const top = (role: SpecRole): HallOfFameEntry[] =>
@@ -1137,12 +1338,271 @@ export async function getWclRankings(
 			recentByPlayer[key] = deduped.slice(0, MAX_RECENT_PER_PLAYER);
 		}
 
+		// Per-class leaderboard: group the best-parse character map by class, sort
+		// each class's members by score desc, cap at HOF_TOP_N.
+		const byClass: Record<string, WclCharacter[]> = {};
+		for (const ch of characters.values()) {
+			if (!ch.wowClass) continue;
+			(byClass[ch.wowClass] ??= []).push(ch);
+		}
+		for (const cls of Object.keys(byClass)) {
+			byClass[cls] = byClass[cls]
+				.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+				.slice(0, HOF_TOP_N);
+		}
+
+		// Per-boss leaderboard: top N parses per boss, sorted by score desc.
+		const byBoss: Record<string, BossLeaderEntry[]> = {};
+		for (const [boss, bucket] of byBossMap) {
+			byBoss[boss] = [...bucket.values()].sort((a, b) => b.score - a.score).slice(0, HOF_TOP_N);
+		}
+
 		return {
 			hallOfFame: hof,
 			characters: Object.fromEntries(characters),
 			rosters,
-			recentByPlayer
+			recentByPlayer,
+			byClass,
+			byBoss
 		};
+	} catch {
+		return null;
+	}
+}
+
+// ── Guild progress rank (world / region / server) ────────────────────────────
+//
+// Source: `guildData.guild(id).zoneRanking(zoneId:1056).progress(size:25)`, the
+// authoritative world/region/server progress rank for the guild in SSC/TK — no
+// report scanning. NOTE: ranks are per GUILD OBJECT, so a core whose logs live
+// on the parent (e.g. Core 4) has no own-guild rank; the parent's rank is the
+// whole-guild figure. Raid size 25 is required for Classic.
+
+/** Raid size for SSC/TK (25-man) — required by zoneRanking. */
+const RAID_SIZE = 25;
+
+/** World/region/server rank numbers for a guild's zone progress. */
+export type WclRankTriple = { world: number | null; region: number | null; server: number | null };
+
+export type WclProgress = {
+	/** Whole-guild ("Jefe de Guerra") progress rank in SSC/TK, or null. */
+	guild: WclRankTriple | null;
+	/** wclGuildId → that core's OWN guild-object progress rank (only when ranked). */
+	perCore: Record<number, WclRankTriple>;
+};
+
+type RankNode = { number?: number | null } | null;
+type ProgressNode = {
+	zoneRanking?: {
+		progress?: {
+			worldRank?: RankNode;
+			regionRank?: RankNode;
+			serverRank?: RankNode;
+		} | null;
+	} | null;
+} | null;
+
+/** Coerce a rank node's `number` to a positive int, else null. */
+function rankNum(node: RankNode | undefined): number | null {
+	const n = node?.number;
+	return typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
+function toRankTriple(p: ProgressNode): WclRankTriple | null {
+	const pr = p?.zoneRanking?.progress;
+	if (!pr) return null;
+	const triple = {
+		world: rankNum(pr.worldRank),
+		region: rankNum(pr.regionRank),
+		server: rankNum(pr.serverRank)
+	};
+	if (triple.world == null && triple.region == null && triple.server == null) return null;
+	return triple;
+}
+
+/** Build the batched progress query: one aliased guild block per source. */
+function buildProgressQuery(guildIds: number[]): string {
+	const blocks = guildIds
+		.map(
+			(id, i) => `p${i}: guildData {
+    guild(id: ${id}) {
+      zoneRanking(zoneId: ${SSC_TK_ZONE_ID}) {
+        progress(size: ${RAID_SIZE}) {
+          worldRank { number }
+          regionRank { number }
+          serverRank { number }
+        }
+      }
+    }
+  }`
+		)
+		.join('\n  ');
+	return `query {\n  ${blocks}\n}`;
+}
+
+/**
+ * Fetch the guild + per-core progress rank (world/region/server) for SSC/TK in a
+ * single batched query. Resilient: missing creds / any error → null. The parent
+ * source provides the whole-guild rank; per-core ranks are only present for cores
+ * whose own guild object is ranked.
+ */
+export async function getWclProgress(
+	env: WclEnv,
+	cores?: WclSource[]
+): Promise<WclProgress | null> {
+	try {
+		const list = cores ?? defaultSources();
+		if (list.length === 0) return null;
+
+		const token = await getToken(env);
+		if (!token) return null;
+
+		const guildIds = list.map((c) => c.wclGuildId);
+		const data = await gql<Record<string, ProgressNode>>(token, buildProgressQuery(guildIds));
+		if (!data) return null;
+
+		let guild: WclRankTriple | null = null;
+		const perCore: Record<number, WclRankTriple> = {};
+		list.forEach((source, i) => {
+			const triple = toRankTriple(data[`p${i}`] ?? null);
+			if (!triple) return;
+			if (source.isParent) guild = triple;
+			else perCore[source.wclGuildId] = triple;
+		});
+
+		if (!guild && Object.keys(perCore).length === 0) return null;
+		return { guild, perCore };
+	} catch {
+		return null;
+	}
+}
+
+// ── Attendance (active roster / consistency) ─────────────────────────────────
+//
+// Source: `guildData.guild(id).attendance(zoneID:1056)` — works for Classic.
+// Because logs are fragmented, a core's attendance is gathered from BOTH its own
+// guild object AND the parent guild filtered by the core's raid-team tag, then
+// merged (deduped by report code). Per player: raids attended / raids logged.
+
+/** Recent attendance reports per core to consider. */
+const ATTENDANCE_REPORTS = 10;
+
+/** One player's attendance within a core. */
+export type WclAttendee = {
+	name: string;
+	wowClass?: WowClass;
+	classLabel?: string;
+	classColor?: string;
+	/** Raids attended (present). */
+	attended: number;
+	/** Raids logged for this core in the window. */
+	total: number;
+};
+
+export type WclAttendance = {
+	/** wclGuildId → attendees sorted by raids attended (desc). */
+	perCore: Record<number, WclAttendee[]>;
+};
+
+type AttendancePlayer = { name?: string | null; type?: string | null; presence?: number | null };
+type AttendanceReport = { code?: string | null; players?: AttendancePlayer[] | null };
+type AttendanceNode = {
+	guild?: { attendance?: { data?: AttendanceReport[] | null } | null } | null;
+} | null;
+
+/**
+ * Build the batched attendance query: per core, one block for its own guild
+ * object and one for the parent filtered to the core's tag. Cores without a
+ * `wclTagId` only get the own-guild block.
+ */
+function buildAttendanceQuery(teams: { wclGuildId: number; wclTagId?: number }[]): string {
+	const blocks: string[] = [];
+	teams.forEach((t, i) => {
+		blocks.push(`o${i}: guildData {
+    guild(id: ${t.wclGuildId}) {
+      attendance(zoneID: ${SSC_TK_ZONE_ID}, limit: ${ATTENDANCE_REPORTS}) {
+        data { code players { name type presence } }
+      }
+    }
+  }`);
+		if (typeof t.wclTagId === 'number') {
+			blocks.push(`t${i}: guildData {
+    guild(id: ${PARENT_GUILD.wclGuildId}) {
+      attendance(zoneID: ${SSC_TK_ZONE_ID}, guildTagID: ${t.wclTagId}, limit: ${ATTENDANCE_REPORTS}) {
+        data { code players { name type presence } }
+      }
+    }
+  }`);
+		}
+	});
+	return `query {\n  ${blocks.join('\n  ')}\n}`;
+}
+
+/**
+ * Fetch per-core attendance (active roster + consistency) in one batched query.
+ * Each core merges its own-guild reports with the parent's reports for its tag,
+ * deduped by report code. Resilient: missing creds / any error → null; cores
+ * with no reports are simply absent from `perCore`.
+ */
+export async function getWclAttendance(env: WclEnv): Promise<WclAttendance | null> {
+	try {
+		const teams = staticTeams.filter(
+			(t): t is typeof t & { wclGuildId: number } => typeof t.wclGuildId === 'number'
+		);
+		if (teams.length === 0) return null;
+
+		const token = await getToken(env);
+		if (!token) return null;
+
+		const data = await gql<Record<string, AttendanceNode>>(token, buildAttendanceQuery(teams));
+		if (!data) return null;
+
+		const perCore: Record<number, WclAttendee[]> = {};
+		teams.forEach((t, i) => {
+			// Merge own-guild + parent-by-tag reports, deduped by report code.
+			const reports = new Map<string, AttendanceReport>();
+			for (const alias of [`o${i}`, `t${i}`]) {
+				const rows = data[alias]?.guild?.attendance?.data ?? [];
+				for (const r of rows) {
+					const code = r?.code ?? undefined;
+					if (code && !reports.has(code)) reports.set(code, r);
+				}
+			}
+			const total = reports.size;
+			if (total === 0) return;
+
+			// name(lower) → attendee accumulator.
+			const acc = new Map<string, WclAttendee>();
+			for (const r of reports.values()) {
+				for (const p of r.players ?? []) {
+					const name = p?.name?.trim();
+					if (!name) continue;
+					const key = name.toLowerCase();
+					let a = acc.get(key);
+					if (!a) {
+						const wowClass = p?.type ? CLASS_NAME_TO_CLASS[p.type] : undefined;
+						a = {
+							name,
+							wowClass,
+							classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+							classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
+							attended: 0,
+							total
+						};
+						acc.set(key, a);
+					}
+					// presence === 1 means the player was present that raid.
+					if (p?.presence === 1) a.attended += 1;
+				}
+			}
+			const list = [...acc.values()]
+				.filter((a) => a.attended > 0)
+				.sort((a, b) => b.attended - a.attended);
+			if (list.length > 0) perCore[t.wclGuildId] = list;
+		});
+
+		if (Object.keys(perCore).length === 0) return null;
+		return { perCore };
 	} catch {
 		return null;
 	}

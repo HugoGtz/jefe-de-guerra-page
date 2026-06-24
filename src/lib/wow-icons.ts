@@ -54,12 +54,16 @@ export const SPEC_BY_CLASS: Record<string, readonly string[]> = {
 
 /**
  * Spec-name aliases applied after normalization (lowercase, alnum-only). Maps
- * common WCL spec labels onto our vendored slug names.
+ * common WCL spec labels (including Fresh Classic talent-tree names like
+ * Justicar / Gladiator / Warden) onto our vendored slug names.
  */
 const SPEC_ALIASES: Record<string, string> = {
 	marksmanship: 'marksman',
 	beastmaster: 'beastmastery',
-	beast: 'beastmastery'
+	beast: 'beastmastery',
+	justicar: 'protection',
+	gladiator: 'protection',
+	warden: 'guardian'
 };
 
 /**

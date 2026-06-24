@@ -39,13 +39,20 @@ import {
 	getWclOfficers,
 	getWclRankings,
 	getWclCharacter,
+	getWclProgress,
+	getWclAttendance,
+	CLASS_COLOR,
 	type WclData,
+	type WclCoreStats,
 	type WclFeat,
 	type WclCharacter,
 	type HallOfFame,
 	type WclRankings,
 	type WclCharacterDetail,
-	type WclRecentKill
+	type WclBossDetail,
+	type WclRecentKill,
+	type WclProgress,
+	type WclAttendance
 } from '$lib/server/warcraftlogs';
 import { getDb, type Db } from '$lib/server/db/client';
 import {
@@ -109,7 +116,7 @@ function staticFallback(): GuildData {
 		phases: staticPhases,
 		officers: staticOfficers,
 		recruitment: staticRecruitment,
-		teams: staticTeams,
+		teams: withTeamPercents(staticTeams),
 		feats: staticFeats,
 		faq: staticFaq,
 		stats: computeStats(staticPhases, staticFeats, staticTeams, Date.now()),
@@ -131,19 +138,27 @@ function staticFallback(): GuildData {
 const WCL_CACHE_TTL_MS = 10 * 60 * 1000;
 const WCL_CACHE_KEY = 'guild';
 
-/** Officer enrichment (class/spec/score) — expensive, long TTL (~6h). */
-const WCL_OFFICERS_TTL_MS = 6 * 60 * 60 * 1000;
+/** Officer enrichment (class/spec/score) — expensive, ~1h TTL. */
+const WCL_OFFICERS_TTL_MS = 60 * 60 * 1000;
 const WCL_OFFICERS_KEY = 'officers';
 
 /**
- * Report rankings (per-core roster + parses) — heaviest, longest TTL (~12h).
+ * Report rankings (per-core roster + parses) — heaviest endpoint, ~1h TTL.
  * ONE fetch feeds BOTH the Hall of Fame and reliable officer spec enrichment.
  */
-const WCL_HOF_TTL_MS = 6 * 60 * 60 * 1000;
-const WCL_HOF_KEY = 'hall_of_fame';
+const WCL_HOF_TTL_MS = 60 * 60 * 1000;
+const WCL_HOF_KEY = 'hall_of_fame_v4';
 
-/** Per-character detail (internal player page) — cached ~6h, keyed per name. */
-const WCL_CHARACTER_TTL_MS = 6 * 60 * 60 * 1000;
+/** Per-character detail (internal player page) — cached ~1h, keyed per name. */
+const WCL_CHARACTER_TTL_MS = 60 * 60 * 1000;
+
+/** Guild + per-core progress rank (world/region/server) — changes slowly, ~6h. */
+const WCL_PROGRESS_TTL_MS = 6 * 60 * 60 * 1000;
+const WCL_PROGRESS_KEY = 'progress';
+
+/** Per-core attendance — heavier (own-guild + parent-by-tag), ~6h TTL. */
+const WCL_ATTENDANCE_TTL_MS = 6 * 60 * 60 * 1000;
+const WCL_ATTENDANCE_KEY = 'attendance';
 
 /** English boss name → our Feat raid bucket. Covers Phase 1 + Phase 2 bosses. */
 const BOSS_TO_RAID: Record<string, Feat['raid']> = {
@@ -201,6 +216,20 @@ const TK_BOSSES = new Set<string>([
 const SSC_TOTAL = 6;
 const TK_TOTAL = 4;
 
+/**
+ * Bosses that count as the CURRENT live progression (Phase 2 = SSC + TK). The
+ * WCL aggregate pulls every recent report, which also includes Phase 1 farm
+ * kills (Karazhan / Gruul / Magtheridon); those must NOT leak into the live
+ * feats or feat-derived stats now that the guild is on Phase 2. Update this when
+ * a new phase opens.
+ */
+const PHASE_2_BOSSES = new Set<string>([...SSC_BOSSES, ...TK_BOSSES]);
+
+/** True for a boss that belongs to the current live phase (Phase 2). */
+function isPhase2Boss(boss: string): boolean {
+	return PHASE_2_BOSSES.has(boss);
+}
+
 /** A WclFeat is serialized to JSON in the cache; reshape into our Feat type. */
 function wclFeatToFeat(f: WclFeat): Feat {
 	return {
@@ -227,6 +256,7 @@ async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData 
 			const parsed = JSON.parse(row.json) as {
 				killedBossNames: string[];
 				perCore?: Record<string, string[]>;
+				perCoreStats?: Record<string, WclCoreStats>;
 				feats: WclFeat[];
 			};
 			// Coerce string keys (JSON object keys) back to numbers.
@@ -234,9 +264,14 @@ async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData 
 			for (const [k, v] of Object.entries(parsed.perCore ?? {})) {
 				perCore[Number(k)] = v;
 			}
+			const perCoreStats: Record<number, WclCoreStats> = {};
+			for (const [k, v] of Object.entries(parsed.perCoreStats ?? {})) {
+				perCoreStats[Number(k)] = v;
+			}
 			return {
 				killedBossNames: new Set(parsed.killedBossNames),
 				perCore,
+				perCoreStats,
 				feats: parsed.feats
 			};
 		} catch {
@@ -256,6 +291,7 @@ async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData 
 		const payload = JSON.stringify({
 			killedBossNames: [...fetched.killedBossNames],
 			perCore: fetched.perCore,
+			perCoreStats: fetched.perCoreStats,
 			feats: fetched.feats
 		});
 		await setCache(db, WCL_CACHE_KEY, payload, now);
@@ -335,6 +371,49 @@ export async function loadWclRankingsCached(
 	}
 }
 
+/**
+ * Load the guild + per-core progress rank (world/region/server) through a ~6h
+ * D1 cache. Null on missing binding/creds/error — never throws.
+ */
+export async function loadWclProgressCached(
+	platform: App.Platform | undefined
+): Promise<WclProgress | null> {
+	try {
+		const binding = platform?.env?.DB;
+		if (!binding) return null;
+		const db = getDb(binding);
+		const env = platform!.env;
+		return await loadJsonCached<WclProgress>(db, WCL_PROGRESS_KEY, WCL_PROGRESS_TTL_MS, () =>
+			getWclProgress(env)
+		);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Load per-core attendance (active roster + consistency) through a ~6h D1 cache.
+ * Null on missing binding/creds/error — never throws.
+ */
+export async function loadWclAttendanceCached(
+	platform: App.Platform | undefined
+): Promise<WclAttendance | null> {
+	try {
+		const binding = platform?.env?.DB;
+		if (!binding) return null;
+		const db = getDb(binding);
+		const env = platform!.env;
+		return await loadJsonCached<WclAttendance>(
+			db,
+			WCL_ATTENDANCE_KEY,
+			WCL_ATTENDANCE_TTL_MS,
+			() => getWclAttendance(env)
+		);
+	} catch {
+		return null;
+	}
+}
+
 /** A single roster member, as derived from recent WCL report rankings. */
 export type RosterMember = WclCharacter;
 
@@ -361,10 +440,56 @@ export async function loadCoreRoster(
 
 /**
  * Per-character SSC/TK detail for the internal player page (`/jugador/[name]`),
- * through a per-name 6h D1 cache. Returns null when there is no DB binding, no
- * creds, the character has no logs, or anything fails — never throws. The page
- * renders a friendly empty state on null (NOT a hard 404).
+ * through a per-name 6h D1 cache. Returns null only when we can find NOTHING
+ * about the player anywhere — never throws.
+ *
+ * Two-tier resolution:
+ *  1. Rich detail from `characterData.character(...).zoneRankings` — the
+ *     authoritative source (per-boss table, all-stars per spec). Cached as a
+ *     normal JSON blob in D1.
+ *  2. **Synthesized fallback** from the report-rankings cache when (1) returns
+ *     null. WCL's per-character endpoint only resolves players that have been
+ *     "imported" via Battle.net; on Fresh Classic many players are missing
+ *     there but DO appear in our guild's report rankings (which power the Hall
+ *     of Fame and per-core rosters). When that happens we synthesize a partial
+ *     detail (header + per-boss kills derived from the histórico) instead of
+ *     showing the empty "no parses" state — matching what `warcraftlogs.com`
+ *     itself renders for these characters.
+ *
+ * The negative result of (1) is cached too (sentinel `{ __empty: true }`) with
+ * the same 6h TTL, so we don't hammer WCL on every page view.
  */
+/**
+ * The per-character endpoint exposes only `classID`, whose numbering does NOT
+ * match WoW's class IDs (it's WCL's internal GameClass id), so the class can come
+ * out wrong (e.g. a Combat Rogue shown as "Mago"). The report-rankings cache
+ * carries the reliable class STRING (the same source the Hall of Fame uses), so
+ * we override the detail's class with it when the player is in rankings — fixing
+ * the mislabel AND keeping /jugador coherent with the Hall of Fame. The spec
+ * (from zoneRankings, already reliable) is left untouched.
+ */
+async function enrichDetailClass(
+	platform: App.Platform | undefined,
+	detail: WclCharacterDetail | null
+): Promise<WclCharacterDetail | null> {
+	if (!detail) return detail;
+	try {
+		const rankings = await loadWclRankingsCached(platform);
+		const ch = rankings?.characters?.[detail.name.toLowerCase()];
+		if (ch?.wowClass) {
+			return {
+				...detail,
+				wowClass: ch.wowClass,
+				classLabel: ch.classLabel ?? detail.classLabel,
+				classColor: CLASS_COLOR[ch.wowClass] ?? detail.classColor
+			};
+		}
+	} catch {
+		// Best-effort enrichment; keep the original detail on any failure.
+	}
+	return detail;
+}
+
 export async function loadWclCharacterCached(
 	platform: App.Platform | undefined,
 	name: string
@@ -374,10 +499,103 @@ export async function loadWclCharacterCached(
 		if (!binding || !name.trim()) return null;
 		const db = getDb(binding);
 		const env = platform!.env;
-		const key = 'char:' + name.toLowerCase();
-		return await loadJsonCached<WclCharacterDetail>(db, key, WCL_CHARACTER_TTL_MS, () =>
-			getWclCharacter(env, name)
+		const key = 'char_v6:' + name.toLowerCase();
+		const now = Date.now();
+
+		const cachedRow = await getCache(db, key);
+		if (cachedRow && now - cachedRow.fetchedAt < WCL_CHARACTER_TTL_MS) {
+			try {
+				const parsed = JSON.parse(cachedRow.json) as
+					| WclCharacterDetail
+					| { __empty: true };
+				if ((parsed as { __empty?: true }).__empty) {
+					// Synthesized detail already uses the reliable rankings class.
+					return await synthesizePlayerDetailFromRankings(platform, name);
+				}
+				return await enrichDetailClass(platform, parsed as WclCharacterDetail);
+			} catch {
+				// Corrupt row → fall through and re-fetch.
+			}
+		}
+
+		const detail = await getWclCharacter(env, name);
+		if (detail) {
+			await setCache(db, key, JSON.stringify(detail), now);
+			return await enrichDetailClass(platform, detail);
+		}
+
+		// Per-character endpoint missed — negative-cache the miss so we don't
+		// hammer WCL, then synthesize from the shared rankings cache.
+		await setCache(db, key, JSON.stringify({ __empty: true }), now);
+		return await synthesizePlayerDetailFromRankings(platform, name);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Build a partial `WclCharacterDetail` for a player that's absent from the
+ * per-character endpoint but present in our shared report-rankings cache.
+ *
+ * Fills the hero header (name, class, spec, role, best score) from
+ * `rankings.characters[name]` and reconstructs a per-boss table by aggregating
+ * the player's recent kills (count, best parse). All-stars + median + ranks +
+ * amount/ilvl/fastestKill are unavailable in this source and therefore left
+ * empty; the page handles those gracefully (sections render only when they
+ * have data). Returns null only when the player isn't in rankings either.
+ */
+async function synthesizePlayerDetailFromRankings(
+	platform: App.Platform | undefined,
+	name: string
+): Promise<WclCharacterDetail | null> {
+	try {
+		const rankings = await loadWclRankingsCached(platform);
+		if (!rankings) return null;
+
+		const key = name.toLowerCase();
+		const ch = rankings.characters?.[key];
+		const recent = rankings.recentByPlayer?.[key] ?? [];
+		if (!ch && recent.length === 0) return null;
+
+		const wowClass = ch?.wowClass ?? null;
+
+		const bossMap = new Map<string, WclBossDetail>();
+		for (const k of recent) {
+			const existing = bossMap.get(k.boss);
+			if (!existing) {
+				bossMap.set(k.boss, {
+					encounterName: k.boss,
+					best: k.parse,
+					median: null,
+					kills: 1,
+					amount: null,
+					ilvl: null,
+					fastestKillMs: null,
+					spec: ch?.spec ?? null
+				});
+			} else {
+				existing.kills += 1;
+				if (k.parse != null && (existing.best ?? -1) < k.parse) existing.best = k.parse;
+			}
+		}
+		const bosses = [...bossMap.values()].sort(
+			(a, b) => (b.best ?? -1) - (a.best ?? -1) || b.kills - a.kills
 		);
+
+		return {
+			name: ch?.name ?? name,
+			wowClass,
+			classLabel: ch?.classLabel ?? null,
+			classColor: wowClass ? CLASS_COLOR[wowClass] : null,
+			mainSpec: ch?.spec ?? null,
+			role: ch?.specRole ?? 'DPS',
+			metric: null,
+			bestAvg: ch?.score ?? 0,
+			median: 0,
+			bestRanks: { world: null, region: null, server: null },
+			allStars: [],
+			bosses
+		};
 	} catch {
 		return null;
 	}
@@ -398,6 +616,60 @@ export async function loadPlayerRecentKills(
 		return rankings?.recentByPlayer?.[name.toLowerCase()] ?? [];
 	} catch {
 		return [];
+	}
+}
+
+/** A player's standing within the guild's ranked roster (server-computed). */
+export type PlayerStanding = {
+	/** Rank by score across all ranked players (1-based) + the total pool. */
+	overall: { rank: number; total: number } | null;
+	/** Rank by score within the player's class + that class's total. */
+	inClass: { rank: number; total: number } | null;
+};
+
+/**
+ * Compute a player's standing (overall + within-class rank) from the shared
+ * rankings cache. This is a derivation the CLIENT can't do — the /jugador page
+ * only has that one player's data, not the whole ranked roster — so it's done
+ * server-side off the same cache the Hall of Fame uses (coherent scores). Null
+ * when the player isn't in the ranked roster.
+ */
+export async function loadPlayerStanding(
+	platform: App.Platform | undefined,
+	name: string
+): Promise<PlayerStanding | null> {
+	try {
+		if (!name.trim()) return null;
+		const rankings = await loadWclRankingsCached(platform);
+		const characters = rankings?.characters;
+		if (!characters) return null;
+
+		const key = name.toLowerCase();
+		const me = characters[key];
+		if (!me || me.score == null) return null;
+
+		const all = Object.values(characters).filter(
+			(c): c is WclCharacter & { score: number } => typeof c.score === 'number'
+		);
+		const overallRank =
+			all.slice().sort((a, b) => b.score - a.score).findIndex((c) => c.name.toLowerCase() === key) +
+			1;
+
+		let inClass: PlayerStanding['inClass'] = null;
+		if (me.wowClass) {
+			const peers = all
+				.filter((c) => c.wowClass === me.wowClass)
+				.sort((a, b) => b.score - a.score);
+			const r = peers.findIndex((c) => c.name.toLowerCase() === key) + 1;
+			if (r > 0) inClass = { rank: r, total: peers.length };
+		}
+
+		return {
+			overall: overallRank > 0 ? { rank: overallRank, total: all.length } : null,
+			inClass
+		};
+	} catch {
+		return null;
 	}
 }
 
@@ -474,9 +746,29 @@ function applyWclOverride(
 		return { ...phase, raids, percent: phasePercent(raids) };
 	});
 
-	const nextFeats = wcl.feats.map(wclFeatToFeat);
+	// Only Phase 2 (SSC/TK) feats are "live" — drop Phase 1 farm kills (Karazhan /
+	// Gruul / Magtheridon) so they don't appear in Últimas hazañas or skew stats.
+	const nextFeats = wcl.feats.filter((f) => isPhase2Boss(f.boss)).map(wclFeatToFeat);
 
 	return { phases: nextPhases, feats: nextFeats.length > 0 ? nextFeats : feats };
+}
+
+/** Round a raid progress to a 0–100 percent (server-side, so the client doesn't). */
+function progressPercent(p: { kills: number; total: number }): number {
+	return p.total === 0 ? 0 : Math.round((p.kills / p.total) * 100);
+}
+
+/**
+ * Fill each team's SSC/TK `percent` server-side so the client renders it directly
+ * (no `Math.round` in the component). Applied at every point teams reach the
+ * client, including the static fallback.
+ */
+function withTeamPercents(teams: Team[]): Team[] {
+	return teams.map((team) => ({
+		...team,
+		ssc: { ...team.ssc, percent: progressPercent(team.ssc) },
+		tk: { ...team.tk, percent: progressPercent(team.tk) }
+	}));
 }
 
 /**
@@ -665,7 +957,7 @@ export async function loadGuildData(
 			phases: outPhases,
 			officers: outOfficers,
 			recruitment,
-			teams: outTeams,
+			teams: withTeamPercents(outTeams),
 			feats: outFeats,
 			faq,
 			stats,

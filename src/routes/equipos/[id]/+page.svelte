@@ -15,9 +15,8 @@
 	const roster = $derived(data.roster);
 	const hasRoster = $derived(!!roster && roster.length > 0);
 
-	function pct(p: { kills: number; total: number }): number {
-		return p.total === 0 ? 0 : Math.round((p.kills / p.total) * 100);
-	}
+	// Porcentaje ya calculado en el servidor (p.percent); 0 de respaldo.
+	const pct = (p: { percent?: number }): number => p.percent ?? 0;
 
 	/** Color de clase para teñir el nombre (CLASS_COLORS usa clave en minúsculas). */
 	function classColor(wowClass: WowClass | undefined): string | undefined {

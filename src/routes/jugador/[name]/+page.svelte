@@ -27,8 +27,11 @@
 	/** Color de clase para teñir el nombre. */
 	const nameColor = $derived(detail?.classColor ?? undefined);
 
-	/** Tier del parse medio (para teñir badge/glow). */
-	const avgTier = $derived(detail ? parseTier(detail.bestAvg) : null);
+	/** Tier del parse medio (calculado en el server). */
+	const avgTier = $derived(data.tier);
+
+	/** Posición del jugador en la hermandad (rank en su clase / global), del server. */
+	const standing = $derived(data.standing);
 
 	/** Formatea un rank a "#1.234" o "—" cuando no está clasificado. */
 	function rankText(value: number | null): string {
@@ -141,6 +144,24 @@
 						<span class="rank__label">Mundo</span>
 					</li>
 				</ul>
+
+				<!-- Posición dentro de la hermandad (parse medio), calculada en el server -->
+				{#if standing && (standing.inClass || standing.overall)}
+					<p class="standing">
+						{#if standing.inClass && detail.classLabel}
+							<span class="standing__item">
+								<strong>#{standing.inClass.rank}</strong>
+								<span class="standing__of">de {standing.inClass.total} en {detail.classLabel}</span>
+							</span>
+						{/if}
+						{#if standing.overall}
+							<span class="standing__item">
+								<strong>#{standing.overall.rank}</strong>
+								<span class="standing__of">de {standing.overall.total} en la hermandad</span>
+							</span>
+						{/if}
+					</p>
+				{/if}
 
 				<a
 					class="wcl-btn"
@@ -570,6 +591,24 @@
 		font-weight: 700;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
+		color: var(--color-steel-dim);
+	}
+
+	/* Posición en la hermandad */
+	.standing {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 1.1rem;
+		margin: 0.9rem 0 0;
+		font-size: 0.82rem;
+		color: var(--color-steel-dim);
+	}
+	.standing__item strong {
+		color: var(--color-gold, #e5cc80);
+		font-weight: 800;
+		margin-right: 0.3rem;
+	}
+	.standing__of {
 		color: var(--color-steel-dim);
 	}
 
