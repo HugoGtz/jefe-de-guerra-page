@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
+	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { parseTier, roleLabelEs, formatDuration } from '$lib/parse';
-	import { classIconUrl, specIconUrl, bossIconUrl } from '$lib/wow-icons';
+	import { specOrClassIcon, bossIconUrl } from '$lib/wow-icons';
 	import { wclCharacterUrl } from '$lib/data/teams';
 
 	// SSR (+page.server.ts): the requested name, the character detail (null when
@@ -19,10 +20,7 @@
 
 	/** Icono cabecera: spec → clase → null (respaldo a inicial). */
 	const headerIcon = $derived(
-		detail
-			? (specIconUrl(detail.wowClass, detail.mainSpec ?? undefined) ??
-					classIconUrl(detail.wowClass))
-			: null
+		detail ? specOrClassIcon(detail.wowClass, detail.mainSpec ?? undefined) : null
 	);
 
 	/** Color de clase para teñir el nombre. */
@@ -123,19 +121,19 @@
 				<div class="stats">
 					<div class="stat stat--hero" style="--parse-color: {avgTier?.color}">
 						<span class="stat__value">{detail.bestAvg}</span>
-						<span class="stat__label">
+						<span class="stat__label label-caps">
 							Parse medio
 							{#if avgTier}<span class="stat__tier">{avgTier.label}</span>{/if}
 						</span>
 					</div>
 					<div class="stat">
 						<span class="stat__value stat__value--muted">{detail.median}</span>
-						<span class="stat__label">Mediana</span>
+						<span class="stat__label label-caps">Mediana</span>
 					</div>
 					{#if metricLabel}
 						<div class="stat">
 							<span class="stat__value stat__value--metric">{metricLabel}</span>
-							<span class="stat__label">Métrica</span>
+							<span class="stat__label label-caps">Métrica</span>
 						</div>
 					{/if}
 				</div>
@@ -175,7 +173,7 @@
 				{/if}
 
 				<a
-					class="wcl-btn"
+					class="wcl-btn label-caps"
 					href={wclCharacterUrl(detail.name)}
 					target="_blank"
 					rel="noopener noreferrer"
@@ -219,12 +217,11 @@
 								</span>
 								<span class="col-num" role="cell">
 									{#if boss.best != null && tier}
-										<span
-											class="parse-badge"
-											style="--parse-color: {tier.color}"
+										<ParseBadge
+											score={boss.best}
 											title={`Parse ${boss.best} · ${tier.label}`}
-											aria-label={`Parse ${boss.best}, ${tier.label}`}>{boss.best}</span
-										>
+											ariaLabel={`Parse ${boss.best}, ${tier.label}`}
+										/>
 									{:else}
 										<span class="dash" aria-label="Sin parse">—</span>
 									{/if}
@@ -250,8 +247,7 @@
 					<div class="allstars">
 						{#each detail.allStars as as_, i (as_.spec)}
 							{@const tier = as_.rankPercent != null ? parseTier(as_.rankPercent) : null}
-							{@const specIcon =
-								specIconUrl(detail.wowClass, as_.spec) ?? classIconUrl(detail.wowClass)}
+							{@const specIcon = specOrClassIcon(detail.wowClass, as_.spec)}
 							<div use:reveal={{ delay: Math.min(i * 80, 320), blur: true }}>
 								<Card class="allstar-card">
 									<div class="allstar__head">
@@ -268,13 +264,11 @@
 										{/if}
 										<span class="allstar__spec">{as_.spec}</span>
 										{#if as_.rankPercent != null && tier}
-											<span
-												class="parse-badge allstar__pct"
-												style="--parse-color: {tier.color}"
+											<ParseBadge
+												score={as_.rankPercent}
 												title={`Percentil ${as_.rankPercent} · ${tier.label}`}
-												aria-label={`Percentil ${as_.rankPercent}, ${tier.label}`}
-												>{as_.rankPercent}</span
-											>
+												ariaLabel={`Percentil ${as_.rankPercent}, ${tier.label}`}
+											/>
 										{/if}
 									</div>
 									<p class="allstar__points">
@@ -333,12 +327,11 @@
 									</span>
 								</span>
 								{#if kill.parse != null && tier}
-									<span
-										class="parse-badge"
-										style="--parse-color: {tier.color}"
+									<ParseBadge
+										score={kill.parse}
 										title={`Parse ${kill.parse} · ${tier.label}`}
-										aria-label={`Parse ${kill.parse}, ${tier.label}`}>{kill.parse}</span
-									>
+										ariaLabel={`Parse ${kill.parse}, ${tier.label}`}
+									/>
 								{:else}
 									<span class="dash" aria-label="Sin parse">—</span>
 								{/if}
@@ -363,7 +356,12 @@
 					o que aún no tenga registros en WarcraftLogs para Caverna del Santuario Serpiente ni
 					Tempest Keep.
 				</p>
-				<a class="wcl-btn" href={wclCharacterUrl(name)} target="_blank" rel="noopener noreferrer">
+				<a
+					class="wcl-btn label-caps"
+					href={wclCharacterUrl(name)}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
 					Buscar en WarcraftLogs <span class="wcl-btn__arrow" aria-hidden="true">↗</span>
 				</a>
 			</div>
@@ -532,11 +530,7 @@
 		letter-spacing: 0.04em;
 	}
 	.stat__label {
-		font-family: var(--font-display);
 		font-size: 0.66rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		color: var(--color-steel-dim);
 		display: flex;
 		align-items: center;
@@ -617,11 +611,7 @@
 		margin-top: 1.5rem;
 		padding: 0.6rem 1.1rem;
 		border-radius: 6px;
-		font-family: var(--font-display);
 		font-size: 0.74rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		text-decoration: none;
 		color: var(--color-silver);
 		background: linear-gradient(
@@ -753,24 +743,6 @@
 		color: var(--color-steel-dim);
 	}
 
-	/* Insignia de parse (compartida en tablas/cards/histórico). */
-	.parse-badge {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 2.2rem;
-		padding: 0.16rem 0.5rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.85rem;
-		font-weight: 900;
-		line-height: 1;
-		color: var(--color-silver);
-		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
-		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
-	}
-
 	/* All-stars por spec */
 	.allstars {
 		display: grid;
@@ -803,9 +775,6 @@
 		color: var(--color-silver);
 		flex: 1;
 		min-width: 0;
-	}
-	.allstar__pct {
-		flex-shrink: 0;
 	}
 	.allstar__points {
 		margin: 0 0 0.85rem;

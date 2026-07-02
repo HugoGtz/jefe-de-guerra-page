@@ -197,6 +197,28 @@ export function specIconUrl(
 	return `/icons/spec/${cls}/${spec}.png`;
 }
 
+/**
+ * Best available icon for a character: the spec icon when class + spec resolve,
+ * otherwise the plain class icon, otherwise null. This "spec ?? class" fallback
+ * is the icon every roster/leaderboard row wants.
+ */
+export function specOrClassIcon(
+	classInput: string | number | null | undefined,
+	specName: string | null | undefined
+): string | null {
+	return specIconUrl(classInput, specName) ?? classIconUrl(classInput);
+}
+
+/** Canonical class color for tinting a character name, or undefined if unknown. */
+export function classColor(classInput: string | null | undefined): string | undefined {
+	return classInput ? CLASS_COLORS[classInput.toLowerCase()] : undefined;
+}
+
+/** Internal player-detail route for a character name (URL-safe). */
+export function playerHref(name: string): string {
+	return `/jugador/${encodeURIComponent(name)}`;
+}
+
 /* ----------------------------------------------------------------------------
  * Spanish recruitment-label resolver
  *

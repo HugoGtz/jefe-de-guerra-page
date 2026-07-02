@@ -3,6 +3,7 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
+	import StatusPill from '$lib/components/ui/StatusPill.svelte';
 	import { reveal, type RevealDirection } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
 	import {
@@ -69,16 +70,15 @@
 		</p>
 	{/if}
 
-	<div class="logs-cta" use:reveal={{ delay: 90 }}>
+	<div class="logs-cta mx-auto flex justify-center" use:reveal={{ delay: 90 }}>
 		<Button variant="ghost" href={guildLogsUrl} target="_blank" rel="noopener noreferrer">
 			Ver nuestros logs
 		</Button>
 	</div>
 
-	<div class="grid">
+	<div class="grid grid-cols-1 gap-6 min-[600px]:grid-cols-2 min-[920px]:grid-cols-3">
 		{#each teams as team, i (team.id)}
 			<div
-				class="cell"
 				use:reveal={{
 					delay: 80 + i * 110,
 					direction: directions[i % directions.length],
@@ -95,13 +95,9 @@
 							href="/equipos/{team.id}"
 							aria-label="Ver roster de {team.name}"
 						></a>
-						<header class="team-card__head">
+						<header class="mb-[0.85rem] flex items-center justify-between gap-3">
 							<h3 class="team-card__name text-engraved">{team.name}</h3>
-							{#if team.recruiting}
-								<span class="pill pill--open">Reclutando</span>
-							{:else}
-								<span class="pill pill--closed">Cerrado</span>
-							{/if}
+							<StatusPill open={team.recruiting} />
 						</header>
 
 						<p class="team-card__schedule">
@@ -113,7 +109,7 @@
 							{/if}
 						</p>
 
-						<div class="bars">
+						<div class="grid gap-[0.85rem]">
 							<ProgressBar
 								value={barValue(team.id, team.ssc)}
 								label={`SSC ${team.ssc.kills}/${team.ssc.total}`}
@@ -133,7 +129,7 @@
 						{#if team.wclGuildId}
 							<div class="team-card__links">
 								<a
-									class="team-card__logs"
+									class="team-card__logs label-caps"
 									href={wclGuildUrl(team.wclGuildId)}
 									target="_blank"
 									rel="noopener noreferrer"
@@ -142,7 +138,7 @@
 									<span class="team-card__logs-arrow" aria-hidden="true">↗</span>
 								</a>
 								<a
-									class="team-card__logs"
+									class="team-card__logs label-caps"
 									href={wclCalendarUrl(team.wclGuildId)}
 									target="_blank"
 									rel="noopener noreferrer"
@@ -155,7 +151,7 @@
 
 						<!-- Afordancia visible de que la tarjeta abre el roster. El enlace
 						     accesible es el overlay estirado; este texto es decorativo. -->
-						<p class="team-card__roster-cue" aria-hidden="true">
+						<p class="team-card__roster-cue label-caps" aria-hidden="true">
 							Ver roster <span class="team-card__roster-arrow">→</span>
 						</p>
 					</Card>
@@ -166,33 +162,30 @@
 </Section>
 
 <style>
+	/* Tipografía con tamaños fuera de la escala de Tailwind → clase scoped
+	   (más legible que utilidades arbitrarias). Layout va por utilidades. */
 	.intro {
 		max-width: 42rem;
-		margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
+		margin-inline: auto;
+		margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
 		text-align: center;
 		font-size: 1.05rem;
 		line-height: 1.7;
 		color: var(--color-steel);
 	}
-
 	.tz-note {
 		max-width: 42rem;
-		margin: -1.5rem auto clamp(2rem, 4vw, 2.75rem);
+		margin-inline: auto;
+		margin-top: -1.5rem;
+		margin-bottom: clamp(2rem, 4vw, 2.75rem);
 		text-align: center;
 		font-size: 0.8rem;
 		color: var(--color-steel-dim);
 	}
-
+	/* Solo los márgenes custom; flex/justify/mx-auto van por utilidades. */
 	.logs-cta {
-		display: flex;
-		justify-content: center;
-		margin: -0.75rem auto clamp(2.5rem, 5vw, 3.5rem);
-	}
-
-	.grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.5rem;
+		margin-top: -0.75rem;
+		margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
 	}
 
 	/* El wrapper de celda lleva el `reveal` (transform/opacity); el hijo
@@ -245,11 +238,7 @@
 		margin: 1.1rem 0 0;
 		margin-top: auto;
 		padding-top: 1.1rem;
-		font-family: var(--font-display);
 		font-size: 0.74rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		color: var(--color-ember);
 		transition:
 			color 0.2s ease,
@@ -272,60 +261,12 @@
 		transform: translateX(3px);
 	}
 
-	.team-card__head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		margin-bottom: 0.85rem;
-	}
 	.team-card__name {
 		font-family: var(--font-display);
 		font-size: 1.4rem;
 		font-weight: 900;
 		letter-spacing: 0.04em;
 		margin: 0;
-	}
-
-	/* Pastilla de estado — variantes lava/blood (abierto) y acero (cerrado). */
-	.pill {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.28rem 0.7rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.66rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		white-space: nowrap;
-		border: 1px solid transparent;
-	}
-	.pill--open {
-		color: var(--color-silver);
-		background: linear-gradient(
-			135deg,
-			color-mix(in srgb, var(--color-blood) 45%, transparent),
-			color-mix(in srgb, var(--color-lava) 30%, transparent)
-		);
-		border-color: color-mix(in srgb, var(--color-lava) 60%, transparent);
-		box-shadow: 0 0 12px rgba(255, 59, 33, 0.35);
-	}
-	.pill--open::before {
-		content: '';
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background-color: var(--color-lava);
-		box-shadow: 0 0 8px rgba(255, 59, 33, 0.8);
-		animation: pill-blink 1.8s ease-in-out infinite;
-	}
-	.pill--closed {
-		color: var(--color-steel-dim);
-		background-color: color-mix(in srgb, var(--color-steel) 12%, transparent);
-		border-color: color-mix(in srgb, var(--color-steel) 24%, transparent);
 	}
 
 	.team-card__schedule {
@@ -363,11 +304,6 @@
 		align-self: center;
 	}
 
-	.bars {
-		display: grid;
-		gap: 0.85rem;
-	}
-
 	.team-card__note {
 		margin: 1.1rem 0 0;
 		font-size: 0.82rem;
@@ -394,11 +330,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
-		font-family: var(--font-display);
 		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		text-decoration: none;
 		color: var(--color-steel);
 		border-bottom: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);
@@ -429,37 +361,6 @@
 		.team-card__logs:hover .team-card__logs-arrow,
 		.cell__tilt:hover .team-card__roster-arrow {
 			transform: none;
-		}
-	}
-
-	@keyframes pill-blink {
-		0%,
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.4;
-			transform: scale(0.78);
-		}
-	}
-
-	/* 1 col → 2 → 3. Con 5 tarjetas la rejilla de 3 columnas queda 3 + 2,
-	   equilibrada y centrada. */
-	@media (min-width: 600px) {
-		.grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-	}
-	@media (min-width: 920px) {
-		.grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.pill--open::before {
-			animation: none;
 		}
 	}
 </style>

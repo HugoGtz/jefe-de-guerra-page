@@ -36,6 +36,13 @@
 	/* Fonts — exposed as font-display / font-sans utilities */
 	--font-display: 'Cinzel', serif;
 	--font-sans: 'Inter', system-ui, sans-serif;
+
+	/* Letter-spacing — the three tracking values that recur across the UI.
+	   Non-colliding names (Tailwind ships tracking-tight/wide with other values).
+	   → utilities: tracking-heading / tracking-caps / tracking-eyebrow */
+	--tracking-heading: 0.04em; /* display headings */
+	--tracking-caps: 0.1em; /* uppercase labels/pills */
+	--tracking-eyebrow: 0.08em; /* small uppercase eyebrows */
 }
 
 /* ============================================================
@@ -120,6 +127,18 @@
 /* ============================================================
    Reusable component / utility classes
    ============================================================ */
+
+/* The recurring "small display-font uppercase label" treatment (pills, WCL
+   links, roster cues, eyebrows, tz notes). Callers still set their own
+   font-size + color; this owns family/weight/transform/tracking. Defined as a
+   Tailwind @utility so it composes with utilities and variants (hover:, etc.). */
+@utility label-caps {
+	font-family: var(--font-display);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: var(--tracking-caps);
+}
+
 @layer components {
 	/* Brushed-metal 1px border with subtle inset gradient.
 	   Illuminates (border brightens + faint glow) on hover. */

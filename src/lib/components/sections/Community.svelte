@@ -81,7 +81,7 @@
 		el próximo asalto y la puerta de entrada a la comunidad.
 	</p>
 
-	<div class="layout">
+	<div class="grid grid-cols-1 items-stretch gap-6 min-[820px]:grid-cols-2">
 		<!-- ── CUENTA ATRÁS ───────────────────────────────────────── -->
 		<div class="countdown-wrap" use:reveal={{ direction: 'left' }}>
 			<Card beam class="countdown-card">
@@ -143,7 +143,9 @@
 						WhatsApp. Para entrar, primero aplica: al enviar el formulario te damos acceso a la
 						comunidad.
 					</p>
-					<a class="discord-fallback__btn glow-red" href="#aplica"> Aplica para unirte </a>
+					<a class="discord-fallback__btn label-caps glow-red" href="#aplica">
+						Aplica para unirte
+					</a>
 				</Card>
 			{/if}
 		</div>
@@ -158,13 +160,6 @@
 		font-size: 1.05rem;
 		line-height: 1.7;
 		color: var(--color-steel);
-	}
-
-	.layout {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.5rem;
-		align-items: stretch;
 	}
 
 	.countdown-wrap,
@@ -286,11 +281,7 @@
 		margin-top: 0.4rem;
 		padding: 0.8rem 1.8rem;
 		border-radius: 4px;
-		font-family: var(--font-display);
 		font-size: 0.85rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		text-decoration: none;
 		color: var(--color-silver);
 		background: linear-gradient(135deg, var(--color-blood), var(--color-crimson-deep));
@@ -314,12 +305,6 @@
 		}
 		.countdown__colon {
 			display: none;
-		}
-	}
-
-	@media (min-width: 820px) {
-		.layout {
-			grid-template-columns: 1fr 1fr;
 		}
 	}
 

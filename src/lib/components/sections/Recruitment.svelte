@@ -29,7 +29,7 @@
 <Section id="reclutamiento" eyebrow="Reclutamiento" title="Únete a la lucha">
 	<p class="recruit__intro" use:reveal>{recruitment.intro}</p>
 
-	<div class="recruit__grid">
+	<div class="mb-12 grid grid-cols-1 gap-8 min-[720px]:grid-cols-2">
 		<div class="recruit__needs" use:reveal={{ delay: 100, direction: 'left', blur: true }}>
 			<h3 class="recruit__subtitle text-engraved">Buscamos</h3>
 			<ul class="needs">
@@ -105,12 +105,6 @@
 		color: var(--color-steel);
 		font-size: 1.1rem;
 		line-height: 1.7;
-	}
-	.recruit__grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 2rem;
-		margin-bottom: 3rem;
 	}
 	.recruit__subtitle {
 		font-size: 1.25rem;
@@ -290,9 +284,6 @@
 	}
 
 	@media (min-width: 720px) {
-		.recruit__grid {
-			grid-template-columns: 1fr 1fr;
-		}
 		/* Two-up needs grid on wide screens for density. */
 		.needs {
 			grid-template-columns: 1fr 1fr;

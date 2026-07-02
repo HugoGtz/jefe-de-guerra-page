@@ -1,9 +1,11 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
+	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
+	import StatusPill from '$lib/components/ui/StatusPill.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { wclGuildUrl, wclCalendarUrl } from '$lib/data/teams';
-	import { classIconUrl, specIconUrl, CLASS_COLORS } from '$lib/wow-icons';
+	import { specOrClassIcon, classColor, playerHref } from '$lib/wow-icons';
 	import { parseTier, roleLabelEs } from '$lib/parse';
 	import type { WowClass } from '$lib/data/officers';
 
@@ -18,14 +20,9 @@
 	// Porcentaje ya calculado en el servidor (p.percent); 0 de respaldo.
 	const pct = (p: { percent?: number }): number => p.percent ?? 0;
 
-	/** Color de clase para teñir el nombre (CLASS_COLORS usa clave en minúsculas). */
-	function classColor(wowClass: WowClass | undefined): string | undefined {
-		return wowClass ? CLASS_COLORS[wowClass.toLowerCase()] : undefined;
-	}
-
 	/** Mejor icono disponible: spec → clase → null (fallback a inicial). */
 	function memberIcon(wowClass: WowClass | undefined, spec: string | undefined): string | null {
-		return specIconUrl(wowClass, spec?.toLowerCase()) ?? classIconUrl(wowClass);
+		return specOrClassIcon(wowClass, spec?.toLowerCase());
 	}
 </script>
 
@@ -47,11 +44,7 @@
 		<header class="core__head" use:reveal={{ delay: 60 }}>
 			<div class="core__title-row">
 				<h1 class="core__name text-engraved">{team.name}</h1>
-				{#if team.recruiting}
-					<span class="pill pill--open">Reclutando</span>
-				{:else}
-					<span class="pill pill--closed">Cerrado</span>
-				{/if}
+				<StatusPill open={team.recruiting} />
 			</div>
 
 			<p class="core__schedule">
@@ -83,7 +76,7 @@
 			{#if team.wclGuildId}
 				<div class="core__links">
 					<a
-						class="core__logs"
+						class="core__logs label-caps"
 						href={wclGuildUrl(team.wclGuildId)}
 						target="_blank"
 						rel="noopener noreferrer"
@@ -91,7 +84,7 @@
 						Logs <span class="core__logs-arrow" aria-hidden="true">↗</span>
 					</a>
 					<a
-						class="core__logs"
+						class="core__logs label-caps"
 						href={wclCalendarUrl(team.wclGuildId)}
 						target="_blank"
 						rel="noopener noreferrer"
@@ -113,14 +106,16 @@
 				<p class="roster__hint" use:reveal={{ delay: 40 }}>
 					Derivado de los logs recientes de SSC y Tempest Keep (WarcraftLogs).
 				</p>
-				<ul class="roster__grid">
+				<ul
+					class="m-0 grid list-none grid-cols-1 gap-[0.85rem] p-0 min-[560px]:grid-cols-2 min-[920px]:grid-cols-3"
+				>
 					{#each roster as member, i (member.name)}
 						{@const icon = memberIcon(member.wowClass, member.spec)}
 						{@const tint = classColor(member.wowClass)}
 						<li use:reveal={{ delay: Math.min(i * 50, 400), blur: true }}>
 							<a
 								class="member"
-								href={`/jugador/${encodeURIComponent(member.name)}`}
+								href={playerHref(member.name)}
 								aria-label={`Ver los parses de ${member.name}`}
 							>
 								<Card class="member-card">
@@ -158,14 +153,12 @@
 
 										{#if member.score != null}
 											{@const tier = parseTier(member.score)}
-											<span
-												class="member__parse"
-												style="--parse-color: {tier.color}"
+											<ParseBadge
+												score={member.score}
+												size="md"
 												title={`Parse ${member.score} · ${tier.label} — mejor parse en SSC/TK (WarcraftLogs)`}
-												aria-label={`Parse ${member.score} · ${tier.label}`}
-											>
-												{member.score}
-											</span>
+												ariaLabel={`Parse ${member.score} · ${tier.label}`}
+											/>
 										{/if}
 									</div>
 								</Card>
@@ -301,11 +294,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
-		font-family: var(--font-display);
 		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		text-decoration: none;
 		color: var(--color-steel);
 		border-bottom: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);
@@ -329,46 +318,6 @@
 	}
 	.core__logs:hover .core__logs-arrow {
 		transform: translate(1px, -1px);
-	}
-
-	/* Estado (pastilla) — reutiliza el idioma de Teams.svelte. */
-	.pill {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.28rem 0.7rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.66rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		white-space: nowrap;
-		border: 1px solid transparent;
-	}
-	.pill--open {
-		color: var(--color-silver);
-		background: linear-gradient(
-			135deg,
-			color-mix(in srgb, var(--color-blood) 45%, transparent),
-			color-mix(in srgb, var(--color-lava) 30%, transparent)
-		);
-		border-color: color-mix(in srgb, var(--color-lava) 60%, transparent);
-		box-shadow: 0 0 12px rgba(255, 59, 33, 0.35);
-	}
-	.pill--open::before {
-		content: '';
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background-color: var(--color-lava);
-		box-shadow: 0 0 8px rgba(255, 59, 33, 0.8);
-	}
-	.pill--closed {
-		color: var(--color-steel-dim);
-		background-color: color-mix(in srgb, var(--color-steel) 12%, transparent);
-		border-color: color-mix(in srgb, var(--color-steel) 24%, transparent);
 	}
 
 	/* Roster */
@@ -403,15 +352,6 @@
 		margin: 0 0 1.5rem;
 		font-size: 0.8rem;
 		color: var(--color-steel-dim);
-	}
-
-	.roster__grid {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 0.85rem;
 	}
 
 	/* Tarjeta de miembro: enlace que envuelve el Card (idioma de Officers). */
@@ -481,24 +421,6 @@
 	.member__dot {
 		margin: 0 0.3rem;
 	}
-	/* High-contrast number; tier color tints only the border/bg/glow. */
-	.member__parse {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 2.2rem;
-		padding: 0.18rem 0.5rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.9rem;
-		font-weight: 900;
-		line-height: 1;
-		color: var(--color-silver);
-		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
-		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
-	}
 
 	/* Estado vacío */
 	.roster__empty {
@@ -522,17 +444,6 @@
 		font-size: 0.85rem;
 		line-height: 1.6;
 		color: var(--color-steel-dim);
-	}
-
-	@media (min-width: 560px) {
-		.roster__grid {
-			grid-template-columns: 1fr 1fr;
-		}
-	}
-	@media (min-width: 920px) {
-		.roster__grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {

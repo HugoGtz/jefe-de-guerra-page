@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { parseTier } from '$lib/parse';
-	import { classIconUrl, specIconUrl } from '$lib/wow-icons';
+	import { specOrClassIcon, playerHref } from '$lib/wow-icons';
 	import type { HallOfFame, HallOfFameEntry } from '$lib/server/warcraftlogs';
 
 	let { hallOfFame }: { hallOfFame: HallOfFame | null } = $props();
@@ -30,20 +31,19 @@
 		<p class="hof__intro" use:reveal>
 			Los mejores parses de SSC y Tempest Keep entre todos nuestros cores, según WarcraftLogs.
 		</p>
-		<div class="hof__grid">
+		<div class="grid grid-cols-1 gap-6 min-[720px]:grid-cols-3">
 			{#each visibleColumns as col, ci (col.key)}
 				<div use:reveal={{ delay: ci * 120, direction: 'up', blur: true }}>
 					<Card class="hof-card">
 						<h3 class="hof__title text-engraved">{col.title}</h3>
 						<ol class="hof__list">
 							{#each col.entries as entry, i (entry.name + entry.core)}
-								{@const icon =
-									specIconUrl(entry.wowClass, entry.spec) ?? classIconUrl(entry.wowClass)}
+								{@const icon = specOrClassIcon(entry.wowClass, entry.spec)}
 								{@const tier = parseTier(entry.score)}
 								<li>
 									<a
 										class="hof__row"
-										href={`/jugador/${encodeURIComponent(entry.name)}`}
+										href={playerHref(entry.name)}
 										aria-label={`Ver los parses de ${entry.name}`}
 									>
 										<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
@@ -76,12 +76,12 @@
 												{entry.core}
 											</span>
 										</span>
-										<span
-											class="hof__score"
-											style="--parse-color: {tier.color}"
+										<ParseBadge
+											score={entry.score}
+											size="md"
 											title={`Parse ${entry.score} · ${tier.label}`}
-											aria-label={`Parse ${entry.score} · ${tier.label}`}>{entry.score}</span
-										>
+											ariaLabel={`Parse ${entry.score} · ${tier.label}`}
+										/>
 									</a>
 								</li>
 							{/each}
@@ -100,11 +100,6 @@
 		margin: -1rem auto 2.5rem;
 		color: var(--color-steel);
 		line-height: 1.6;
-	}
-	.hof__grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.5rem;
 	}
 	:global(.hof-card) {
 		height: 100%;
@@ -206,27 +201,5 @@
 	}
 	.hof__dot {
 		margin: 0 0.3rem;
-	}
-	/* High-contrast number; tier color tints only the border/bg/glow. */
-	.hof__score {
-		flex-shrink: 0;
-		min-width: 2.3rem;
-		text-align: center;
-		padding: 0.18rem 0.5rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.9rem;
-		font-weight: 900;
-		line-height: 1;
-		color: var(--color-silver);
-		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
-		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
-	}
-
-	@media (min-width: 720px) {
-		.hof__grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
 	}
 </style>

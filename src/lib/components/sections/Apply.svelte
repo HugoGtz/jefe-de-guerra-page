@@ -185,7 +185,7 @@
 					name="website"
 					bind:value={honeypot}
 				/>
-				<div class="apply__grid">
+				<div class="grid grid-cols-1 gap-[1.1rem] min-[560px]:grid-cols-2">
 					<div class="field">
 						<label class="field__label" for="ap-character">Nombre de personaje</label>
 						<input
@@ -385,12 +385,6 @@
 		margin-top: 1.6rem;
 	}
 
-	.apply__grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.1rem;
-	}
-
 	.field {
 		display: flex;
 		flex-direction: column;
@@ -489,11 +483,5 @@
 	}
 	.apply__status--error {
 		color: var(--color-ember);
-	}
-
-	@media (min-width: 560px) {
-		.apply__grid {
-			grid-template-columns: 1fr 1fr;
-		}
 	}
 </style>

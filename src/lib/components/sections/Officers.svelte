@@ -1,21 +1,21 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
 	import type { Officer } from '$lib/data/officers';
 	import { parseTier } from '$lib/parse';
-	import { classIconUrl, specIconUrl } from '$lib/wow-icons';
+	import { specIconUrl, specOrClassIcon } from '$lib/wow-icons';
 
 	let { officers }: { officers: Officer[] } = $props();
 </script>
 
 <Section id="oficiales" eyebrow="Oficiales" title="El consejo de guerra">
-	<div class="officers__grid">
+	<div class="grid grid-cols-1 gap-5 min-[560px]:grid-cols-2 min-[980px]:grid-cols-3">
 		{#each officers as officer, i (officer.name)}
 			{@const specIcon = specIconUrl(officer.wowClass, officer.spec)}
-			{@const classIcon = classIconUrl(officer.wowClass)}
-			{@const avatarIcon = specIcon ?? classIcon}
+			{@const avatarIcon = specOrClassIcon(officer.wowClass, officer.spec)}
 			<div
 				use:reveal={{
 					delay: i * 80,
@@ -45,7 +45,7 @@
 
 							<div class="officer__body">
 								<h3 class="officer__name text-engraved" title={officer.name}>{officer.name}</h3>
-								<p class="officer__role text-lava-glow">{officer.role}</p>
+								<p class="officer__role label-caps text-lava-glow">{officer.role}</p>
 								{#if officer.classLabel}
 									<p class="officer__class">{officer.classLabel}</p>
 								{/if}
@@ -53,13 +53,12 @@
 
 							{#if officer.score != null}
 								{@const tier = parseTier(officer.score)}
-								<span
-									class="officer__parse"
-									style="--parse-color: {tier.color}"
-									title={`Parse ${officer.score} · ${tier.label} — mejor parse medio en SSC/TK (WarcraftLogs)`}
-									aria-label={`Parse ${officer.score} · ${tier.label}`}
-								>
-									{officer.score}
+								<span class="officer__parse-wrap">
+									<ParseBadge
+										score={officer.score}
+										title={`Parse ${officer.score} · ${tier.label} — mejor parse medio en SSC/TK (WarcraftLogs)`}
+										ariaLabel={`Parse ${officer.score} · ${tier.label}`}
+									/>
 								</span>
 							{/if}
 						</div>
@@ -71,11 +70,6 @@
 </Section>
 
 <style>
-	.officers__grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.25rem;
-	}
 	.officer-tilt {
 		height: 100%;
 	}
@@ -126,11 +120,7 @@
 		text-overflow: ellipsis;
 	}
 	.officer__role {
-		font-family: var(--font-display);
 		font-size: 0.74rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		margin: 0.15rem 0 0;
 	}
 	.officer__class {
@@ -140,35 +130,10 @@
 		margin: 0.1rem 0 0;
 	}
 
-	/* Parse badge: high-contrast number; tier color only tints the border,
-	   background and glow accent (via --parse-color inline) for legibility. */
-	.officer__parse {
+	/* Keeps the shared ParseBadge pinned to the top of the flex row. */
+	.officer__parse-wrap {
 		flex-shrink: 0;
 		align-self: flex-start;
 		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 2.1rem;
-		padding: 0.18rem 0.45rem;
-		border-radius: 999px;
-		font-family: var(--font-display);
-		font-size: 0.85rem;
-		font-weight: 900;
-		line-height: 1;
-		color: var(--color-silver);
-		background: color-mix(in srgb, var(--parse-color) 18%, transparent);
-		border: 1px solid color-mix(in srgb, var(--parse-color) 65%, transparent);
-		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 30%, transparent);
-	}
-
-	@media (min-width: 560px) {
-		.officers__grid {
-			grid-template-columns: 1fr 1fr;
-		}
-	}
-	@media (min-width: 980px) {
-		.officers__grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
 	}
 </style>
