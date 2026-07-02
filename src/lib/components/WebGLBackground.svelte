@@ -136,7 +136,7 @@
 		background: radial-gradient(
 			ellipse 80% 100% at 30% 90%,
 			rgba(255, 107, 44, 0.14) 0%,
-			rgba(161, 6, 19, 0.10) 45%,
+			rgba(161, 6, 19, 0.1) 45%,
 			transparent 70%
 		);
 		opacity: 0.7;
@@ -235,12 +235,24 @@
 			animation: none !important;
 		}
 		/* Settle each layer at a nice resting state */
-		.glow--forge    { opacity: 0.85; }
-		.glow--left     { opacity: 0.7;  }
-		.glow--right    { opacity: 0.6;  }
-		.glow--top-vignette { opacity: 0.95; }
-		.fog--a         { opacity: 0.55; }
-		.fog--b         { opacity: 0.45; }
+		.glow--forge {
+			opacity: 0.85;
+		}
+		.glow--left {
+			opacity: 0.7;
+		}
+		.glow--right {
+			opacity: 0.6;
+		}
+		.glow--top-vignette {
+			opacity: 0.95;
+		}
+		.fog--a {
+			opacity: 0.55;
+		}
+		.fog--b {
+			opacity: 0.45;
+		}
 	}
 
 	/* JS-driven reduced-motion class (mirrors the CSS media query above) */
@@ -248,12 +260,24 @@
 	.atmosphere--still .fog {
 		animation: none !important;
 	}
-	.atmosphere--still .glow--forge    { opacity: 0.85; }
-	.atmosphere--still .glow--left     { opacity: 0.7;  }
-	.atmosphere--still .glow--right    { opacity: 0.6;  }
-	.atmosphere--still .glow--top-vignette { opacity: 0.95; }
-	.atmosphere--still .fog--a         { opacity: 0.55; }
-	.atmosphere--still .fog--b         { opacity: 0.45; }
+	.atmosphere--still .glow--forge {
+		opacity: 0.85;
+	}
+	.atmosphere--still .glow--left {
+		opacity: 0.7;
+	}
+	.atmosphere--still .glow--right {
+		opacity: 0.6;
+	}
+	.atmosphere--still .glow--top-vignette {
+		opacity: 0.95;
+	}
+	.atmosphere--still .fog--a {
+		opacity: 0.55;
+	}
+	.atmosphere--still .fog--b {
+		opacity: 0.45;
+	}
 
 	/* -------------------------------------------------------------------------
 	 * Canvas overlay — transparent, particles only.

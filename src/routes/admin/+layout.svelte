@@ -52,7 +52,15 @@
 				aria-controls="admin-sidebar"
 				onclick={() => (navOpen = !navOpen)}
 			>
-				<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+				<svg
+					viewBox="0 0 24 24"
+					width="18"
+					height="18"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					aria-hidden="true"
+				>
 					<line x1="3" y1="6" x2="21" y2="6" />
 					<line x1="3" y1="12" x2="21" y2="12" />
 					<line x1="3" y1="18" x2="21" y2="18" />
@@ -91,19 +99,34 @@
 				{#each sections as s (s.href)}
 					{@const active = isActive(s.href, s.exact)}
 					<a href={s.href} aria-current={active ? 'page' : undefined}>
-						<svg class="nav-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<svg
+							class="nav-ico"
+							viewBox="0 0 24 24"
+							width="18"
+							height="18"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
 							{#if s.icon === 'home'}
 								<path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" />
 							{:else if s.icon === 'shield'}
 								<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" />
 							{:else if s.icon === 'users'}
-								<circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M16 6a3 3 0 0 1 0 6" /><path d="M21 20a5 5 0 0 0-4-5" />
+								<circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><path
+									d="M16 6a3 3 0 0 1 0 6"
+								/><path d="M21 20a5 5 0 0 0-4-5" />
 							{:else if s.icon === 'star'}
 								<path d="M12 3l2.6 5.6 6 .8-4.4 4.1 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z" />
 							{:else if s.icon === 'flag'}
 								<path d="M5 21V4" /><path d="M5 4h11l-2 3 2 3H5" />
 							{:else if s.icon === 'question'}
-								<circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3.5" /><line x1="12" y1="17" x2="12" y2="17" />
+								<circle cx="12" cy="12" r="9" /><path
+									d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3.5"
+								/><line x1="12" y1="17" x2="12" y2="17" />
 							{:else if s.icon === 'chat'}
 								<path d="M4 5h16v10H8l-4 4z" />
 							{/if}
@@ -116,11 +139,26 @@
 				{#each accountSections as s (s.href)}
 					{@const active = isActive(s.href, false)}
 					<a href={s.href} aria-current={active ? 'page' : undefined}>
-						<svg class="nav-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<svg
+							class="nav-ico"
+							viewBox="0 0 24 24"
+							width="18"
+							height="18"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
 							{#if s.icon === 'users'}
-								<circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M16 6a3 3 0 0 1 0 6" /><path d="M21 20a5 5 0 0 0-4-5" />
+								<circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><path
+									d="M16 6a3 3 0 0 1 0 6"
+								/><path d="M21 20a5 5 0 0 0-4-5" />
 							{:else if s.icon === 'key'}
-								<circle cx="8" cy="15" r="4" /><path d="M10.85 12.15 21 2" /><path d="M18 5l3 3" /><path d="M15 8l3 3" />
+								<circle cx="8" cy="15" r="4" /><path d="M10.85 12.15 21 2" /><path
+									d="M18 5l3 3"
+								/><path d="M15 8l3 3" />
 							{/if}
 						</svg>
 						<span>{s.label}</span>
@@ -131,7 +169,17 @@
 			<div class="admin-sidebar-foot">
 				<form method="POST" action="/admin/logout">
 					<button type="submit" class="admin-btn secondary admin-logout">
-						<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<svg
+							viewBox="0 0 24 24"
+							width="16"
+							height="16"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
 							<path d="M14 4H6v16h8" /><path d="M10 12h11" /><path d="M18 8l4 4-4 4" />
 						</svg>
 						Cerrar sesión

@@ -36,8 +36,7 @@ export const countUp: Action<HTMLElement, CountUpParams> = (node, params) => {
 		return `${prefix}${value.toFixed(decimals)}${suffix}`;
 	};
 
-	const supported =
-		typeof window !== 'undefined' && 'IntersectionObserver' in window;
+	const supported = typeof window !== 'undefined' && 'IntersectionObserver' in window;
 
 	const setFinal = () => {
 		node.textContent = format(current.to);

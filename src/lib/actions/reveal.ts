@@ -32,10 +32,7 @@ export type RevealParams = {
  *   <div use:reveal={{ delay: 120 }}>
  *   <div use:reveal={{ direction: 'left', blur: true }}>
  */
-export const reveal: Action<HTMLElement, RevealParams | undefined> = (
-	node,
-	params
-) => {
+export const reveal: Action<HTMLElement, RevealParams | undefined> = (node, params) => {
 	let {
 		delay = 0,
 		threshold = 0.15,
@@ -49,8 +46,7 @@ export const reveal: Action<HTMLElement, RevealParams | undefined> = (
 	const reduced = getReducedMotion();
 
 	// Estado base (oculto) solo cuando hay movimiento permitido y soporte IO.
-	const supported =
-		typeof window !== 'undefined' && 'IntersectionObserver' in window;
+	const supported = typeof window !== 'undefined' && 'IntersectionObserver' in window;
 
 	const applyVariant = () => {
 		// Clases de dirección/blur — el CSS global (en +layout.svelte) las usa.

@@ -44,12 +44,7 @@
 		left: 0;
 		width: 40%;
 		height: 100%;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(255, 107, 44, 0.9) 50%,
-			transparent
-		);
+		background: linear-gradient(90deg, transparent, rgba(255, 107, 44, 0.9) 50%, transparent);
 		filter: blur(1px);
 		transform: translateX(-120%);
 		animation: lava-flow 6.5s ease-in-out infinite;

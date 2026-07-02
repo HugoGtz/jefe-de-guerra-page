@@ -8,13 +8,7 @@
 
 export { getGuild, updateGuild, setAboutParagraphs, type GuildUpdate } from './guild.repository';
 export { getPhases, withRaidProgress, phasePercent } from './raids.repository';
-export {
-	getTeams,
-	createTeam,
-	updateTeam,
-	deleteTeam,
-	type TeamInput
-} from './teams.repository';
+export { getTeams, createTeam, updateTeam, deleteTeam, type TeamInput } from './teams.repository';
 export {
 	getOfficers,
 	listOfficersAdmin,

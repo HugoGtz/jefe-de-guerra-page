@@ -30,15 +30,7 @@ export type NextRaid = {
 	label: string;
 };
 
-const WEEKDAY_NAMES = [
-	'domingo',
-	'lunes',
-	'martes',
-	'miércoles',
-	'jueves',
-	'viernes',
-	'sábado'
-];
+const WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 /**
  * Offset (en minutos) de la zona `tz` respecto a UTC en el instante `date`.
@@ -60,7 +52,14 @@ function tzOffsetMinutes(date: Date, tz: string): number {
 	let hour = get('hour');
 	// Intl puede devolver "24" para medianoche en hour12:false.
 	if (hour === 24) hour = 0;
-	const asUTC = Date.UTC(get('year'), get('month') - 1, get('day'), hour, get('minute'), get('second'));
+	const asUTC = Date.UTC(
+		get('year'),
+		get('month') - 1,
+		get('day'),
+		hour,
+		get('minute'),
+		get('second')
+	);
 	return Math.round((asUTC - date.getTime()) / 60000);
 }
 

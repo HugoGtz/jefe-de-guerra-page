@@ -87,7 +87,10 @@ export function classIconUrl(input: string | number | null | undefined): string 
 
 /** Normalize a spec name to a comparable slug: lowercase, strip non-alphanumerics. */
 function normalizeSpec(specName: string): string {
-	return specName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+	return specName
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]/g, '');
 }
 
 /* ----------------------------------------------------------------------------
@@ -171,8 +174,7 @@ const NORMALIZED_BOSS_ICONS: Record<string, string> = Object.fromEntries(
  * Always returns a valid, vendored path — never `null`, never a 404.
  */
 export function bossIconUrl(bossName: string | null | undefined): string {
-	const base =
-		(bossName && NORMALIZED_BOSS_ICONS[normalizeBoss(bossName)]) || GENERIC_BOSS_ICON;
+	const base = (bossName && NORMALIZED_BOSS_ICONS[normalizeBoss(bossName)]) || GENERIC_BOSS_ICON;
 	return `/icons/boss/${base}.jpg`;
 }
 

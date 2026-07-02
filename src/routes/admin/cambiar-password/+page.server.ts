@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, platform, locals, url }) => {
+	default: async ({ request, cookies, platform, locals }) => {
 		const env = platform?.env;
 		if (!env?.DB) {
 			return fail(500, { error: 'Configuración del servidor no disponible.' });
@@ -35,7 +35,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Completa todos los campos.' });
 		}
 		if (next.length < MIN_LENGTH) {
-			return fail(400, { error: `La nueva contraseña debe tener al menos ${MIN_LENGTH} caracteres.` });
+			return fail(400, {
+				error: `La nueva contraseña debe tener al menos ${MIN_LENGTH} caracteres.`
+			});
 		}
 		if (next !== confirm) {
 			return fail(400, { error: 'La nueva contraseña y su confirmación no coinciden.' });

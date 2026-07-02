@@ -29,7 +29,11 @@ export type GuildUpdate = {
 export async function getGuild(db: Db): Promise<Guild | null> {
 	const [row, about] = await Promise.all([
 		db.select().from(guild).limit(1).get(),
-		db.select().from(aboutParagraphs).orderBy(asc(aboutParagraphs.kind), asc(aboutParagraphs.sort)).all()
+		db
+			.select()
+			.from(aboutParagraphs)
+			.orderBy(asc(aboutParagraphs.kind), asc(aboutParagraphs.sort))
+			.all()
 	]);
 
 	if (!row) return null;
@@ -76,11 +80,7 @@ export async function updateGuild(db: Db, fields: GuildUpdate): Promise<void> {
  * `sort` column. `who` → "quiénes somos", `vibe` → "ambiente". Blank entries are
  * dropped. Delete-then-insert keeps the list in sync with the editor exactly.
  */
-export async function setAboutParagraphs(
-	db: Db,
-	who: string[],
-	vibe: string[]
-): Promise<void> {
+export async function setAboutParagraphs(db: Db, who: string[], vibe: string[]): Promise<void> {
 	await db.delete(aboutParagraphs);
 
 	const rows = [

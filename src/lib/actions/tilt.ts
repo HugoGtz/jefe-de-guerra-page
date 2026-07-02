@@ -12,10 +12,7 @@ export type TiltParams = {
  *
  *   <div use:tilt={{ max: 6 }}>
  */
-export const tilt: Action<HTMLElement, TiltParams | undefined> = (
-	node,
-	params
-) => {
+export const tilt: Action<HTMLElement, TiltParams | undefined> = (node, params) => {
 	let max = params?.max ?? 6;
 
 	if (getReducedMotion() || typeof window === 'undefined') {

@@ -37,12 +37,23 @@
 
 <div class="admin-page-head">
 	<h1>Reclutamiento</h1>
-	<p class="lead">Texto de bienvenida, enlaces de contacto, clases que buscáis y requisitos para postularse.</p>
+	<p class="lead">
+		Texto de bienvenida, enlaces de contacto, clases que buscáis y requisitos para postularse.
+	</p>
 </div>
 
 {#if form?.success}
 	<div class="admin-msg ok" role="status">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 		<span>Cambios guardados correctamente.</span>
@@ -50,8 +61,22 @@
 {/if}
 {#if form?.error}
 	<div class="admin-msg err" role="alert">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+				x1="12"
+				y1="16"
+				x2="12"
+				y2="16"
+			/>
 		</svg>
 		<span>{form.error}</span>
 	</div>
@@ -67,11 +92,21 @@
 		<div class="admin-row">
 			<div class="admin-field">
 				<label for="discordUrl">Enlace de Discord</label>
-				<input id="discordUrl" name="discordUrl" type="url" value={v?.discordUrl ?? r?.discordUrl ?? ''} />
+				<input
+					id="discordUrl"
+					name="discordUrl"
+					type="url"
+					value={v?.discordUrl ?? r?.discordUrl ?? ''}
+				/>
 			</div>
 			<div class="admin-field">
 				<label for="whatsappUrl">Enlace de WhatsApp</label>
-				<input id="whatsappUrl" name="whatsappUrl" type="url" value={v?.whatsappUrl ?? r?.whatsappUrl ?? ''} />
+				<input
+					id="whatsappUrl"
+					name="whatsappUrl"
+					type="url"
+					value={v?.whatsappUrl ?? r?.whatsappUrl ?? ''}
+				/>
 			</div>
 		</div>
 	</div>
@@ -95,7 +130,12 @@
 					</div>
 					<div class="admin-field admin-field-action">
 						<label for="rm-need-{i}" aria-hidden="true">Quitar</label>
-						<button id="rm-need-{i}" type="button" class="admin-btn danger" onclick={() => removeNeed(i)}>Quitar</button>
+						<button
+							id="rm-need-{i}"
+							type="button"
+							class="admin-btn danger"
+							onclick={() => removeNeed(i)}>Quitar</button
+						>
 					</div>
 				</div>
 			{:else}
@@ -103,7 +143,8 @@
 			{/each}
 		</div>
 		<div class="admin-actions">
-			<button type="button" class="admin-btn secondary" onclick={addNeed}>+ Añadir necesidad</button>
+			<button type="button" class="admin-btn secondary" onclick={addNeed}>+ Añadir necesidad</button
+			>
 		</div>
 	</div>
 

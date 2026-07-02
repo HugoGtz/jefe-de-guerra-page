@@ -4,15 +4,7 @@
  */
 
 export type WowClass =
-	| 'Warrior'
-	| 'Paladin'
-	| 'Hunter'
-	| 'Rogue'
-	| 'Priest'
-	| 'Shaman'
-	| 'Mage'
-	| 'Warlock'
-	| 'Druid';
+	'Warrior' | 'Paladin' | 'Hunter' | 'Rogue' | 'Priest' | 'Shaman' | 'Mage' | 'Warlock' | 'Druid';
 
 /** Rol de combate (raid role) derivado de la mejor spec en WarcraftLogs. */
 export type SpecRole = 'DPS' | 'Healer' | 'Tank';

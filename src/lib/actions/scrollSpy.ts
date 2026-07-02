@@ -21,8 +21,7 @@ export type ScrollSpyParams = {
 export const scrollSpy: Action<HTMLElement, ScrollSpyParams> = (node, params) => {
 	let current = params;
 
-	const supported =
-		typeof window !== 'undefined' && 'IntersectionObserver' in window;
+	const supported = typeof window !== 'undefined' && 'IntersectionObserver' in window;
 
 	if (!supported) {
 		return {

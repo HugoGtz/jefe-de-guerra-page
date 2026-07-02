@@ -44,10 +44,7 @@ export async function getRecruitment(db: Db): Promise<Recruitment | null> {
 }
 
 /** Update the singleton recruitment meta (id=1). */
-export async function updateRecruitmentMeta(
-	db: Db,
-	fields: RecruitmentMetaUpdate
-): Promise<void> {
+export async function updateRecruitmentMeta(db: Db, fields: RecruitmentMetaUpdate): Promise<void> {
 	await db
 		.update(recruitmentMeta)
 		.set({

@@ -38,12 +38,7 @@ export type Phase = {
 };
 
 /** Construye un Raid calculando kills/total/percent a partir de sus bosses. */
-function buildRaid(
-	id: string,
-	name: string,
-	bosses: Boss[],
-	abbr?: string
-): Raid {
+function buildRaid(id: string, name: string, bosses: Boss[], abbr?: string): Raid {
 	const total = bosses.length;
 	const kills = bosses.filter((b) => b.defeated).length;
 	const percent = total === 0 ? 0 : Math.round((kills / total) * 100);
@@ -61,7 +56,7 @@ const karazhan = buildRaid('karazhan', 'Karazhan', [
 	{ name: 'Shade of Aran', defeated: true },
 	{ name: 'Netherspite', defeated: true },
 	{ name: 'Chess Event', defeated: true },
-	{ name: "Prince Malchezaar", defeated: true }
+	{ name: 'Prince Malchezaar', defeated: true }
 ]);
 
 const gruul = buildRaid(

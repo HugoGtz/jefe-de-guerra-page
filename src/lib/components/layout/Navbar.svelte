@@ -97,15 +97,15 @@
 		<ul class="nav__links">
 			{#each links as link (link.href)}
 				{@const sectionId = link.href.replace('/#', '')}
-					<li>
-						<a
-							href={link.href}
-							class="nav__link"
-							class:is-active={activeId === sectionId}
-							aria-current={activeId === sectionId ? 'true' : undefined}
-							onclick={() => close()}>{link.label}</a
-						>
-					</li>
+				<li>
+					<a
+						href={link.href}
+						class="nav__link"
+						class:is-active={activeId === sectionId}
+						aria-current={activeId === sectionId ? 'true' : undefined}
+						onclick={() => close()}>{link.label}</a
+					>
+				</li>
 			{/each}
 		</ul>
 

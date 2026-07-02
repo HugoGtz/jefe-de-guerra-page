@@ -47,11 +47,29 @@
 >
 	<span class="copy-btn__icon" aria-hidden="true">
 		{#if copied}
-			<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				viewBox="0 0 24 24"
+				width="15"
+				height="15"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.4"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M20 6 9 17l-5-5" />
 			</svg>
 		{:else}
-			<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				viewBox="0 0 24 24"
+				width="15"
+				height="15"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.9"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<rect x="9" y="9" width="11" height="11" rx="2" />
 				<path d="M5 15V5a2 2 0 0 1 2-2h10" />
 			</svg>

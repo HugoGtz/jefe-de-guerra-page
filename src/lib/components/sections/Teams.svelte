@@ -33,12 +33,21 @@
 
 	// Conteo dinámico: escala a N equipos. Palabra para 1–12, dígito si hay más.
 	const numberWords = [
-		'cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis',
-		'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'
+		'cero',
+		'un',
+		'dos',
+		'tres',
+		'cuatro',
+		'cinco',
+		'seis',
+		'siete',
+		'ocho',
+		'nueve',
+		'diez',
+		'once',
+		'doce'
 	];
-	const countWord = $derived(
-		teams.length <= 12 ? numberWords[teams.length] : String(teams.length)
-	);
+	const countWord = $derived(teams.length <= 12 ? numberWords[teams.length] : String(teams.length));
 	const countLabel = $derived(countWord.charAt(0).toUpperCase() + countWord.slice(1));
 	const rosterNoun = $derived(teams.length === 1 ? 'roster marcha' : 'rosters marchan');
 
@@ -49,8 +58,9 @@
 
 <Section id="equipos" eyebrow="La hueste" title="Equipos de Raid">
 	<p class="intro" use:reveal>
-		{countLabel} {rosterNoun} bajo el mismo estandarte. Cada uno con su propio
-		horario y su propio avance hacia la cima de la Fase 2.
+		{countLabel}
+		{rosterNoun} bajo el mismo estandarte. Cada uno con su propio horario y su propio avance hacia la
+		cima de la Fase 2.
 	</p>
 
 	{#if scheduleTimezone}
@@ -60,12 +70,7 @@
 	{/if}
 
 	<div class="logs-cta" use:reveal={{ delay: 90 }}>
-		<Button
-			variant="ghost"
-			href={guildLogsUrl}
-			target="_blank"
-			rel="noopener noreferrer"
-		>
+		<Button variant="ghost" href={guildLogsUrl} target="_blank" rel="noopener noreferrer">
 			Ver nuestros logs
 		</Button>
 	</div>

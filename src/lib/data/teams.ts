@@ -60,8 +60,7 @@ export type Team = {
 export const guildLogsUrl = 'https://es.fresh.warcraftlogs.com/guild/id/792187';
 
 /** Construye la URL de los logs de una hermandad WCL a partir de su ID. */
-export const wclGuildUrl = (id: number) =>
-	'https://es.fresh.warcraftlogs.com/guild/id/' + id;
+export const wclGuildUrl = (id: number) => 'https://es.fresh.warcraftlogs.com/guild/id/' + id;
 
 /** Construye la URL del calendario WCL de una hermandad a partir de su ID. */
 export const wclCalendarUrl = (id: number) =>

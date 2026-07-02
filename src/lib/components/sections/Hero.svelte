@@ -178,8 +178,7 @@
 		color: transparent;
 		-webkit-text-fill-color: transparent;
 		/* Profundidad (text-shadow no se ve con relleno transparente). */
-		filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7))
-			drop-shadow(0 0 14px rgba(255, 59, 33, 0.18));
+		filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 14px rgba(255, 59, 33, 0.18));
 		animation: hero-shimmer 5s linear infinite;
 		will-change: background-position;
 	}

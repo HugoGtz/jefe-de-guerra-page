@@ -1,6 +1,12 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getTeams, createTeam, updateTeam, deleteTeam, type TeamInput } from '$lib/server/repositories';
+import {
+	getTeams,
+	createTeam,
+	updateTeam,
+	deleteTeam,
+	type TeamInput
+} from '$lib/server/repositories';
 import { DB_ERROR, requireDb } from '$lib/server/admin';
 
 export const load: PageServerLoad = async ({ platform }) => {
@@ -47,7 +53,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'El identificador y el nombre del equipo son obligatorios.' });
 		}
 		if (!/^[a-z0-9-]+$/.test(id)) {
-			return fail(400, { error: 'El identificador solo puede tener minúsculas, números y guiones (p. ej. core-8).' });
+			return fail(400, {
+				error: 'El identificador solo puede tener minúsculas, números y guiones (p. ej. core-8).'
+			});
 		}
 		try {
 			const db = requireDb(platform);

@@ -87,9 +87,8 @@
 		<div class="recruit__cta surface" use:tilt={{ max: 4 }}>
 			<h3 class="recruit__cta-title text-lava-glow">¿Te sumas a la Horda?</h3>
 			<p class="recruit__cta-text">
-				Rellena el formulario contándonos tu clase y experiencia. Tras enviarlo te daremos
-				acceso a nuestro Discord y al grupo de WhatsApp, y te haremos una prueba en el
-				próximo raid.
+				Rellena el formulario contándonos tu clase y experiencia. Tras enviarlo te daremos acceso a
+				nuestro Discord y al grupo de WhatsApp, y te haremos una prueba en el próximo raid.
 			</p>
 			<div class="recruit__cta-actions">
 				<Button variant="primary" href="#aplica" beam>Rellenar formulario</Button>

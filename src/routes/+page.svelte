@@ -68,7 +68,7 @@
 	<meta name="twitter:image" content={ogImage} />
 
 	<!-- Datos estructurados -->
-	{@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`}
+	{@html `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}<\/script>`}
 </svelte:head>
 
 <Hero guild={data.guild} />

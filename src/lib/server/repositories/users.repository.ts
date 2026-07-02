@@ -28,7 +28,10 @@ export type CreateUserInput = {
 
 /** Count all users. Used to detect the empty-table bootstrap window. */
 export async function countUsers(db: Db): Promise<number> {
-	const row = await db.select({ n: sql<number>`count(*)` }).from(users).get();
+	const row = await db
+		.select({ n: sql<number>`count(*)` })
+		.from(users)
+		.get();
 	return row?.n ?? 0;
 }
 

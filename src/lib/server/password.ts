@@ -51,13 +51,9 @@ async function derive(
 	salt: Uint8Array<ArrayBuffer>,
 	iterations: number
 ): Promise<Uint8Array> {
-	const keyMaterial = await crypto.subtle.importKey(
-		'raw',
-		encoder.encode(plain),
-		'PBKDF2',
-		false,
-		['deriveBits']
-	);
+	const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(plain), 'PBKDF2', false, [
+		'deriveBits'
+	]);
 	const bits = await crypto.subtle.deriveBits(
 		{ name: 'PBKDF2', hash: 'SHA-256', salt, iterations },
 		keyMaterial,

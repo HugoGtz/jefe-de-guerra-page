@@ -56,12 +56,7 @@ export const phases = sqliteTable(
 		statusLabel: text('status_label').notNull(),
 		sort: integer('sort').notNull().default(0)
 	},
-	(t) => [
-		check(
-			'phases_status',
-			sql`${t.status} IN ('completed', 'in-progress', 'upcoming')`
-		)
-	]
+	(t) => [check('phases_status', sql`${t.status} IN ('completed', 'in-progress', 'upcoming')`)]
 );
 
 export const raids = sqliteTable('raids', {
@@ -132,9 +127,7 @@ export const recruitNeeds = sqliteTable(
 		priority: text('priority').notNull(),
 		sort: integer('sort').notNull().default(0)
 	},
-	(t) => [
-		check('recruit_needs_priority', sql`${t.priority} IN ('alta', 'media', 'baja')`)
-	]
+	(t) => [check('recruit_needs_priority', sql`${t.priority} IN ('alta', 'media', 'baja')`)]
 );
 
 export const recruitRequirements = sqliteTable('recruit_requirements', {

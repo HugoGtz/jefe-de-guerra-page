@@ -16,13 +16,29 @@
 
 <div class="admin-page-head">
 	<h1>Identidad y horario</h1>
-	<p class="lead">Datos de cabecera de la hermandad, el horario principal de raid y los textos de presentación.</p>
+	<p class="lead">
+		Datos de cabecera de la hermandad, el horario principal de raid y los textos de presentación.
+	</p>
 </div>
 
 {#if !g && !v}
 	<div class="admin-msg err" role="alert">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+				x1="12"
+				y1="16"
+				x2="12"
+				y2="16"
+			/>
 		</svg>
 		<span>No hay datos de hermandad en la base de datos todavía.</span>
 	</div>
@@ -30,7 +46,16 @@
 
 {#if form?.success}
 	<div class="admin-msg ok" role="status">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 		<span>Cambios guardados correctamente.</span>
@@ -38,8 +63,22 @@
 {/if}
 {#if form?.error}
 	<div class="admin-msg err" role="alert">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+				x1="12"
+				y1="16"
+				x2="12"
+				y2="16"
+			/>
 		</svg>
 		<span>{form.error}</span>
 	</div>
@@ -63,11 +102,23 @@
 		<div class="admin-row">
 			<div class="admin-field">
 				<label for="faction">Facción</label>
-				<input id="faction" name="faction" type="text" value={v?.faction ?? g?.faction ?? ''} required />
+				<input
+					id="faction"
+					name="faction"
+					type="text"
+					value={v?.faction ?? g?.faction ?? ''}
+					required
+				/>
 			</div>
 			<div class="admin-field">
 				<label for="server">Servidor</label>
-				<input id="server" name="server" type="text" value={v?.server ?? g?.server ?? ''} required />
+				<input
+					id="server"
+					name="server"
+					type="text"
+					value={v?.server ?? g?.server ?? ''}
+					required
+				/>
 			</div>
 			<div class="admin-field">
 				<label for="game">Juego</label>
@@ -81,20 +132,43 @@
 		<div class="admin-row">
 			<div class="admin-field">
 				<label for="scheduleDays">Días</label>
-				<input id="scheduleDays" name="scheduleDays" type="text" value={v?.scheduleDays ?? g?.schedule.days ?? ''} required />
+				<input
+					id="scheduleDays"
+					name="scheduleDays"
+					type="text"
+					value={v?.scheduleDays ?? g?.schedule.days ?? ''}
+					required
+				/>
 			</div>
 			<div class="admin-field">
 				<label for="scheduleTime">Hora</label>
-				<input id="scheduleTime" name="scheduleTime" type="text" value={v?.scheduleTime ?? g?.schedule.time ?? ''} required />
+				<input
+					id="scheduleTime"
+					name="scheduleTime"
+					type="text"
+					value={v?.scheduleTime ?? g?.schedule.time ?? ''}
+					required
+				/>
 			</div>
 			<div class="admin-field">
 				<label for="scheduleTimezone">Zona horaria</label>
-				<input id="scheduleTimezone" name="scheduleTimezone" type="text" value={v?.scheduleTimezone ?? g?.schedule.timezone ?? ''} required />
+				<input
+					id="scheduleTimezone"
+					name="scheduleTimezone"
+					type="text"
+					value={v?.scheduleTimezone ?? g?.schedule.timezone ?? ''}
+					required
+				/>
 			</div>
 		</div>
 		<div class="admin-field">
 			<label for="scheduleNote">Nota (opcional)</label>
-			<input id="scheduleNote" name="scheduleNote" type="text" value={v?.scheduleNote ?? g?.schedule.note ?? ''} />
+			<input
+				id="scheduleNote"
+				name="scheduleNote"
+				type="text"
+				value={v?.scheduleNote ?? g?.schedule.note ?? ''}
+			/>
 		</div>
 	</div>
 
@@ -103,7 +177,9 @@
 		<div class="admin-field">
 			<label for="who">Párrafos (uno por línea)</label>
 			<textarea id="who" name="who">{v?.who ?? (g?.aboutWhoWeAre ?? []).join('\n')}</textarea>
-			<span class="hint">Se permite HTML básico (p. ej. &lt;strong&gt;). Una línea = un párrafo.</span>
+			<span class="hint"
+				>Se permite HTML básico (p. ej. &lt;strong&gt;). Una línea = un párrafo.</span
+			>
 		</div>
 	</div>
 

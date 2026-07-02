@@ -177,8 +177,8 @@
 				<div class="roster__empty" use:reveal={{ delay: 40 }}>
 					<p class="roster__empty-title">Aún no hay logs recientes para este core.</p>
 					<p class="roster__empty-sub">
-						El roster se construye a partir de los logs de SSC y Tempest Keep en
-						WarcraftLogs; cuando este core registre nuevos parses aparecerán aquí.
+						El roster se construye a partir de los logs de SSC y Tempest Keep en WarcraftLogs;
+						cuando este core registre nuevos parses aparecerán aquí.
 					</p>
 				</div>
 			{/if}

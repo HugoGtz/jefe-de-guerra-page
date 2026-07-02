@@ -13,17 +13,9 @@
  */
 
 import { guild as staticGuild, type Guild } from '$lib/data/guild';
-import {
-	phases as staticPhases,
-	type Phase,
-	type Raid,
-	type Boss
-} from '$lib/data/raids';
+import { phases as staticPhases, type Phase, type Boss } from '$lib/data/raids';
 import { officers as staticOfficers, type Officer } from '$lib/data/officers';
-import {
-	recruitment as staticRecruitment,
-	type Recruitment
-} from '$lib/data/recruitment';
+import { recruitment as staticRecruitment, type Recruitment } from '$lib/data/recruitment';
 import { teams as staticTeams, type Team } from '$lib/data/teams';
 import { feats as staticFeats, type Feat } from '$lib/data/kills';
 import { faq as staticFaq, type FaqItem } from '$lib/data/faq';
@@ -332,7 +324,7 @@ async function loadJsonCached<T>(
 		if (fresh) return fresh;
 	}
 
-	let fetched: T | null = null;
+	let fetched: T | null;
 	try {
 		fetched = await fetcher();
 	} catch {
@@ -403,11 +395,8 @@ export async function loadWclAttendanceCached(
 		if (!binding) return null;
 		const db = getDb(binding);
 		const env = platform!.env;
-		return await loadJsonCached<WclAttendance>(
-			db,
-			WCL_ATTENDANCE_KEY,
-			WCL_ATTENDANCE_TTL_MS,
-			() => getWclAttendance(env)
+		return await loadJsonCached<WclAttendance>(db, WCL_ATTENDANCE_KEY, WCL_ATTENDANCE_TTL_MS, () =>
+			getWclAttendance(env)
 		);
 	} catch {
 		return null;
@@ -505,9 +494,7 @@ export async function loadWclCharacterCached(
 		const cachedRow = await getCache(db, key);
 		if (cachedRow && now - cachedRow.fetchedAt < WCL_CHARACTER_TTL_MS) {
 			try {
-				const parsed = JSON.parse(cachedRow.json) as
-					| WclCharacterDetail
-					| { __empty: true };
+				const parsed = JSON.parse(cachedRow.json) as WclCharacterDetail | { __empty: true };
 				if ((parsed as { __empty?: true }).__empty) {
 					// Synthesized detail already uses the reliable rankings class.
 					return await synthesizePlayerDetailFromRankings(platform, name);
@@ -652,14 +639,14 @@ export async function loadPlayerStanding(
 			(c): c is WclCharacter & { score: number } => typeof c.score === 'number'
 		);
 		const overallRank =
-			all.slice().sort((a, b) => b.score - a.score).findIndex((c) => c.name.toLowerCase() === key) +
-			1;
+			all
+				.slice()
+				.sort((a, b) => b.score - a.score)
+				.findIndex((c) => c.name.toLowerCase() === key) + 1;
 
 		let inClass: PlayerStanding['inClass'] = null;
 		if (me.wowClass) {
-			const peers = all
-				.filter((c) => c.wowClass === me.wowClass)
-				.sort((a, b) => b.score - a.score);
+			const peers = all.filter((c) => c.wowClass === me.wowClass).sort((a, b) => b.score - a.score);
 			const r = peers.findIndex((c) => c.name.toLowerCase() === key) + 1;
 			if (r > 0) inClass = { rank: r, total: peers.length };
 		}
@@ -796,29 +783,18 @@ function applyTeamWclOverride(teams: Team[], wcl: WclData): Team[] {
  * feats and teams — so it works whether or not WCL was available. Pass the
  * runtime `now` (ms) so module scope stays free of Date.now.
  */
-function computeStats(
-	phases: Phase[],
-	feats: Feat[],
-	teams: Team[],
-	now: number
-): GuildStats {
+function computeStats(phases: Phase[], feats: Feat[], teams: Team[], now: number): GuildStats {
 	// Phase 2 bosses down (union across cores) from the phase-2 raids.
 	const phase2 = phases.find((p) => p.id === 'phase-2');
-	const phase2BossesDown = phase2
-		? phase2.raids.reduce((acc, r) => acc + r.kills, 0)
-		: 0;
+	const phase2BossesDown = phase2 ? phase2.raids.reduce((acc, r) => acc + r.kills, 0) : 0;
 	const phase2BossesTotal = SSC_TOTAL + TK_TOTAL;
 
 	const activeCores = teams.length;
 
 	// Most recent feat (feats are newest-first, but sort defensively by date).
-	const sortedFeats = [...feats].sort((a, b) =>
-		a.date < b.date ? 1 : a.date > b.date ? -1 : 0
-	);
+	const sortedFeats = [...feats].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 	const newest = sortedFeats[0] ?? null;
-	const lastFeat = newest
-		? { boss: newest.boss, date: newest.date, team: newest.team }
-		: null;
+	const lastFeat = newest ? { boss: newest.boss, date: newest.date, team: newest.team } : null;
 
 	// Kills within 30 days of the newest feat date (avoid drifting on stale data).
 	let killsLast30Days = 0;
@@ -858,9 +834,7 @@ function computeStats(
  * present; otherwise (or on any error) returns the static fallback from
  * `$lib/data/*`.
  */
-export async function loadGuildData(
-	platform: App.Platform | undefined
-): Promise<GuildData> {
+export async function loadGuildData(platform: App.Platform | undefined): Promise<GuildData> {
 	const binding = platform?.env?.DB;
 	if (!binding) return staticFallback();
 

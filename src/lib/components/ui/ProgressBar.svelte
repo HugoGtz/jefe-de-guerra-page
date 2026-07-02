@@ -31,11 +31,7 @@
 		aria-valuemax={100}
 		aria-label={label}
 	>
-		<div
-			class="jdg-progress__fill"
-			class:is-complete={complete}
-			style="--progress: {clamped}%"
-		>
+		<div class="jdg-progress__fill" class:is-complete={complete} style="--progress: {clamped}%">
 			<!-- Continuous shine sweep, clipped to the filled portion (the fill
 			     itself is overflow:hidden). Pure translateX of a highlight band. -->
 			<span class="jdg-progress__shine" aria-hidden="true"></span>

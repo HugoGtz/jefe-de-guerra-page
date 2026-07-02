@@ -49,12 +49,7 @@ export async function getPhases(db: Db): Promise<Phase[]> {
 
 	const raidsByPhase = new Map<string, Raid[]>();
 	for (const r of raidRows) {
-		const raid = withRaidProgress(
-			r.id,
-			r.name,
-			bossesByRaid.get(r.id) ?? [],
-			r.abbr ?? undefined
-		);
+		const raid = withRaidProgress(r.id, r.name, bossesByRaid.get(r.id) ?? [], r.abbr ?? undefined);
 		const list = raidsByPhase.get(r.phaseId) ?? [];
 		list.push(raid);
 		raidsByPhase.set(r.phaseId, list);

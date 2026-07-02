@@ -16,10 +16,7 @@ export type ParallaxParams = {
  *
  *   <div use:parallax={{ speed: 0.3 }}>
  */
-export const parallax: Action<HTMLElement, ParallaxParams | undefined> = (
-	node,
-	params
-) => {
+export const parallax: Action<HTMLElement, ParallaxParams | undefined> = (node, params) => {
 	let speed = params?.speed ?? 0.3;
 
 	if (getReducedMotion() || typeof window === 'undefined') {

@@ -1,6 +1,12 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { listFaqAdmin, createFaq, updateFaq, deleteFaq, type FaqInput } from '$lib/server/repositories';
+import {
+	listFaqAdmin,
+	createFaq,
+	updateFaq,
+	deleteFaq,
+	type FaqInput
+} from '$lib/server/repositories';
 import { DB_ERROR, requireDb } from '$lib/server/admin';
 
 export const load: PageServerLoad = async ({ platform }) => {

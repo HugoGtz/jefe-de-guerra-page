@@ -1,14 +1,14 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Self-hosted fonts (no Google Fonts request — faster, privacy-friendly).
    These register the "Cinzel" and "Inter" families used by the @theme tokens. */
-@import "@fontsource/cinzel/500.css";
-@import "@fontsource/cinzel/700.css";
-@import "@fontsource/cinzel/900.css";
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
+@import '@fontsource/cinzel/500.css';
+@import '@fontsource/cinzel/700.css';
+@import '@fontsource/cinzel/900.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
 
 /* ============================================================
    Jefe de Guerra — Design tokens
@@ -34,8 +34,8 @@
 	--color-iron: #1c1815; /* card/surface dark */
 
 	/* Fonts — exposed as font-display / font-sans utilities */
-	--font-display: "Cinzel", serif;
-	--font-sans: "Inter", system-ui, sans-serif;
+	--font-display: 'Cinzel', serif;
+	--font-sans: 'Inter', system-ui, sans-serif;
 }
 
 /* ============================================================
@@ -60,37 +60,25 @@
 	   on <body>, which forces a full body repaint on every scroll in
 	   Chromium). Same visual result, no scroll-time repaint. */
 	body::before {
-		content: "";
+		content: '';
 		position: fixed;
 		inset: 0;
 		z-index: -1;
 		pointer-events: none;
 		background-image:
 			/* faint red glow bleeding from the corners */
-			radial-gradient(
-				ellipse 80% 50% at 0% 0%,
-				rgba(161, 6, 19, 0.1),
-				transparent 60%
-			),
-			radial-gradient(
-				ellipse 80% 50% at 100% 100%,
-				rgba(107, 4, 16, 0.12),
-				transparent 60%
-			),
+			radial-gradient(ellipse 80% 50% at 0% 0%, rgba(161, 6, 19, 0.1), transparent 60%),
+			radial-gradient(ellipse 80% 50% at 100% 100%, rgba(107, 4, 16, 0.12), transparent 60%),
 			/* central vignette so edges feel darker / imposing */
-			radial-gradient(
-				ellipse 120% 120% at 50% 0%,
-				rgba(20, 16, 15, 0.6),
-				var(--color-ash) 70%
-			),
+				radial-gradient(ellipse 120% 120% at 50% 0%, rgba(20, 16, 15, 0.6), var(--color-ash) 70%),
 			/* brushed-metal hairline striping, extremely faint */
-			repeating-linear-gradient(
-				115deg,
-				rgba(184, 188, 194, 0.015) 0px,
-				rgba(184, 188, 194, 0.015) 1px,
-				transparent 1px,
-				transparent 3px
-			);
+				repeating-linear-gradient(
+					115deg,
+					rgba(184, 188, 194, 0.015) 0px,
+					rgba(184, 188, 194, 0.015) 1px,
+					transparent 1px,
+					transparent 3px
+				);
 	}
 
 	h1,
@@ -120,10 +108,7 @@
 		background: var(--color-stone);
 	}
 	*::-webkit-scrollbar-thumb {
-		background: linear-gradient(
-			var(--color-blood),
-			var(--color-crimson-deep)
-		);
+		background: linear-gradient(var(--color-blood), var(--color-crimson-deep));
 		border: 2px solid var(--color-stone);
 		border-radius: 6px;
 	}
@@ -140,11 +125,7 @@
 	   Illuminates (border brightens + faint glow) on hover. */
 	.metal-border {
 		border: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);
-		background-image: linear-gradient(
-			180deg,
-			rgba(184, 188, 194, 0.06),
-			rgba(0, 0, 0, 0.12)
-		);
+		background-image: linear-gradient(180deg, rgba(184, 188, 194, 0.06), rgba(0, 0, 0, 0.12));
 		box-shadow:
 			inset 0 1px 0 rgba(229, 229, 229, 0.06),
 			inset 0 -1px 0 rgba(0, 0, 0, 0.4);
@@ -216,11 +197,7 @@
 	/* Card surface: iron bg, metal border, slight inner gradient. */
 	.surface {
 		background-color: var(--color-iron);
-		background-image: linear-gradient(
-			180deg,
-			rgba(229, 229, 229, 0.03),
-			rgba(0, 0, 0, 0.25)
-		);
+		background-image: linear-gradient(180deg, rgba(229, 229, 229, 0.03), rgba(0, 0, 0, 0.25));
 		border: 1px solid color-mix(in srgb, var(--color-steel) 30%, transparent);
 		box-shadow:
 			inset 0 1px 0 rgba(229, 229, 229, 0.05),
@@ -294,7 +271,7 @@
 		overflow: hidden;
 	}
 	.jdg-gleam::before {
-		content: "";
+		content: '';
 		position: absolute;
 		top: 0;
 		left: 0;
@@ -333,7 +310,7 @@
 		position: relative;
 	}
 	.jdg-beam::after {
-		content: "";
+		content: '';
 		position: absolute;
 		inset: 0;
 		z-index: 0;
@@ -367,7 +344,7 @@
 	/* Spin the conic-gradient by advancing its --jdg-beam-angle. Registered
 	   below so it interpolates as an <angle>. */
 	@property --jdg-beam-angle {
-		syntax: "<angle>";
+		syntax: '<angle>';
 		inherits: false;
 		initial-value: 0deg;
 	}

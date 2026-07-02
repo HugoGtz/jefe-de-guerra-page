@@ -35,12 +35,23 @@
 
 <div class="admin-page-head">
 	<h1>Comunidad</h1>
-	<p class="lead">Configura el widget de Discord, la zona horaria de referencia y el calendario de noches de raid.</p>
+	<p class="lead">
+		Configura el widget de Discord, la zona horaria de referencia y el calendario de noches de raid.
+	</p>
 </div>
 
 {#if form?.success}
 	<div class="admin-msg ok" role="status">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 		<span>Cambios guardados correctamente.</span>
@@ -48,8 +59,22 @@
 {/if}
 {#if form?.error}
 	<div class="admin-msg err" role="alert">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+				x1="12"
+				y1="16"
+				x2="12"
+				y2="16"
+			/>
 		</svg>
 		<span>{form.error}</span>
 	</div>
@@ -61,19 +86,31 @@
 		<div class="admin-row">
 			<div class="admin-field">
 				<label for="discordServerId">ID del servidor de Discord</label>
-				<input id="discordServerId" name="discordServerId" type="text" value={v?.discordServerId ?? data.meta?.discordServerId ?? ''} />
+				<input
+					id="discordServerId"
+					name="discordServerId"
+					type="text"
+					value={v?.discordServerId ?? data.meta?.discordServerId ?? ''}
+				/>
 				<span class="hint">Para el widget embebido. Déjalo vacío para ocultarlo.</span>
 			</div>
 			<div class="admin-field">
 				<label for="raidTimezone">Zona horaria de raid</label>
-				<input id="raidTimezone" name="raidTimezone" type="text" value={v?.raidTimezone ?? data.meta?.raidTimezone ?? 'ST'} />
+				<input
+					id="raidTimezone"
+					name="raidTimezone"
+					type="text"
+					value={v?.raidTimezone ?? data.meta?.raidTimezone ?? 'ST'}
+				/>
 			</div>
 		</div>
 	</div>
 
 	<div class="admin-card">
 		<h2>Noches de raid</h2>
-		<p class="hint">El equipo es opcional. El día es 0 = Domingo … 6 = Sábado. La hora va en formato HH:MM (24h).</p>
+		<p class="hint">
+			El equipo es opcional. El día es 0 = Domingo … 6 = Sábado. La hora va en formato HH:MM (24h).
+		</p>
 		<div class="admin-list">
 			{#each nights as night, i (i)}
 				<div class="admin-list-row">
@@ -91,11 +128,22 @@
 					</div>
 					<div class="admin-field">
 						<label for="ntime-{i}">Hora (HH:MM)</label>
-						<input id="ntime-{i}" name="nightTime" type="text" placeholder="19:00" bind:value={night.time} />
+						<input
+							id="ntime-{i}"
+							name="nightTime"
+							type="text"
+							placeholder="19:00"
+							bind:value={night.time}
+						/>
 					</div>
 					<div class="admin-field admin-field-action">
 						<label for="rm-night-{i}" aria-hidden="true">Quitar</label>
-						<button id="rm-night-{i}" type="button" class="admin-btn danger" onclick={() => removeNight(i)}>Quitar</button>
+						<button
+							id="rm-night-{i}"
+							type="button"
+							class="admin-btn danger"
+							onclick={() => removeNight(i)}>Quitar</button
+						>
 					</div>
 				</div>
 			{:else}

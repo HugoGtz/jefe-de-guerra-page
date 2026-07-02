@@ -70,12 +70,11 @@ export async function createTeam(db: Db, t: TeamInput): Promise<void> {
 }
 
 /** Update an existing raid team by id (id itself is not changed). */
-export async function updateTeam(
-	db: Db,
-	id: string,
-	fields: Omit<TeamInput, 'id'>
-): Promise<void> {
-	await db.update(teams).set(toRow({ id, ...fields })).where(eq(teams.id, id));
+export async function updateTeam(db: Db, id: string, fields: Omit<TeamInput, 'id'>): Promise<void> {
+	await db
+		.update(teams)
+		.set(toRow({ id, ...fields }))
+		.where(eq(teams.id, id));
 }
 
 /** Delete a raid team by id. */

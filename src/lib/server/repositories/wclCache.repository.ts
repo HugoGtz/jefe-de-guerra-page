@@ -45,13 +45,10 @@ export async function setCache(
 	fetchedAt: number
 ): Promise<void> {
 	try {
-		await db
-			.insert(wclCache)
-			.values({ key, json, fetchedAt })
-			.onConflictDoUpdate({
-				target: wclCache.key,
-				set: { json, fetchedAt }
-			});
+		await db.insert(wclCache).values({ key, json, fetchedAt }).onConflictDoUpdate({
+			target: wclCache.key,
+			set: { json, fetchedAt }
+		});
 	} catch {
 		// Best-effort cache write; ignore failures.
 	}

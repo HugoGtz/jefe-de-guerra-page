@@ -54,7 +54,8 @@ export const actions: Actions = {
 				// Always run a verify to keep timing similar whether or not the
 				// user exists; the result is discarded when user is null.
 				const stored =
-					user?.passwordHash ?? 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+					user?.passwordHash ??
+					'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 				const ok = await verifyPassword(password, stored);
 				if (!user || !ok) {
 					return fail(401, { error: 'Usuario o contraseña incorrectos.' });

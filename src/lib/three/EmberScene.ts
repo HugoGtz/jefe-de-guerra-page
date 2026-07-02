@@ -494,8 +494,7 @@ export class EmberScene {
 			positions[i3 + 0] += sway * dt;
 
 			// Twinkle: sine-based alpha oscillation at per-particle frequency
-			const twinkle =
-				Math.sin(t * twinkleFreq[i] * Math.PI * 2 + twinklePhase[i]) * twinkleAmp[i];
+			const twinkle = Math.sin(t * twinkleFreq[i] * Math.PI * 2 + twinklePhase[i]) * twinkleAmp[i];
 			alphas[i] = Math.max(0.02, baseAlpha[i] + twinkle);
 
 			// Recycle embers that have drifted off the top

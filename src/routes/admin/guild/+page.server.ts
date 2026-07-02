@@ -50,7 +50,10 @@ export const actions: Actions = {
 			['scheduleTimezone', values.scheduleTimezone]
 		];
 		if (required.some(([, v]) => v.length === 0)) {
-			return fail(400, { error: 'Todos los campos de identidad y horario son obligatorios.', values });
+			return fail(400, {
+				error: 'Todos los campos de identidad y horario son obligatorios.',
+				values
+			});
 		}
 
 		try {

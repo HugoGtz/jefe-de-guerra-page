@@ -47,10 +47,7 @@ export async function getRaidNights(db: Db): Promise<RaidNight[]> {
 }
 
 /** Update the singleton community meta (id=1). */
-export async function updateCommunityMeta(
-	db: Db,
-	fields: CommunityMetaUpdate
-): Promise<void> {
+export async function updateCommunityMeta(db: Db, fields: CommunityMetaUpdate): Promise<void> {
 	await db
 		.update(communityMeta)
 		.set({

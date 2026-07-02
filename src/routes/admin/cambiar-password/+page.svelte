@@ -24,8 +24,22 @@
 <div class="admin-card" style="max-width: 32rem;">
 	{#if form?.error}
 		<div class="admin-msg err" role="alert">
-			<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+			<svg
+				class="msg-ico"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+					x1="12"
+					y1="16"
+					x2="12"
+					y2="16"
+				/>
 			</svg>
 			<span>{form.error}</span>
 		</div>
@@ -34,13 +48,7 @@
 	<form method="POST" use:enhance>
 		<div class="admin-field">
 			<label for="current">Contraseña actual</label>
-			<input
-				id="current"
-				name="current"
-				type="password"
-				autocomplete="current-password"
-				required
-			/>
+			<input id="current" name="current" type="password" autocomplete="current-password" required />
 		</div>
 
 		<div class="admin-field">

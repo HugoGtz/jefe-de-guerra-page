@@ -46,8 +46,8 @@
 
 <Section id="hazanas" eyebrow="Salón de la gloria" title="Últimas hazañas">
 	<p class="intro" use:reveal>
-		Las kills más recientes de la hueste, las más frescas arriba. Cada marca
-		es un boss que ya no se levanta.
+		Las kills más recientes de la hueste, las más frescas arriba. Cada marca es un boss que ya no se
+		levanta.
 	</p>
 
 	<ol class="timeline">
@@ -68,10 +68,7 @@
 					</div>
 
 					<div class="feat__meta">
-						<span
-							class="feat__raid"
-							title={raidName(feat.raid)}>{feat.raid}</span
-						>
+						<span class="feat__raid" title={raidName(feat.raid)}>{feat.raid}</span>
 						<time class="feat__date" datetime={feat.date}>
 							{formatDate(feat.date)}
 						</time>
@@ -135,20 +132,12 @@
 		width: 16px;
 		height: 16px;
 		border-radius: 50%;
-		background: radial-gradient(
-			circle at 35% 30%,
-			var(--color-ember),
-			var(--color-blood)
-		);
+		background: radial-gradient(circle at 35% 30%, var(--color-ember), var(--color-blood));
 		border: 2px solid var(--color-ash);
 		box-shadow: 0 0 8px rgba(255, 59, 33, 0.55);
 	}
 	.feat.is-first .feat__node {
-		background: radial-gradient(
-			circle at 35% 30%,
-			#fff,
-			var(--color-lava)
-		);
+		background: radial-gradient(circle at 35% 30%, #fff, var(--color-lava));
 		box-shadow: 0 0 14px rgba(255, 107, 44, 0.85);
 	}
 

@@ -28,8 +28,7 @@
 {#if hasData}
 	<Section id="salon-fama" eyebrow="Élite" title="Salón de la Fama">
 		<p class="hof__intro" use:reveal>
-			Los mejores parses de SSC y Tempest Keep entre todos nuestros cores, según
-			WarcraftLogs.
+			Los mejores parses de SSC y Tempest Keep entre todos nuestros cores, según WarcraftLogs.
 		</p>
 		<div class="hof__grid">
 			{#each visibleColumns as col, ci (col.key)}
@@ -38,7 +37,8 @@
 						<h3 class="hof__title text-engraved">{col.title}</h3>
 						<ol class="hof__list">
 							{#each col.entries as entry, i (entry.name + entry.core)}
-								{@const icon = specIconUrl(entry.wowClass, entry.spec) ?? classIconUrl(entry.wowClass)}
+								{@const icon =
+									specIconUrl(entry.wowClass, entry.spec) ?? classIconUrl(entry.wowClass)}
 								{@const tier = parseTier(entry.score)}
 								<li>
 									<a
@@ -46,39 +46,42 @@
 										href={`/jugador/${encodeURIComponent(entry.name)}`}
 										aria-label={`Ver los parses de ${entry.name}`}
 									>
-									<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
-									{#if icon}
-										<span class="hof__icons" aria-hidden="false">
-											<img
-												class="hof__icon"
-												src={icon}
-												alt={entry.spec ?? entry.classLabel ?? entry.wowClass ?? 'Especialización'}
-												width="20"
-												height="20"
-												loading="lazy"
-												decoding="async"
-											/>
+										<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
+										{#if icon}
+											<span class="hof__icons" aria-hidden="false">
+												<img
+													class="hof__icon"
+													src={icon}
+													alt={entry.spec ??
+														entry.classLabel ??
+														entry.wowClass ??
+														'Especialización'}
+													width="20"
+													height="20"
+													loading="lazy"
+													decoding="async"
+												/>
+											</span>
+										{/if}
+										<span class="hof__who">
+											<span
+												class="hof__name"
+												title={entry.name}
+												style={entry.classColor ? `color: ${entry.classColor}` : ''}
+												>{entry.name}</span
+											>
+											<span class="hof__meta">
+												{#if entry.classLabel}{entry.classLabel}{/if}
+												{#if entry.classLabel && entry.core}<span class="hof__dot">·</span>{/if}
+												{entry.core}
+											</span>
 										</span>
-									{/if}
-									<span class="hof__who">
 										<span
-											class="hof__name"
-											title={entry.name}
-											style={entry.classColor ? `color: ${entry.classColor}` : ''}
-											>{entry.name}</span
+											class="hof__score"
+											style="--parse-color: {tier.color}"
+											title={`Parse ${entry.score} · ${tier.label}`}
+											aria-label={`Parse ${entry.score} · ${tier.label}`}>{entry.score}</span
 										>
-										<span class="hof__meta">
-											{#if entry.classLabel}{entry.classLabel}{/if}
-											{#if entry.classLabel && entry.core}<span class="hof__dot">·</span>{/if}
-											{entry.core}
-										</span>
-									</span>
-									<span
-										class="hof__score"
-										style="--parse-color: {tier.color}"
-										title={`Parse ${entry.score} · ${tier.label}`}
-										aria-label={`Parse ${entry.score} · ${tier.label}`}>{entry.score}</span
-									>
 									</a>
 								</li>
 							{/each}

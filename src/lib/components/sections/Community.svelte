@@ -27,9 +27,7 @@
 	let timer: ReturnType<typeof setInterval> | undefined;
 
 	const discordWidgetUrl = $derived(
-		discordServerId
-			? `https://discord.com/widget?id=${discordServerId}&theme=dark`
-			: ''
+		discordServerId ? `https://discord.com/widget?id=${discordServerId}&theme=dark` : ''
 	);
 
 	function pad(n: number): string {
@@ -77,15 +75,10 @@
 	]);
 </script>
 
-<Section
-	id="comunidad"
-	eyebrow="Comunidad viva"
-	title="Siempre en marcha"
->
+<Section id="comunidad" eyebrow="Comunidad viva" title="Siempre en marcha">
 	<p class="intro" use:reveal>
-		Más allá de las raids, la hermandad late cada día en Discord. Aquí tienes
-		la cuenta atrás para el próximo asalto y la puerta de entrada a la
-		comunidad.
+		Más allá de las raids, la hermandad late cada día en Discord. Aquí tienes la cuenta atrás para
+		el próximo asalto y la puerta de entrada a la comunidad.
 	</p>
 
 	<div class="layout">
@@ -144,17 +137,13 @@
 				</div>
 			{:else}
 				<Card class="discord-fallback">
-					<h3 class="discord-fallback__title text-engraved">
-						Únete a la hermandad
-					</h3>
+					<h3 class="discord-fallback__title text-engraved">Únete a la hermandad</h3>
 					<p class="discord-fallback__text">
-						Coordinamos raids, hablamos de tácticas y compartimos el día a día en
-						Discord y WhatsApp. Para entrar, primero aplica: al enviar el formulario
-						te damos acceso a la comunidad.
+						Coordinamos raids, hablamos de tácticas y compartimos el día a día en Discord y
+						WhatsApp. Para entrar, primero aplica: al enviar el formulario te damos acceso a la
+						comunidad.
 					</p>
-					<a class="discord-fallback__btn glow-red" href="#aplica">
-						Aplica para unirte
-					</a>
+					<a class="discord-fallback__btn glow-red" href="#aplica"> Aplica para unirte </a>
 				</Card>
 			{/if}
 		</div>

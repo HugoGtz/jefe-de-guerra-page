@@ -20,7 +20,8 @@
 	/** Icono cabecera: spec → clase → null (respaldo a inicial). */
 	const headerIcon = $derived(
 		detail
-			? (specIconUrl(detail.wowClass, detail.mainSpec ?? undefined) ?? classIconUrl(detail.wowClass))
+			? (specIconUrl(detail.wowClass, detail.mainSpec ?? undefined) ??
+					classIconUrl(detail.wowClass))
 			: null
 	);
 
@@ -46,7 +47,20 @@
 	}
 
 	/** Fecha ISO yyyy-mm-dd → "dd MMM" en español (corto y limpio). */
-	const MESES_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+	const MESES_ES = [
+		'ene',
+		'feb',
+		'mar',
+		'abr',
+		'may',
+		'jun',
+		'jul',
+		'ago',
+		'sep',
+		'oct',
+		'nov',
+		'dic'
+	];
 	function dateText(iso: string): string {
 		const parts = iso.split('-');
 		if (parts.length !== 3) return iso;
@@ -107,10 +121,7 @@
 
 				<!-- Parse medio + métricas destacadas -->
 				<div class="stats">
-					<div
-						class="stat stat--hero"
-						style="--parse-color: {avgTier?.color}"
-					>
+					<div class="stat stat--hero" style="--parse-color: {avgTier?.color}">
 						<span class="stat__value">{detail.bestAvg}</span>
 						<span class="stat__label">
 							Parse medio
@@ -193,11 +204,7 @@
 						{#each detail.bosses as boss, i (boss.encounterName)}
 							{@const tier = boss.best != null ? parseTier(boss.best) : null}
 							{@const fastest = formatDuration(boss.fastestKillMs)}
-							<div
-								class="bosses__row"
-								role="row"
-								use:reveal={{ delay: Math.min(i * 40, 320) }}
-							>
+							<div class="bosses__row" role="row" use:reveal={{ delay: Math.min(i * 40, 320) }}>
 								<span class="boss-name" role="cell">
 									<img
 										class="boss-name__icon"
@@ -224,12 +231,8 @@
 								</span>
 								<span class="col-num col-hide-sm boss-kills" role="cell">{boss.kills}</span>
 								<span class="col-num boss-amount" role="cell">{amountText(boss.amount)}</span>
-								<span class="col-num col-hide-sm boss-ilvl" role="cell"
-									>{boss.ilvl ?? '—'}</span
-								>
-								<span class="col-num col-hide-sm boss-fastest" role="cell"
-									>{fastest ?? '—'}</span
-								>
+								<span class="col-num col-hide-sm boss-ilvl" role="cell">{boss.ilvl ?? '—'}</span>
+								<span class="col-num col-hide-sm boss-fastest" role="cell">{fastest ?? '—'}</span>
 							</div>
 						{/each}
 					</div>
@@ -247,7 +250,8 @@
 					<div class="allstars">
 						{#each detail.allStars as as_, i (as_.spec)}
 							{@const tier = as_.rankPercent != null ? parseTier(as_.rankPercent) : null}
-							{@const specIcon = specIconUrl(detail.wowClass, as_.spec) ?? classIconUrl(detail.wowClass)}
+							{@const specIcon =
+								specIconUrl(detail.wowClass, as_.spec) ?? classIconUrl(detail.wowClass)}
 							<div use:reveal={{ delay: Math.min(i * 80, 320), blur: true }}>
 								<Card class="allstar-card">
 									<div class="allstar__head">
@@ -324,7 +328,8 @@
 								<span class="history__body">
 									<span class="history__boss">{kill.boss}</span>
 									<span class="history__meta">
-										{dateText(kill.date)}<span class="hero__dot" aria-hidden="true">·</span>{kill.core}
+										{dateText(kill.date)}<span class="hero__dot" aria-hidden="true">·</span
+										>{kill.core}
 									</span>
 								</span>
 								{#if kill.parse != null && tier}
@@ -342,8 +347,8 @@
 					</ul>
 				{:else}
 					<p class="history__empty">
-						Todavía no hay kills recientes registrados para {detail.name} en los logs de SSC y
-						Tempest Keep.
+						Todavía no hay kills recientes registrados para {detail.name} en los logs de SSC y Tempest
+						Keep.
 					</p>
 				{/if}
 			</section>
@@ -354,16 +359,11 @@
 				<h1 class="empty__name text-engraved">{name}</h1>
 				<p class="empty__title">No encontramos parses de este jugador en SSC/TK todavía.</p>
 				<p class="empty__sub">
-					Puede que el nombre no esté escrito exactamente igual, que el personaje sea de otro
-					reino, o que aún no tenga registros en WarcraftLogs para Caverna del Santuario Serpiente
-					ni Tempest Keep.
+					Puede que el nombre no esté escrito exactamente igual, que el personaje sea de otro reino,
+					o que aún no tenga registros en WarcraftLogs para Caverna del Santuario Serpiente ni
+					Tempest Keep.
 				</p>
-				<a
-					class="wcl-btn"
-					href={wclCharacterUrl(name)}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
+				<a class="wcl-btn" href={wclCharacterUrl(name)} target="_blank" rel="noopener noreferrer">
 					Buscar en WarcraftLogs <span class="wcl-btn__arrow" aria-hidden="true">↗</span>
 				</a>
 			</div>
@@ -427,11 +427,7 @@
 		width: 60%;
 		height: 140%;
 		pointer-events: none;
-		background: radial-gradient(
-			ellipse at center,
-			rgba(255, 59, 33, 0.1),
-			transparent 65%
-		);
+		background: radial-gradient(ellipse at center, rgba(255, 59, 33, 0.1), transparent 65%);
 	}
 	.hero__top {
 		position: relative;

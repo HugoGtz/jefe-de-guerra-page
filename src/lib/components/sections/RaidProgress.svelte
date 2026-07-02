@@ -58,16 +58,16 @@
 	     si no, caemos a las stats agregadas de siempre (bosses / raids). -->
 	<div class="stats" use:reveal>
 		<div class="stat">
-			<span class="stat__value text-lava-glow"
-				use:countUp={{ to: phaseOne.percent, suffix: '%' }}>{phaseOne.percent}%</span
+			<span class="stat__value text-lava-glow" use:countUp={{ to: phaseOne.percent, suffix: '%' }}
+				>{phaseOne.percent}%</span
 			>
 			<span class="stat__label">Fase 1</span>
 		</div>
 
 		{#if stats}
 			<div class="stat">
-				<span class="stat__value text-lava-glow"
-					use:countUp={{ to: stats.phase2BossesDown }}>{stats.phase2BossesDown}</span
+				<span class="stat__value text-lava-glow" use:countUp={{ to: stats.phase2BossesDown }}
+					>{stats.phase2BossesDown}</span
 				><span class="stat__suffix">/{stats.phase2BossesTotal}</span>
 				<span class="stat__label">Jefes Fase 2</span>
 			</div>
@@ -84,7 +84,8 @@
 				</div>
 			{:else}
 				<div class="stat">
-					<span class="stat__value text-lava-glow"
+					<span
+						class="stat__value text-lava-glow"
 						use:countUp={{ to: phaseTwo.percent, suffix: '%' }}>{phaseTwo.percent}%</span
 					>
 					<span class="stat__label">Fase 2</span>
@@ -92,20 +93,19 @@
 			{/if}
 		{:else}
 			<div class="stat">
-				<span class="stat__value text-lava-glow"
-					use:countUp={{ to: totalBossesDefeated }}>{totalBossesDefeated}</span
+				<span class="stat__value text-lava-glow" use:countUp={{ to: totalBossesDefeated }}
+					>{totalBossesDefeated}</span
 				>
 				<span class="stat__label">Bosses derrotados</span>
 			</div>
 			<div class="stat">
-				<span class="stat__value text-lava-glow" use:countUp={{ to: totalRaids }}
-					>{totalRaids}</span
+				<span class="stat__value text-lava-glow" use:countUp={{ to: totalRaids }}>{totalRaids}</span
 				>
 				<span class="stat__label">Raids</span>
 			</div>
 			<div class="stat">
-				<span class="stat__value text-lava-glow"
-					use:countUp={{ to: phaseTwo.percent, suffix: '%' }}>{phaseTwo.percent}%</span
+				<span class="stat__value text-lava-glow" use:countUp={{ to: phaseTwo.percent, suffix: '%' }}
+					>{phaseTwo.percent}%</span
 				>
 				<span class="stat__label">Fase 2</span>
 			</div>
@@ -124,10 +124,7 @@
 
 		<div class="phase__bars">
 			{#each phaseOne.raids as raid (raid.id)}
-				<div
-					use:reveal={{ onreveal: () => (revealed[raid.id] = true) }}
-					class="raid-row"
-				>
+				<div use:reveal={{ onreveal: () => (revealed[raid.id] = true) }} class="raid-row">
 					<ProgressBar
 						value={barValue(raid)}
 						label={`${raid.name} · ${raid.kills}/${raid.total}`}
@@ -153,10 +150,7 @@
 
 		<div class="raid-cards">
 			{#each phaseTwo.raids as raid (raid.id)}
-				<div
-					class="raid-card-wrap"
-					use:reveal={{ onreveal: () => (revealed[raid.id] = true) }}
-				>
+				<div class="raid-card-wrap" use:reveal={{ onreveal: () => (revealed[raid.id] = true) }}>
 					<Card beam class="raid-card">
 						<header class="raid-card__head">
 							<h4 class="raid-card__name text-engraved">

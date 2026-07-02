@@ -464,10 +464,7 @@ function toIsoDate(epochMs: number): string {
  *              core via `resolveCore` (by tag for parent reports).
  * @returns Aggregated data, or `null` if creds are missing or anything fails.
  */
-export async function getWclData(
-	env: WclEnv,
-	cores?: WclSource[]
-): Promise<WclData | null> {
+export async function getWclData(env: WclEnv, cores?: WclSource[]): Promise<WclData | null> {
 	try {
 		const list = cores ?? defaultSources();
 		if (list.length === 0) return null;
@@ -1257,8 +1254,7 @@ export async function getWclRankings(
 				const core = codeToCore.get(code) ?? 'Core';
 				const guildId = codeToGuildId.get(code);
 				// Date for this report's kills (for the histórico). May be missing.
-				const date =
-					typeof report?.startTime === 'number' ? toIsoDate(report.startTime) : null;
+				const date = typeof report?.startTime === 'number' ? toIsoDate(report.startTime) : null;
 				for (const fight of fights) {
 					const roles = fight?.roles;
 					if (!roles) continue;
@@ -1316,9 +1312,7 @@ export async function getWclRankings(
 		// Per-core rosters: sort each core's members by score descending.
 		const rosters: Record<number, WclCharacter[]> = {};
 		for (const [guildId, members] of rosterByGuild) {
-			rosters[guildId] = [...members.values()].sort(
-				(a, b) => (b.score ?? -1) - (a.score ?? -1)
-			);
+			rosters[guildId] = [...members.values()].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 		}
 
 		// Per-player histórico: dedupe each player's kills by boss+date (keeping the

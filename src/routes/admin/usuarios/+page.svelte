@@ -27,14 +27,23 @@
 <div class="admin-page-head">
 	<h1>Usuarios</h1>
 	<p class="lead">
-		Gestiona las cuentas de oficiales. Cualquier usuario puede editar el contenido y
-		crear o eliminar otras cuentas.
+		Gestiona las cuentas de oficiales. Cualquier usuario puede editar el contenido y crear o
+		eliminar otras cuentas.
 	</p>
 </div>
 
 {#if form?.scope === 'create' && form?.created}
 	<div class="admin-msg ok" role="status">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 		<span>Usuario creado. Deberá cambiar su contraseña al iniciar sesión.</span>
@@ -42,7 +51,16 @@
 {/if}
 {#if form?.scope === 'delete' && form?.deleted}
 	<div class="admin-msg ok" role="status">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 		<span>
@@ -56,8 +74,22 @@
 {/if}
 {#if form?.scope === 'delete' && form?.error}
 	<div class="admin-msg err" role="alert">
-		<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+		<svg
+			class="msg-ico"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+				x1="12"
+				y1="16"
+				x2="12"
+				y2="16"
+			/>
 		</svg>
 		<span>{form.error}</span>
 	</div>
@@ -66,7 +98,8 @@
 <div class="admin-card">
 	<div class="admin-card-head">
 		<h2>Cuentas</h2>
-		<span class="badge">{data.users.length} {data.users.length === 1 ? 'usuario' : 'usuarios'}</span>
+		<span class="badge">{data.users.length} {data.users.length === 1 ? 'usuario' : 'usuarios'}</span
+		>
 	</div>
 
 	{#if data.users.length === 0}
@@ -128,8 +161,22 @@
 
 	{#if form?.scope === 'create' && form?.error}
 		<div class="admin-msg err" role="alert">
-			<svg class="msg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12" y2="16" />
+			<svg
+				class="msg-ico"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
+					x1="12"
+					y1="16"
+					x2="12"
+					y2="16"
+				/>
 			</svg>
 			<span>{form.error}</span>
 		</div>

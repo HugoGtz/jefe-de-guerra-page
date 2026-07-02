@@ -149,11 +149,7 @@
 	<div class="apply surface" use:reveal={{ blur: true }}>
 		{#if status === 'success'}
 			<div class="apply__success">
-				<h3
-					class="apply__success-title text-engraved"
-					tabindex="-1"
-					bind:this={successTitleEl}
-				>
+				<h3 class="apply__success-title text-engraved" tabindex="-1" bind:this={successTitleEl}>
 					¡Bienvenido a la hueste!
 				</h3>
 				<p class="apply__success-text">{statusMessage}</p>
@@ -290,8 +286,7 @@
 							bind:value={form.experience}
 							aria-required="true"
 							aria-invalid={!!errors.experience}
-							aria-describedby={errors.experience ? 'err-experience' : undefined}
-						></textarea>
+							aria-describedby={errors.experience ? 'err-experience' : undefined}></textarea>
 						{#if errors.experience}
 							<span id="err-experience" class="field__error">{errors.experience}</span>
 						{/if}
@@ -323,8 +318,7 @@
 							class="field__input field__textarea"
 							rows="3"
 							placeholder="Cualquier cosa que quieras que sepamos."
-							bind:value={form.message}
-						></textarea>
+							bind:value={form.message}></textarea>
 					</div>
 				</div>
 

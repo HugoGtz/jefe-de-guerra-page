@@ -10,7 +10,10 @@ import { json, type RequestHandler } from '@sveltejs/kit';
  * Anti-spam: honeypot ("website") + validation + size caps.
  */
 
-const clamp = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
+const clamp = (v: unknown, n: number) =>
+	String(v ?? '')
+		.trim()
+		.slice(0, n);
 
 export const POST: RequestHandler = async ({ request, platform }) => {
 	let data: Record<string, unknown>;
@@ -43,7 +46,10 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 
 	const webhook = platform?.env?.DISCORD_WEBHOOK_URL;
 	if (!webhook) {
-		return json({ ok: false, error: 'El servidor no tiene configurado el webhook.' }, { status: 500 });
+		return json(
+			{ ok: false, error: 'El servidor no tiene configurado el webhook.' },
+			{ status: 500 }
+		);
 	}
 
 	const payload = {

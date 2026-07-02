@@ -19,10 +19,7 @@ export type CursorTiltParams = {
  *
  *   <div use:cursorTilt={{ max: 8, zone: heroEl }}>
  */
-export const cursorTilt: Action<HTMLElement, CursorTiltParams | undefined> = (
-	node,
-	params
-) => {
+export const cursorTilt: Action<HTMLElement, CursorTiltParams | undefined> = (node, params) => {
 	let max = params?.max ?? 8;
 	let zone: HTMLElement = params?.zone ?? node;
 

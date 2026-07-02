@@ -28,8 +28,9 @@
 	</div>
 
 	<p class="footer__credit">
-		© {year} {guild.name} · Hermandad de {guild.faction} en {guild.server}. Hecho por y para
-		la comunidad. No afiliado a Blizzard Entertainment.
+		© {year}
+		{guild.name} · Hermandad de {guild.faction} en {guild.server}. Hecho por y para la comunidad. No
+		afiliado a Blizzard Entertainment.
 	</p>
 </footer>
 
