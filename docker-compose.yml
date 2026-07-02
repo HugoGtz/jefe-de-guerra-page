@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     image: jefe-de-guerra-dev
     ports:
-      - "5173:5173"
+      - '5173:5173'
     volumes:
       # Bind-mount the source so edits on the host hot-reload in the container.
       - .:/app
