@@ -18,11 +18,12 @@ que reenvía a Discord con un webhook secreto del servidor.
    > conectaras el proyecto a Git, CF intentaría buildear por su cuenta y chocaría
    > con el workflow. (En el primer "Upload assets" puedes subir cualquier carpeta
    > rápida para crear el proyecto; el deploy real lo hará Actions.)
+
 2. **API token** con permiso de Pages:
-   My Profile → API Tokens → Create Token → plantilla *"Edit Cloudflare Workers"*
+   My Profile → API Tokens → Create Token → plantilla _"Edit Cloudflare Workers"_
    o un token custom con **Account › Cloudflare Pages › Edit**. Copia el token.
 3. Anota tu **Account ID** (barra lateral del dashboard).
-4. **Secretos del proyecto Pages** — añádelos como *Secret* (Production y Preview)
+4. **Secretos del proyecto Pages** — añádelos como _Secret_ (Production y Preview)
    en Dashboard → proyecto → Settings → Variables and secrets, **o** por CLI
    (`npx wrangler pages secret put <NOMBRE> --project-name jefe-de-guerra`):
    - **`DISCORD_WEBHOOK_URL`** — webhook de Discord (Ajustes del servidor →
