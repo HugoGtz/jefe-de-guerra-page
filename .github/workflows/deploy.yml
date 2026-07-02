@@ -27,9 +27,22 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # Quality gate: fail the deploy if types/Svelte don't check out.
+      # Quality gates: fail the deploy before building if anything is off.
       - name: Type-check
         run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      # Ensure db/schema.sql is regenerated from the Drizzle schema and committed.
+      - name: Schema in sync
+        run: npm run db:schema:check
 
       - name: Build
         run: npm run build
