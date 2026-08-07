@@ -21,6 +21,7 @@ export type TeamInput = {
 	recruiting: boolean;
 	note: string | null;
 	wclGuildId: number | null;
+	wclTagId: number | null;
 	sort: number;
 };
 
@@ -40,6 +41,7 @@ export async function getTeams(db: Db): Promise<Team[]> {
 		recruiting: t.recruiting === 1,
 		note: t.note ?? undefined,
 		wclGuildId: t.wclGuildId ?? undefined
+		wclTagId: t.wclTagId ?? undefined
 	}));
 }
 
@@ -57,6 +59,7 @@ function toRow(t: TeamInput) {
 		recruiting: t.recruiting ? 1 : 0,
 		note: t.note,
 		wclGuildId: t.wclGuildId,
+		wclTagId: t.wclTagId,
 		sort: t.sort
 	};
 }
