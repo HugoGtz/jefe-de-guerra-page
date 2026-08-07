@@ -69,16 +69,31 @@ npx wrangler d1 execute jefe-de-guerra --remote --file=db/seed.sql
 
 > ⚠️ **`db/schema.sql` solo usa `CREATE TABLE IF NOT EXISTS`.** Para una tabla
 > **nueva** (p. ej. `wcl_boss_kills`) basta con aplicarlo. Pero si agregas una
-> **columna a una tabla que ya existe en la D1 remota** (como pasó con
-> `wcl_cache.locked_until`), el `CREATE ... IF NOT EXISTS` es un no-op —
-> confirmado en local: la tabla no ganó la columna hasta correr el `ALTER`
-> manualmente. Para esos casos aplica también un `ALTER TABLE` explícito:
+> **columna a una tabla que ya existe en la D1 remota**, el `CREATE ... IF NOT
+EXISTS` es un no-op — la tabla NO gana la columna. Para esos casos aplica
+> también un `ALTER TABLE` explícito:
 >
 > ```bash
-> npx wrangler d1 execute jefe-de-guerra --remote --command "ALTER TABLE wcl_cache ADD COLUMN locked_until integer;"
+> npx wrangler d1 execute jefe-de-guerra --remote --command "ALTER TABLE <tabla> ADD COLUMN <columna> <tipo>;"
 > ```
 >
 > Es seguro repetirlo si ya existe (falla con "duplicate column", ignorable).
+>
+> **Ya nos pasó dos veces de verdad** — ambas confirmadas y corregidas en
+> producción con este mismo comando:
+>
+> - `wcl_cache.locked_until` (agregada al mismo tiempo que el schema, sí se
+>   corrió el `ALTER` a tiempo).
+> - `teams.wcl_tag_id` — agregada al schema en el commit `87f83a5` pero el
+>   `ALTER` **nunca se corrió**, así que quedó rota en producción desde ese
+>   deploy: cualquier lectura de `teams` (`getTeams()`) fallaba con
+>   `no such column: wcl_tag_id`, lo cual tumbaba `/admin/teams` y cualquier
+>   página que dependiera de esa consulta. Corregido manualmente después.
+>
+> Antes de dar por bueno un deploy que agrega una columna a una tabla
+> existente, verifica con `PRAGMA table_info(<tabla>);` contra `--remote` —
+> no basta con que el build/CI pase, porque el gate no valida el estado real
+> de la D1 remota.
 
 **Ledger de jefes derrotados (`wcl_boss_kills`).** El progreso SSC/TK mostrado
 en `/equipos/[id]` es la unión de esta tabla (permanente, solo suma) con el
