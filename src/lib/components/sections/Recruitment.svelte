@@ -29,7 +29,7 @@
 <Section id="reclutamiento" eyebrow="Reclutamiento" title="Únete a la lucha">
 	<p class="recruit__intro" use:reveal>{recruitment.intro}</p>
 
-	<div class="mb-12 grid grid-cols-1 gap-8 min-[720px]:grid-cols-2">
+	<div class="mb-12 grid grid-cols-1 gap-8 md:grid-cols-2">
 		<div class="recruit__needs" use:reveal={{ delay: 100, direction: 'left', blur: true }}>
 			<h3 class="recruit__subtitle text-engraved">Buscamos</h3>
 			<ul class="needs">
@@ -103,13 +103,13 @@
 		margin: 0 auto 3rem;
 		text-align: center;
 		color: var(--color-steel);
-		font-size: 1.1rem;
+		font-size: var(--text-md);
 		line-height: 1.7;
 	}
 	.recruit__subtitle {
-		font-size: 1.25rem;
-		letter-spacing: 0.03em;
-		margin: 0 0 1.25rem;
+		font-size: var(--text-xl);
+		letter-spacing: var(--tracking-snug);
+		margin: 0 0 var(--spacing-2xl);
 	}
 
 	/* --- Buscamos: rich class/spec rows ------------------------------------ */
@@ -118,7 +118,7 @@
 		margin: 0;
 		padding: 0;
 		display: grid;
-		gap: 0.6rem;
+		gap: var(--spacing-sm);
 	}
 
 	.need {
@@ -126,9 +126,9 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 0.85rem;
-		padding: 0.6rem 0.8rem;
-		border-radius: 6px;
+		gap: var(--spacing-lg);
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--radius-md);
 		background-color: var(--color-stone);
 		overflow: hidden;
 	}
@@ -153,7 +153,7 @@
 		justify-content: center;
 		width: 40px;
 		height: 40px;
-		border-radius: 8px;
+		border-radius: var(--radius-lg);
 		background: color-mix(in srgb, var(--color-stone) 70%, #000);
 		border: 1px solid color-mix(in srgb, var(--class-color) 45%, transparent);
 		box-shadow:
@@ -163,12 +163,12 @@
 	.need__img {
 		width: 34px;
 		height: 34px;
-		border-radius: 6px;
+		border-radius: var(--radius-md);
 		object-fit: cover;
 	}
 	.need__fallback {
 		font-family: var(--font-display);
-		font-size: 1.15rem;
+		font-size: var(--text-lg);
 		font-weight: 900;
 		color: color-mix(in srgb, var(--class-color) 80%, var(--color-silver));
 	}
@@ -184,15 +184,15 @@
 		font-family: var(--font-display);
 		font-weight: 700;
 		color: var(--color-silver);
-		font-size: 0.98rem;
+		font-size: var(--text-base);
 		line-height: 1.15;
 		/* Subtle class tint on the name without hurting legibility. */
 		color: color-mix(in srgb, var(--class-color) 28%, var(--color-silver));
 	}
 	.need__priority {
-		font-size: 0.6rem;
+		font-size: var(--text-2xs);
 		font-weight: 700;
-		letter-spacing: 0.12em;
+		letter-spacing: var(--tracking-widest);
 		text-transform: uppercase;
 		color: var(--color-steel-dim);
 	}
@@ -231,18 +231,18 @@
 		margin: 0;
 		padding: 0;
 		display: grid;
-		gap: 0.85rem;
+		gap: var(--spacing-lg);
 	}
 	.req {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.7rem;
+		gap: var(--spacing-md);
 		color: var(--color-steel);
 		line-height: 1.5;
 	}
 	.req__marker {
 		flex-shrink: 0;
-		margin-top: 0.45rem;
+		margin-top: var(--spacing-2xs);
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
@@ -250,43 +250,43 @@
 		box-shadow: 0 0 6px rgba(255, 59, 33, 0.5);
 	}
 
+	@media (min-width: 768px) {
+		/* Two-up needs grid on wide screens for density. */
+		.needs {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
 	/* --- CTA (behavior unchanged) ----------------------------------------- */
 	.recruit__cta {
 		text-align: center;
 		padding: clamp(2rem, 5vw, 3rem);
-		border-radius: 8px;
+		border-radius: var(--radius-lg);
 		max-width: 40rem;
 		margin: 0 auto;
 	}
 	.recruit__cta-title {
 		font-size: clamp(1.4rem, 4vw, 2rem);
-		margin: 0 0 0.75rem;
+		margin: 0 0 var(--spacing-md);
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: var(--tracking-heading);
 	}
 	.recruit__cta-text {
 		color: var(--color-steel);
 		line-height: 1.6;
-		margin: 0 0 1.75rem;
+		margin: 0 0 var(--spacing-3xl);
 	}
 	.recruit__cta-actions {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.85rem;
+		gap: var(--spacing-lg);
 	}
 
-	@media (min-width: 540px) {
+	@media (min-width: 600px) {
 		.recruit__cta-actions {
 			flex-direction: row;
 			justify-content: center;
-		}
-	}
-
-	@media (min-width: 720px) {
-		/* Two-up needs grid on wide screens for density. */
-		.needs {
-			grid-template-columns: 1fr 1fr;
 		}
 	}
 </style>

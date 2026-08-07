@@ -222,9 +222,9 @@
 	.field-label {
 		display: block;
 		font-weight: 600;
-		font-size: 0.85rem;
-		letter-spacing: 0.01em;
+		font-size: var(--text-sm);
+		letter-spacing: var(--tracking-snug);
 		color: var(--color-steel);
-		margin-bottom: 0.35rem;
+		margin-bottom: var(--spacing-2xs);
 	}
 </style>

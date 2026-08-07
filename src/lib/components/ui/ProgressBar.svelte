@@ -48,16 +48,16 @@
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
-		margin-bottom: 0.4rem;
+		margin-bottom: var(--spacing-2xs);
 		font-family: var(--font-display);
 	}
 	.jdg-progress__label {
-		font-size: 0.95rem;
+		font-size: var(--text-base);
 		font-weight: 600;
-		letter-spacing: 0.03em;
+		letter-spacing: var(--tracking-snug);
 	}
 	.jdg-progress__value {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		color: var(--color-steel);
 	}
@@ -70,7 +70,7 @@
 		position: relative;
 		height: 0.75rem;
 		width: 100%;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		background-color: var(--color-stone);
 		overflow: hidden;
 	}
@@ -81,7 +81,7 @@
 		/* Driven by --progress so a parent/scroll action can flip it from
 		   0% to the real value on enter; animates via width transition. */
 		width: var(--progress, 0%);
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		/* Clip the shine band to the filled portion only. */
 		overflow: hidden;
 		background: linear-gradient(

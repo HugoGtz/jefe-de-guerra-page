@@ -8,13 +8,7 @@ Guía **prescriptiva** para humanos y agentes de IA que tocan la UI de este repo
 
 ## 1. Filosofía: utilidad vs. CSS scoped
 
-Este proyecto **no tiene una escala tipográfica ni de espaciado consistente** y eso es **deliberado**. Auditando los valores reales encontramos:
-
-- **59 valores distintos de `font-size`** (13 sabores de `0.85rem`, ~20 `clamp()` únicos, etc.).
-- **~14 breakpoints distintos** (540px → 980px, mezclando `px` y `rem`).
-- **15 valores de `letter-spacing`** (de los cuales solo 3 son tokens).
-
-El estilo es **bespoke por componente**, con muchos gradientes, glows y `color-mix()`. Intentar forzar una escala de utilidades Tailwind sobre esto produciría "sopa de clases arbitrarias" (`text-[0.82rem] tracking-[0.06em] ...`) sin ganar consistencia. Por eso la política es:
+El proyecto tiene **escalas tokenizadas** para tipografía, tracking y breakpoints (§3, §4) — usa siempre el token, nunca un valor suelto ni un arbitrario `text-[...]`. Lo que **sí** vive bespoke en el `<style>` de cada componente es el "look" (gradientes, glows, `color-mix()`, animaciones, headings `clamp()`). La política:
 
 ### Usa utilidades de Tailwind para...
 
@@ -143,16 +137,26 @@ Para cualquier etiqueta en mayúsculas display (pills, eyebrows, botones, enlace
 
 Nombres no-colisionantes a propósito (Tailwind ya trae `tracking-tight`/`tracking-wide` con otros valores). En la práctica hay valores de tracking sueltos en `<style>` (0.02–0.2em) — está bien dentro de un componente, pero **si tu tracking coincide con un token, usa el token.**
 
-### Tamaños de fuente — guía honesta
+### Escala tipográfica (tokens `--text-*`)
 
-**No existe una escala tipográfica.** Hay 59 valores distintos. Por tanto:
+Racionalizada desde los valores reales que había (antes 59 sueltos). Usa el **token**, no un rem literal ni `text-[...]` arbitrario:
 
-- **Define el `font-size` en el `<style>` scoped del componente**, con el valor exacto que pida el diseño (rem para fijos, `clamp(min, vw, max)` para responsivos — patrón dominante para títulos, ver `Section.svelte`).
-- **NUNCA** uses `text-[0.82rem]` ni las utilidades de escala de Tailwind (`text-sm`, `text-lg`, …) para tipografía de contenido. Rompen la coherencia bespoke y crean una segunda fuente de verdad.
-- Para tamaños de heading responsivos, copia el patrón `clamp()` existente:
+| Token         | Valor   | Uso                              |
+| ------------- | ------- | -------------------------------- |
+| `--text-2xs`  | 0.65rem | micro-labels, eyebrows diminutos |
+| `--text-xs`   | 0.72rem | labels en mayúsculas, meta       |
+| `--text-sm`   | 0.85rem | texto secundario (el más común)  |
+| `--text-base` | 0.95rem | texto UI base                    |
+| `--text-md`   | 1.05rem | párrafos lead                    |
+| `--text-lg`   | 1.15rem | subtítulos                       |
+| `--text-xl`   | 1.4rem  | títulos de card                  |
+
+- En `<style>` scoped: `font-size: var(--text-sm)`. También existen utilidades `text-sm`… generadas por el `@theme`.
+- **Headings display responsivos** (≥1.5rem): siguen con `clamp(min, vw, max)` en el componente (no hay token; el patrón fluido es intencional). Ver `Section.svelte` / `.hero__name`.
+- Un tamaño puntual fuera de escala se deja literal, pero **prefiere el token**.
 
 ```css
-/* Section.svelte — título de sección */
+/* heading fluido (fuera de la escala de tokens, a propósito) */
 .section__title {
 	font-size: clamp(2rem, 5vw, 3.2rem);
 	font-weight: 900;
@@ -160,11 +164,22 @@ Nombres no-colisionantes a propósito (Tailwind ya trae `tracking-tight`/`tracki
 }
 ```
 
-Ver §8 (Deuda de diseño) para la propuesta de racionalizar esto.
-
 ---
 
 ## 4. Espaciado y layout
+
+### Spacing (tokens `--spacing-*`)
+
+Escala de shift-mínimo para `gap` / `padding` / `margin` (los valores dominantes son exactos; los raros se ajustaron al más cercano). Namespace Tailwind → también genera utilidades `gap-md`, `p-lg`, `m-sm`… (además del `gap-4` numérico). Usa el token:
+
+`--spacing-3xs` 0.25 · `--spacing-2xs` 0.4 · `--spacing-xs` 0.5 · `--spacing-sm` 0.6 · `--spacing-md` 0.75 · `--spacing-lg` 0.85 · `--spacing-xl` 1 · `--spacing-2xl` 1.25 · `--spacing-3xl` 1.5 · `--spacing-4xl` 2 (rem).
+
+- En `<style>`: `gap: var(--spacing-md)`, `padding: var(--spacing-sm) var(--spacing-lg)`. En markup: `gap-md`, `p-lg`.
+- Se dejan literales: `clamp()`/`calc()` (paddings fluidos), márgenes negativos, y micro-valores `<0.25rem` (ej. `0.08rem` de un chip).
+
+### Border-radius (tokens `--radius-*`)
+
+`--radius-sm` 3px (chips) · `--radius-md` 6px (inputs) · `--radius-lg` 8px (cards) · `--radius-xl` 12px (hero/avatares) · `--radius-full` 999px (pills/dots). `border-radius: 50%` (círculos) se deja literal.
 
 ### Contenedor de sección
 
@@ -195,15 +210,17 @@ El patrón consistente es **1 columna en móvil → N columnas en un breakpoint*
 
 Formas comunes ya usadas: `1fr` / `1fr 1fr` / `repeat(3, 1fr)` / `repeat(auto-fill, minmax(15rem, 1fr))`. Usa `minmax(0, 1fr)` cuando haya riesgo de overflow por contenido largo (ya se usa en tablas de roster).
 
-### Breakpoints — ad-hoc (decisión de diseño pendiente)
+### Breakpoints — set canónico
 
-Hoy conviven ~14 breakpoints distintos (`540, 560, 620, 720, 760, 820, 880, 920, 940, 980 px` + algunos en `rem`). **No hay un set estándar.** Al añadir CSS responsivo, **reutiliza uno de los breakpoints frecuentes** en vez de inventar uno nuevo:
+Tres breakpoints, definidos en `@theme` (`--breakpoint-sm/md/lg`). **Usa solo estos:**
 
-- `560px` — móvil grande / apilado→2col (el más usado).
-- `720px` — tablet / →3col.
-- `980px` (≈`60rem`) — desktop / colapso de nav.
+- **`sm` = 600px** — móvil grande / apilado → 2 col.
+- **`md` = 768px** — tablet / → 2–3 col.
+- **`lg` = 1024px** — desktop / 3 col, colapso de nav.
 
-Ver §8 para la propuesta de estandarización.
+- En markup: variantes Tailwind `sm:` / `md:` / `lg:` (ej. `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`).
+- En `<style>` scoped: `@media (min-width: 600px|768px|1024px)` con el px literal (las variables CSS no valen dentro de una media query).
+- Excepción: micro-ajustes de móvil pequeño (`380px`/`414px`) se dejan literales — casos raros por debajo de `sm`.
 
 ---
 
@@ -298,15 +315,13 @@ Patrones ya establecidos — **mantenlos**:
 
 ---
 
-## 8. Deuda / decisiones de diseño pendientes
+## 8. Deuda / decisiones de diseño
 
-Candidatos a **racionalizar** (esto es rediseño consciente, **no** una migración mecánica — no conviertas nada de esto sin acuerdo de diseño):
+1. ✅ **RESUELTO — Escala tipográfica.** Rationalizada a tokens `--text-2xs … --text-xl` (§3) y aplicada en todo el código (los ~85 `font-size` fijos ≤1.4rem ahora usan tokens; los headings display siguen con `clamp()`). Regla: usa el token, nunca un rem suelto.
 
-1. **Escala tipográfica ad-hoc (59 `font-size` distintos).** Muchos valores casi-idénticos (`0.82` vs `0.85` vs `0.88rem`) sin intención perceptible. Propuesta: definir una escala de ~7–8 tamaños como tokens (`--text-xs … --text-4xl`) y una familia de `clamp()` canónicos para headings, luego consolidar. Beneficio: coherencia visual real y menos decisiones por componente.
+2. ✅ **RESUELTO — Breakpoints.** Set canónico `sm 600 / md 768 / lg 1024` en `@theme` (§4), aplicado (`@media` literales + variantes `sm:/md:/lg:`). Solo `380/414px` quedan como micro-ajustes bajo `sm`.
 
-2. **~14 breakpoints (540–980px, mezcla px/rem).** Propuesta: fijar 3–4 breakpoints canónicos (p. ej. `560 / 720 / 980px`) como convención documentada y migrar los cercanos. Unificar unidades a `rem`.
-
-3. **15 valores de `letter-spacing`**, de los que solo 3 son tokens. Varios valores sueltos (`0.02`, `0.03`, `0.05`, `0.06em`) podrían absorberse en los 3 tokens existentes o en 1–2 nuevos.
+3. ✅ **RESUELTO — Letter-spacing.** Escala de 6 tokens `--tracking-snug/heading/wide/eyebrow/caps/widest` (§3), aplicada. Solo `0.16–0.2em` (eyebrows extra-anchos, ~3 usos raros) quedan literales.
 
 4. **Efecto "shine/gleam" — revisado: dejar como está.** `jdg-gleam::before` (Button), `.jdg-card__sheen` (Card) y `.jdg-progress__shine` (ProgressBar) _parecen_ el mismo barrido, pero al inspeccionarlos son tres efectos afinados por contexto: el shine de la barra es una **animación continua infinita** (sin skew, recortada al relleno); el gleam del botón es un barrido **en hover** blanco brillante; el sheen de la card es un barrido en hover **sutil acero** que vive en una capa `<span>` dedicada a propósito para no pelear con el `transform` del action `tilt`. Unificarlos exigiría igualarlos visualmente (cambia el look) o un helper con ~6 parámetros + reestructurar la capa de Card — más complejo y arriesgado que los tres bloques comentados actuales. **Decisión: no deduplicar.** Si se toca uno, conservar la coherencia del gradiente (banda `transparent → luz → transparent`).
 

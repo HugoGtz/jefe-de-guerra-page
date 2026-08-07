@@ -39,8 +39,8 @@
 		position: relative;
 		border-top: 1px solid color-mix(in srgb, var(--color-steel) 18%, transparent);
 		background-color: color-mix(in srgb, var(--color-ash) 70%, transparent);
-		padding: 3rem 1.25rem 2rem;
-		margin-top: 2rem;
+		padding: 3rem var(--spacing-2xl) var(--spacing-4xl);
+		margin-top: var(--spacing-4xl);
 	}
 	.footer__inner {
 		max-width: 72rem;
@@ -49,32 +49,32 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1.5rem;
+		gap: var(--spacing-3xl);
 	}
 	.footer__brand {
 		display: flex;
 		align-items: center;
-		gap: 0.9rem;
+		gap: var(--spacing-lg);
 	}
 	.footer__mark {
 		filter: drop-shadow(0 0 8px rgba(255, 59, 33, 0.35));
 	}
 	.footer__name {
-		font-size: 1.15rem;
+		font-size: var(--text-lg);
 		font-weight: 700;
-		letter-spacing: 0.05em;
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
-		margin: 0 0 0.5rem;
+		margin: 0 0 var(--spacing-xs);
 	}
 	.footer__links {
 		display: flex;
-		gap: 1.5rem;
+		gap: var(--spacing-3xl);
 	}
 	.footer__link {
 		color: var(--color-steel);
 		font-family: var(--font-display);
-		font-size: 0.85rem;
-		letter-spacing: 0.05em;
+		font-size: var(--text-sm);
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 		text-decoration: none;
 		transition: color 0.2s ease;
@@ -84,10 +84,10 @@
 	}
 	.footer__credit {
 		max-width: 72rem;
-		margin: 2rem auto 0;
+		margin: var(--spacing-4xl) auto 0;
 		text-align: center;
 		color: var(--color-steel-dim);
-		font-size: 0.78rem;
+		font-size: var(--text-xs);
 		line-height: 1.6;
 	}
 </style>

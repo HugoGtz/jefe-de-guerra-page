@@ -135,7 +135,7 @@
 					</a>
 				{/each}
 
-				<span class="nav-label" style="margin-top: 1rem;">Cuenta</span>
+				<span class="nav-label" style="margin-top: var(--spacing-xl);">Cuenta</span>
 				{#each accountSections as s (s.href)}
 					{@const active = isActive(s.href, false)}
 					<a href={s.href} aria-current={active ? 'page' : undefined}>

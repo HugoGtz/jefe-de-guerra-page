@@ -16,10 +16,10 @@
 		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		padding: 0.28rem 0.7rem;
-		border-radius: 999px;
-		font-size: 0.66rem;
+		gap: var(--spacing-2xs);
+		padding: 0.28rem var(--spacing-md);
+		border-radius: var(--radius-full);
+		font-size: var(--text-2xs);
 		white-space: nowrap;
 		border: 1px solid transparent;
 	}

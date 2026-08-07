@@ -18,15 +18,15 @@
 	.jdg-badge {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		padding: 0.3rem 0.8rem;
-		border-radius: 999px;
+		gap: var(--spacing-2xs);
+		padding: var(--spacing-3xs) var(--spacing-md);
+		border-radius: var(--radius-full);
 		background-color: var(--color-stone);
 		color: var(--color-silver);
 		font-family: var(--font-sans);
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 600;
-		letter-spacing: 0.06em;
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 		white-space: nowrap;
 		transition:

@@ -47,6 +47,7 @@ import {
 	type WclAttendance
 } from '$lib/server/warcraftlogs';
 import { getDb, type Db } from '$lib/server/db/client';
+import { cacheThrough } from '$lib/server/cache';
 import {
 	getGuild,
 	getPhases,
@@ -60,8 +61,7 @@ import {
 	getCache,
 	setCache,
 	withRaidProgress,
-	phasePercent,
-	type CacheEntry
+	phasePercent
 } from '$lib/server/repositories';
 
 /** Guild-wide stats surfaced in the UI, derived from WCL (or manual fallback). */
@@ -143,6 +143,10 @@ const WCL_HOF_KEY = 'hall_of_fame_v4';
 
 /** Per-character detail (internal player page) — cached ~1h, keyed per name. */
 const WCL_CHARACTER_TTL_MS = 60 * 60 * 1000;
+
+/** Negative cache (player not found) — shorter than a hit so a newly-imported
+    player shows up within ~20 min instead of waiting the full positive TTL. */
+const WCL_CHARACTER_NEGATIVE_TTL_MS = 20 * 60 * 1000;
 
 /** Guild + per-core progress rank (world/region/server) — changes slowly, ~6h. */
 const WCL_PROGRESS_TTL_MS = 6 * 60 * 60 * 1000;
@@ -241,11 +245,11 @@ function wclFeatToFeat(f: WclFeat): Feat {
 async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData | null> {
 	const now = Date.now();
 
-	const cachedRow: CacheEntry | null = await getCache(db, WCL_CACHE_KEY);
-
-	const parseRow = (row: CacheEntry): WclData | null => {
+	// `killedBossNames` is a Set (not JSON-serializable) so this loader carries
+	// its own parse/serialize; the fresh/stale/fallback policy is shared.
+	const parseRow = (json: string): WclData | null => {
 		try {
-			const parsed = JSON.parse(row.json) as {
+			const parsed = JSON.parse(json) as {
 				killedBossNames: string[];
 				perCore?: Record<string, string[]>;
 				perCoreStats?: Record<string, WclCoreStats>;
@@ -271,28 +275,23 @@ async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData 
 		}
 	};
 
-	// Fresh enough → use the cached value.
-	if (cachedRow && now - cachedRow.fetchedAt < WCL_CACHE_TTL_MS) {
-		const fresh = parseRow(cachedRow);
-		if (fresh) return fresh;
-	}
-
-	// Otherwise fetch live, then upsert the cache.
-	const fetched = await getWclData(env);
-	if (fetched) {
-		const payload = JSON.stringify({
-			killedBossNames: [...fetched.killedBossNames],
-			perCore: fetched.perCore,
-			perCoreStats: fetched.perCoreStats,
-			feats: fetched.feats
-		});
-		await setCache(db, WCL_CACHE_KEY, payload, now);
-		return fetched;
-	}
-
-	// Fetch failed → use stale cache if we have one.
-	if (cachedRow) return parseRow(cachedRow);
-	return null;
+	return cacheThrough<WclData>({
+		now,
+		ttlMs: WCL_CACHE_TTL_MS,
+		read: () => getCache(db, WCL_CACHE_KEY),
+		write: async (json) => {
+			await setCache(db, WCL_CACHE_KEY, json, now);
+		},
+		fetch: () => getWclData(env),
+		parse: parseRow,
+		serialize: (v) =>
+			JSON.stringify({
+				killedBossNames: [...v.killedBossNames],
+				perCore: v.perCore,
+				perCoreStats: v.perCoreStats,
+				feats: v.feats
+			})
+	});
 }
 
 /**
@@ -308,99 +307,62 @@ async function loadJsonCached<T>(
 	fetcher: () => Promise<T | null>
 ): Promise<T | null> {
 	const now = Date.now();
+	return cacheThrough<T>({
+		now,
+		ttlMs,
+		read: () => getCache(db, key),
+		write: async (json) => {
+			await setCache(db, key, json, now);
+		},
+		fetch: fetcher
+	});
+}
 
-	const cachedRow: CacheEntry | null = await getCache(db, key);
-
-	const parse = (row: CacheEntry): T | null => {
-		try {
-			return JSON.parse(row.json) as T;
-		} catch {
-			return null;
-		}
-	};
-
-	if (cachedRow && now - cachedRow.fetchedAt < ttlMs) {
-		const fresh = parse(cachedRow);
-		if (fresh) return fresh;
-	}
-
-	let fetched: T | null;
+/**
+ * Resolve the D1 binding from `platform` and load a JSON-cached WCL aggregate.
+ * Shared by the rankings/progress/attendance loaders below — returns null on a
+ * missing binding or ANY error (never throws).
+ */
+async function loadWclJsonCached<T>(
+	platform: App.Platform | undefined,
+	key: string,
+	ttlMs: number,
+	fetch: (env: App.Platform['env']) => Promise<T | null>
+): Promise<T | null> {
 	try {
-		fetched = await fetcher();
+		const binding = platform?.env?.DB;
+		if (!binding) return null;
+		const db = getDb(binding);
+		return await loadJsonCached<T>(db, key, ttlMs, () => fetch(platform!.env));
 	} catch {
-		fetched = null;
+		return null;
 	}
-
-	if (fetched) {
-		await setCache(db, key, JSON.stringify(fetched), now);
-		return fetched;
-	}
-
-	if (cachedRow) return parse(cachedRow);
-	return null;
 }
 
 /**
  * Load the report-rankings aggregate (Hall of Fame + reliable character map +
- * per-core rosters) through the shared 12h D1 cache. Returns null when there is
- * no DB binding, no creds, or anything fails — never throws. ONE source of truth
- * for the rankings cache so `loadGuildData` and `loadCoreRoster` share the same
- * cache key/TTL and never trigger a second fetch.
+ * per-core rosters) through the shared 12h D1 cache. ONE source of truth for the
+ * rankings cache so `loadGuildData` and `loadCoreRoster` share the same cache
+ * key/TTL and never trigger a second fetch.
  */
-export async function loadWclRankingsCached(
+export function loadWclRankingsCached(
 	platform: App.Platform | undefined
 ): Promise<WclRankings | null> {
-	try {
-		const binding = platform?.env?.DB;
-		if (!binding) return null;
-		const db = getDb(binding);
-		const env = platform!.env;
-		return await loadJsonCached<WclRankings>(db, WCL_HOF_KEY, WCL_HOF_TTL_MS, () =>
-			getWclRankings(env)
-		);
-	} catch {
-		return null;
-	}
+	return loadWclJsonCached(platform, WCL_HOF_KEY, WCL_HOF_TTL_MS, getWclRankings);
 }
 
-/**
- * Load the guild + per-core progress rank (world/region/server) through a ~6h
- * D1 cache. Null on missing binding/creds/error — never throws.
- */
-export async function loadWclProgressCached(
+/** Load the guild + per-core progress rank (world/region/server), ~6h D1 cache. */
+export function loadWclProgressCached(
 	platform: App.Platform | undefined
 ): Promise<WclProgress | null> {
-	try {
-		const binding = platform?.env?.DB;
-		if (!binding) return null;
-		const db = getDb(binding);
-		const env = platform!.env;
-		return await loadJsonCached<WclProgress>(db, WCL_PROGRESS_KEY, WCL_PROGRESS_TTL_MS, () =>
-			getWclProgress(env)
-		);
-	} catch {
-		return null;
-	}
+	return loadWclJsonCached(platform, WCL_PROGRESS_KEY, WCL_PROGRESS_TTL_MS, getWclProgress);
 }
 
-/**
- * Load per-core attendance (active roster + consistency) through a ~6h D1 cache.
- * Null on missing binding/creds/error — never throws.
- */
-export async function loadWclAttendanceCached(
+/** Load per-core attendance (active roster + consistency), ~6h D1 cache. */
+export function loadWclAttendanceCached(
 	platform: App.Platform | undefined
 ): Promise<WclAttendance | null> {
-	try {
-		const binding = platform?.env?.DB;
-		if (!binding) return null;
-		const db = getDb(binding);
-		const env = platform!.env;
-		return await loadJsonCached<WclAttendance>(db, WCL_ATTENDANCE_KEY, WCL_ATTENDANCE_TTL_MS, () =>
-			getWclAttendance(env)
-		);
-	} catch {
-		return null;
-	}
+	return loadWclJsonCached(platform, WCL_ATTENDANCE_KEY, WCL_ATTENDANCE_TTL_MS, getWclAttendance);
 }
 
 /** A single roster member, as derived from recent WCL report rankings. */
@@ -492,14 +454,20 @@ export async function loadWclCharacterCached(
 		const now = Date.now();
 
 		const cachedRow = await getCache(db, key);
-		if (cachedRow && now - cachedRow.fetchedAt < WCL_CHARACTER_TTL_MS) {
+		if (cachedRow) {
 			try {
 				const parsed = JSON.parse(cachedRow.json) as WclCharacterDetail | { __empty: true };
-				if ((parsed as { __empty?: true }).__empty) {
-					// Synthesized detail already uses the reliable rankings class.
-					return await synthesizePlayerDetailFromRankings(platform, name);
+				const isEmpty = !!(parsed as { __empty?: true }).__empty;
+				// Negative hits expire faster so a newly-imported player isn't stuck
+				// on the empty state for the full positive TTL.
+				const ttl = isEmpty ? WCL_CHARACTER_NEGATIVE_TTL_MS : WCL_CHARACTER_TTL_MS;
+				if (now - cachedRow.fetchedAt < ttl) {
+					if (isEmpty) {
+						// Synthesized detail already uses the reliable rankings class.
+						return await synthesizePlayerDetailFromRankings(platform, name);
+					}
+					return await enrichDetailClass(platform, parsed as WclCharacterDetail);
 				}
-				return await enrichDetailClass(platform, parsed as WclCharacterDetail);
 			} catch {
 				// Corrupt row → fall through and re-fetch.
 			}

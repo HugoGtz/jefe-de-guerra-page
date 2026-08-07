@@ -37,12 +37,55 @@
 	--font-display: 'Cinzel', serif;
 	--font-sans: 'Inter', system-ui, sans-serif;
 
-	/* Letter-spacing — the three tracking values that recur across the UI.
-	   Non-colliding names (Tailwind ships tracking-tight/wide with other values).
-	   → utilities: tracking-heading / tracking-caps / tracking-eyebrow */
+	/* Type scale — rationalized from the values actually in use (see
+	   DESIGN_SYSTEM.md §8). Fixed sizes ≤1.4rem map to these; larger display
+	   headings stay as clamp() in the component. → text-2xs … text-xl utilities. */
+	--text-2xs: 0.65rem; /* micro labels / eyebrows */
+	--text-xs: 0.72rem; /* small uppercase labels, meta */
+	--text-sm: 0.85rem; /* secondary text (most common) */
+	--text-base: 0.95rem; /* base UI text */
+	--text-md: 1.05rem; /* lead paragraphs */
+	--text-lg: 1.15rem; /* subheadings */
+	--text-xl: 1.4rem; /* card titles */
+
+	/* Letter-spacing scale. Non-colliding names (Tailwind ships
+	   tracking-tight/wide with other values). */
+	--tracking-snug: 0.02em; /* subtle body/heading tracking (most common) */
 	--tracking-heading: 0.04em; /* display headings */
-	--tracking-caps: 0.1em; /* uppercase labels/pills */
+	--tracking-wide: 0.06em; /* medium emphasis */
 	--tracking-eyebrow: 0.08em; /* small uppercase eyebrows */
+	--tracking-caps: 0.1em; /* uppercase labels/pills (label-caps) */
+	--tracking-widest: 0.14em; /* wide uppercase eyebrows */
+
+	/* Breakpoints — canonical set (was ~11 ad-hoc values). → sm: / md: / lg:
+	   variants. Scoped @media blocks use the literal px (CSS vars can't live in
+	   media conditions). */
+	--breakpoint-sm: 600px;
+	--breakpoint-md: 768px;
+	--breakpoint-lg: 1024px;
+
+	/* Border-radius scale (was ~10 ad-hoc values). → rounded-* utilities. */
+	--radius-sm: 3px; /* chips / small badges */
+	--radius-md: 6px; /* inputs, small cards */
+	--radius-lg: 8px; /* cards, surfaces */
+	--radius-xl: 12px; /* hero / large avatars */
+	--radius-full: 999px; /* pills, dots */
+
+	/* Spacing scale — minimal-shift: the dominant values are exact, only rare
+	   in-betweens snap to the nearest step. Used for gap / padding / margin.
+	   The `--spacing-` namespace is Tailwind's, so these also generate named
+	   spacing utilities (gap-md, p-lg, …) alongside the numeric gap-4 scale.
+	   clamp()/calc() spacing stays literal. */
+	--spacing-3xs: 0.25rem;
+	--spacing-2xs: 0.4rem;
+	--spacing-xs: 0.5rem;
+	--spacing-sm: 0.6rem;
+	--spacing-md: 0.75rem;
+	--spacing-lg: 0.85rem;
+	--spacing-xl: 1rem;
+	--spacing-2xl: 1.25rem;
+	--spacing-3xl: 1.5rem;
+	--spacing-4xl: 2rem;
 }
 
 /* ============================================================
@@ -117,7 +160,7 @@
 	*::-webkit-scrollbar-thumb {
 		background: linear-gradient(var(--color-blood), var(--color-crimson-deep));
 		border: 2px solid var(--color-stone);
-		border-radius: 6px;
+		border-radius: var(--radius-md);
 	}
 	*::-webkit-scrollbar-thumb:hover {
 		background: linear-gradient(var(--color-lava), var(--color-blood));
@@ -195,8 +238,8 @@
 		transform: translateY(-150%);
 		padding: 0.625rem 1.125rem;
 		font-family: var(--font-display);
-		font-size: 0.875rem;
-		letter-spacing: 0.04em;
+		font-size: var(--text-sm);
+		letter-spacing: var(--tracking-heading);
 		text-transform: uppercase;
 		text-decoration: none;
 		color: var(--color-silver);

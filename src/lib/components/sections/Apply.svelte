@@ -185,7 +185,7 @@
 					name="website"
 					bind:value={honeypot}
 				/>
-				<div class="grid grid-cols-1 gap-[1.1rem] min-[560px]:grid-cols-2">
+				<div class="grid grid-cols-1 gap-[1.1rem] sm:grid-cols-2">
 					<div class="field">
 						<label class="field__label" for="ap-character">Nombre de personaje</label>
 						<input
@@ -344,7 +344,7 @@
 		max-width: 44rem;
 		margin: 0 auto;
 		padding: clamp(1.5rem, 4vw, 2.5rem);
-		border-radius: 8px;
+		border-radius: var(--radius-lg);
 	}
 
 	/* Honeypot anti-bots: fuera de pantalla, invisible y no enfocable. */
@@ -357,7 +357,7 @@
 		pointer-events: none;
 	}
 	.apply__lead {
-		margin: 0 0 1.75rem;
+		margin: 0 0 var(--spacing-3xl);
 		text-align: center;
 		color: var(--color-steel);
 		line-height: 1.65;
@@ -369,11 +369,11 @@
 	}
 	.apply__success-title {
 		font-size: clamp(1.5rem, 4vw, 2rem);
-		margin: 0 0 0.75rem;
+		margin: 0 0 var(--spacing-md);
 		color: var(--color-silver);
 	}
 	.apply__success-text {
-		margin: 0 0 0.6rem;
+		margin: 0 0 var(--spacing-sm);
 		color: var(--color-steel);
 		line-height: 1.6;
 	}
@@ -381,14 +381,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 1rem;
-		margin-top: 1.6rem;
+		gap: var(--spacing-xl);
+		margin-top: var(--spacing-3xl);
 	}
 
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
+		gap: var(--spacing-2xs);
 	}
 	.field--full {
 		grid-column: 1 / -1;
@@ -397,8 +397,8 @@
 	.field__label {
 		font-family: var(--font-display);
 		font-weight: 600;
-		font-size: 0.82rem;
-		letter-spacing: 0.04em;
+		font-size: var(--text-sm);
+		letter-spacing: var(--tracking-heading);
 		text-transform: uppercase;
 		color: var(--color-silver);
 	}
@@ -411,13 +411,14 @@
 
 	.field__input {
 		width: 100%;
-		padding: 0.65rem 0.8rem;
+		padding: var(--spacing-sm) var(--spacing-md);
 		font-family: var(--font-sans);
-		font-size: 0.95rem;
+		/* ≥16px a propósito: por debajo, iOS Safari hace zoom al enfocar el campo. */
+		font-size: var(--text-md);
 		color: var(--color-silver);
 		background-color: var(--color-ash);
 		border: 1px solid color-mix(in srgb, var(--color-steel) 30%, transparent);
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		transition:
 			border-color 0.2s ease,
 			box-shadow 0.2s ease;
@@ -459,20 +460,20 @@
 
 	.field__error {
 		color: var(--color-ember);
-		font-size: 0.8rem;
+		font-size: var(--text-sm);
 		line-height: 1.3;
 	}
 
 	.apply__actions {
-		margin-top: 1.5rem;
+		margin-top: var(--spacing-3xl);
 		display: flex;
 		justify-content: center;
 	}
 
 	.apply__status {
-		margin: 1.25rem 0 0;
+		margin: var(--spacing-2xl) 0 0;
 		text-align: center;
-		font-size: 0.92rem;
+		font-size: var(--text-base);
 		line-height: 1.5;
 		color: var(--color-steel);
 		/* Reservar espacio sin saltos cuando está vacío. */

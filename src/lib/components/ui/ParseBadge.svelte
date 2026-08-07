@@ -38,7 +38,7 @@
 		align-items: center;
 		justify-content: center;
 		min-width: 2.2rem;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		font-family: var(--font-display);
 		font-weight: 900;
 		line-height: 1;
@@ -48,11 +48,11 @@
 		box-shadow: 0 0 10px color-mix(in srgb, var(--parse-color) 28%, transparent);
 	}
 	.parse-badge--sm {
-		padding: 0.16rem 0.5rem;
-		font-size: 0.85rem;
+		padding: 0.16rem var(--spacing-xs);
+		font-size: var(--text-sm);
 	}
 	.parse-badge--md {
-		padding: 0.18rem 0.5rem;
-		font-size: 0.9rem;
+		padding: 0.18rem var(--spacing-xs);
+		font-size: var(--text-base);
 	}
 </style>

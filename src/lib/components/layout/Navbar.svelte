@@ -179,16 +179,16 @@
 	.nav__inner {
 		max-width: 80rem;
 		margin: 0 auto;
-		padding: 0.75rem 1.25rem;
+		padding: var(--spacing-md) var(--spacing-2xl);
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: var(--spacing-xl);
 	}
 
 	.nav__brand {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: var(--spacing-sm);
 		text-decoration: none;
 		margin-right: auto;
 		transition:
@@ -208,15 +208,15 @@
 	.nav__brand-name {
 		color: var(--color-silver);
 		font-weight: 700;
-		font-size: 1.05rem;
-		letter-spacing: 0.06em;
+		font-size: var(--text-md);
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 	}
 
 	.nav__links {
 		display: none;
 		align-items: center;
-		gap: 1.5rem;
+		gap: var(--spacing-lg);
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -225,13 +225,15 @@
 	.nav__link {
 		color: var(--color-steel);
 		font-family: var(--font-display);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
-		letter-spacing: 0.05em;
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 		text-decoration: none;
 		transition: color 0.2s ease;
 		position: relative;
+		/* Una sola línea: "La Guild" / "Salón de la Fama" no deben partirse. */
+		white-space: nowrap;
 	}
 	.nav__link::after {
 		content: '';
@@ -270,7 +272,7 @@
 		width: 42px;
 		height: 42px;
 		padding: 0 9px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background-color: var(--color-stone);
 		cursor: pointer;
 	}
@@ -294,10 +296,10 @@
 	}
 
 	.nav__mobile {
-		padding: 1rem 1.25rem 1.5rem;
+		padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-3xl);
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--spacing-xl);
 		border-radius: 0;
 	}
 	.nav__mobile-links {
@@ -306,13 +308,16 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.9rem;
+		gap: var(--spacing-lg);
 	}
 	:global(.nav__mobile-cta) {
 		width: 100%;
 	}
 
-	@media (min-width: 940px) {
+	/* El nav horizontal solo aparece cuando caben los 8 ítems + brand + CTA en una
+	   línea (~1280px). Por debajo (tablet/iPad Pro incluido) se usa la hamburguesa,
+	   que entra sin problema. Breakpoint específico del componente. */
+	@media (min-width: 1280px) {
 		.nav__links {
 			display: flex;
 		}

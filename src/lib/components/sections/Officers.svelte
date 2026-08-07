@@ -2,6 +2,7 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
+	import ClassSpecIcon from '$lib/components/ui/ClassSpecIcon.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
 	import type { Officer } from '$lib/data/officers';
@@ -12,7 +13,7 @@
 </script>
 
 <Section id="oficiales" eyebrow="Oficiales" title="El consejo de guerra">
-	<div class="grid grid-cols-1 gap-5 min-[560px]:grid-cols-2 min-[980px]:grid-cols-3">
+	<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 		{#each officers as officer, i (officer.name)}
 			{@const specIcon = specIconUrl(officer.wowClass, officer.spec)}
 			{@const avatarIcon = specOrClassIcon(officer.wowClass, officer.spec)}
@@ -27,17 +28,14 @@
 					<Card class="officer">
 						<div class="officer__row">
 							{#if avatarIcon}
-								<img
-									class="officer__avatar officer__avatar--icon"
+								<ClassSpecIcon
 									src={avatarIcon}
+									size={48}
 									alt={(specIcon ? officer.spec : null) ??
 										officer.classLabel ??
 										officer.wowClass ??
 										'Clase'}
-									width="48"
-									height="48"
-									loading="lazy"
-									decoding="async"
+									class="officer__avatar officer__avatar--icon"
 								/>
 							{:else}
 								<span class="officer__avatar" aria-hidden="true">{officer.name.charAt(0)}</span>
@@ -75,33 +73,35 @@
 	}
 	:global(.officer) {
 		height: 100%;
-		padding: 1.1rem 1.25rem;
+		padding: var(--spacing-xl) var(--spacing-2xl);
 	}
 	/* Tidy row: avatar · identity · parse. No wrapping/clutter. */
 	.officer__row {
 		display: flex;
 		align-items: center;
-		gap: 0.9rem;
+		gap: var(--spacing-lg);
 		height: 100%;
 	}
 
-	.officer__avatar {
+	/* :global — la variante --icon la lleva el <img> de ClassSpecIcon (hijo); la
+	   base también estiliza el span de inicial (local). */
+	:global(.officer__avatar) {
 		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		width: 48px;
 		height: 48px;
-		border-radius: 10px;
+		border-radius: var(--radius-lg);
 		font-family: var(--font-display);
-		font-size: 1.4rem;
+		font-size: var(--text-xl);
 		font-weight: 900;
 		color: var(--color-silver);
 		background: linear-gradient(135deg, var(--color-crimson-deep), var(--color-blood));
 		border: 1px solid color-mix(in srgb, var(--color-steel) 40%, transparent);
 		box-shadow: inset 0 1px 0 rgba(229, 229, 229, 0.15);
 	}
-	.officer__avatar--icon {
+	:global(.officer__avatar--icon) {
 		object-fit: cover;
 		background: color-mix(in srgb, var(--color-stone) 75%, transparent);
 	}
@@ -111,21 +111,21 @@
 		flex: 1;
 	}
 	.officer__name {
-		font-size: 1.15rem;
+		font-size: var(--text-lg);
 		font-weight: 700;
 		margin: 0;
-		letter-spacing: 0.02em;
+		letter-spacing: var(--tracking-snug);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	.officer__role {
-		font-size: 0.74rem;
+		font-size: var(--text-xs);
 		margin: 0.15rem 0 0;
 	}
 	.officer__class {
-		font-size: 0.78rem;
-		letter-spacing: 0.06em;
+		font-size: var(--text-xs);
+		letter-spacing: var(--tracking-wide);
 		color: var(--color-steel-dim);
 		margin: 0.1rem 0 0;
 	}

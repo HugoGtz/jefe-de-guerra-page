@@ -384,6 +384,19 @@ type WclEnv = {
 	WCL_CLIENT_SECRET?: string;
 };
 
+// ── Observability ────────────────────────────────────────────────────────────
+
+/**
+ * Structured log for WCL failures. Every public getter here is silent-catch
+ * resilient (any error → null → static fallback) so the site never crashes; the
+ * downside is that in prod you can't tell whether live data is missing due to a
+ * bad token, a rate limit, a timeout, or a bug. This surfaces each failure in
+ * the Cloudflare logs / `wrangler tail` without changing the resilient behavior.
+ */
+function logWcl(op: string, detail: Record<string, unknown>): void {
+	console.warn(`[wcl] ${op}`, detail);
+}
+
 // ── OAuth token cache (module-level) ─────────────────────────────────────────
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -406,7 +419,11 @@ async function getToken(env: WclEnv): Promise<string | null> {
 		},
 		body: 'grant_type=client_credentials'
 	});
-	if (!res.ok) return null;
+	if (!res.ok) {
+		// 401/403 → bad client creds; 429 → rate limited.
+		logWcl('token', { status: res.status });
+		return null;
+	}
 
 	const json = (await res.json()) as { access_token?: string; expires_in?: number };
 	if (!json.access_token) return null;
@@ -569,7 +586,8 @@ export async function getWclData(env: WclEnv, cores?: WclSource[]): Promise<WclD
 		for (const [id, s] of statsByCore) perCoreStats[id] = s;
 
 		return { killedBossNames, perCore, perCoreStats, feats: feats.slice(0, MAX_FEATS) };
-	} catch {
+	} catch (e) {
+		logWcl('getWclData', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }
@@ -586,14 +604,23 @@ async function gql<T>(token: string, query: string): Promise<T | null> {
 		},
 		body: JSON.stringify({ query })
 	});
-	if (!res.ok) return null;
+	if (!res.ok) {
+		// 429 → rate limited; 5xx → WCL outage; 401 → token rejected.
+		logWcl('gql', { status: res.status });
+		return null;
+	}
 	const json = (await res.json()) as { data?: T; errors?: unknown };
+	if (json.errors) logWcl('gql-errors', { errors: json.errors });
 	return json.data ?? null;
 }
 
-/** Escape a character name for safe inlining inside a GraphQL string literal. */
+/** Escape a character name for safe inlining inside a GraphQL string literal.
+ *  Newlines are collapsed to a space so they can't break out of the literal. */
 function gqlStr(value: string): string {
-	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+	return value
+		.replace(/\\/g, '\\\\')
+		.replace(/"/g, '\\"')
+		.replace(/[\r\n]+/g, ' ');
 }
 
 /**
@@ -731,7 +758,8 @@ export async function getWclOfficers(
 			if (ch.wowClass || ch.spec || ch.score != null) out[name] = ch;
 		});
 		return out;
-	} catch {
+	} catch (e) {
+		logWcl('getWclOfficers', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }
@@ -941,7 +969,8 @@ export async function getWclCharacter(
 			allStars,
 			bosses
 		};
-	} catch {
+	} catch (e) {
+		logWcl('getWclCharacter', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }
@@ -1073,141 +1102,165 @@ async function fetchZoneScores(token: string, names: string[]): Promise<Map<stri
  * Phases: report codes per core → report rankings (chunked) → roster zone scores
  * (chunked). Fully resilient — returns null on any failure or if empty.
  */
-export async function getWclRankings(
-	env: WclEnv,
-	cores?: WclSource[]
-): Promise<WclRankings | null> {
-	try {
-		const list = cores ?? defaultSources();
-		if (list.length === 0) return null;
+type ReportCodeMaps = {
+	/** report code → core display name. */
+	codeToCore: Map<string, string>;
+	/** report code → core wclGuildId (for per-core rosters). */
+	codeToGuildId: Map<string, number>;
+};
 
-		const token = await getToken(env);
-		if (!token) return null;
+/**
+ * Phase 1 of {@link getWclRankings}: fetch the recent report codes per core in a
+ * single batched query and attribute each parent report to the right core by its
+ * raid-team tag. Returns null when the query fails.
+ */
+async function fetchReportCodes(token: string, list: WclSource[]): Promise<ReportCodeMaps | null> {
+	const guildIds = list.map((c) => c.wclGuildId);
+	const tagMap = tagToCore();
+	type ReportCodes = { reports: { data: { code: string; guildTag: GuildTag }[] } };
+	const codesData = await gql<Record<string, ReportCodes>>(token, buildReportCodesQuery(guildIds));
+	if (!codesData) return null;
 
-		// Phase 1 — recent report codes per core (single batched query).
-		const guildIds = list.map((c) => c.wclGuildId);
-		const tagMap = tagToCore();
-		type ReportCodes = { reports: { data: { code: string; guildTag: GuildTag }[] } };
-		const codesData = await gql<Record<string, ReportCodes>>(
-			token,
-			buildReportCodesQuery(guildIds)
-		);
-		if (!codesData) return null;
-
-		// code → core display name, and code → core wclGuildId (for rosters).
-		// Parent reports are attributed to the right core by their raid-team tag.
-		const codeToCore = new Map<string, string>();
-		const codeToGuildId = new Map<string, number>();
-		list.forEach((source, i) => {
-			for (const r of codesData[`r${i}`]?.reports?.data ?? []) {
-				if (r?.code && !codeToCore.has(r.code)) {
-					const core = resolveCore(source, r.guildTag, tagMap);
-					codeToCore.set(r.code, core.name);
-					codeToGuildId.set(r.code, core.wclGuildId);
-				}
+	const codeToCore = new Map<string, string>();
+	const codeToGuildId = new Map<string, number>();
+	list.forEach((source, i) => {
+		for (const r of codesData[`r${i}`]?.reports?.data ?? []) {
+			if (r?.code && !codeToCore.has(r.code)) {
+				const core = resolveCore(source, r.guildTag, tagMap);
+				codeToCore.set(r.code, core.name);
+				codeToGuildId.set(r.code, core.wclGuildId);
 			}
-		});
-		const allCodes = [...codeToCore.keys()];
-		if (allCodes.length === 0) return null;
+		}
+	});
+	return { codeToCore, codeToGuildId };
+}
 
-		// best[role] : name(lower) → entry (highest rankPercent kept).
-		const best = new Map<SpecRole, Map<string, HallOfFameEntry>>([
-			['DPS', new Map()],
-			['Healer', new Map()],
-			['Tank', new Map()]
-		]);
-		// name(lower) → best parse across ALL roles (reliable officer enrichment).
-		const characters = new Map<string, WclCharacter>();
-		// wclGuildId → (name(lower) → best parse within that core). Each core's
-		// roster keeps the single best parse per character seen in its reports.
-		const rosterByGuild = new Map<number, Map<string, WclCharacter>>();
-		// name(lower) → raw recent kills (one per fight the player was in). Deduped,
-		// sorted and capped at the end. Powers the player-detail "histórico".
-		const recentRaw = new Map<string, WclRecentKill[]>();
-		// boss name → (name(lower) → best parse on that boss). Per-boss leaderboard.
-		const byBossMap = new Map<string, Map<string, BossLeaderEntry>>();
+/**
+ * Mutable accumulator for {@link getWclRankings}: the five parse-ranking
+ * structures (Hall of Fame per role, best-parse character map, per-core rosters,
+ * per-player histórico, per-boss leaderboard) plus the `consider*` recorders that
+ * populate them from each fight. `build(zoneScores)` applies the coherent
+ * zoneRankings scores and produces the final `WclRankings` (or null if empty).
+ */
+function createRankingsAccumulator() {
+	// best[role] : name(lower) → entry (highest rankPercent kept).
+	const best = new Map<SpecRole, Map<string, HallOfFameEntry>>([
+		['DPS', new Map()],
+		['Healer', new Map()],
+		['Tank', new Map()]
+	]);
+	// name(lower) → best parse across ALL roles (reliable officer enrichment).
+	const characters = new Map<string, WclCharacter>();
+	// wclGuildId → (name(lower) → best parse within that core). Each core's
+	// roster keeps the single best parse per character seen in its reports.
+	const rosterByGuild = new Map<number, Map<string, WclCharacter>>();
+	// name(lower) → raw recent kills (one per fight the player was in). Deduped,
+	// sorted and capped at the end. Powers the player-detail "histórico".
+	const recentRaw = new Map<string, WclRecentKill[]>();
+	// boss name → (name(lower) → best parse on that boss). Per-boss leaderboard.
+	const byBossMap = new Map<string, Map<string, BossLeaderEntry>>();
 
-		/** Record a player's best parse on a given boss (per-boss leaderboard). */
-		const considerBoss = (ch: RankChar | null | undefined, boss: string, core: string) => {
-			const name = ch?.name?.trim();
-			const pct = ch?.rankPercent;
-			if (!name || !boss || typeof pct !== 'number' || pct <= 0) return;
-			const score = Math.round(pct);
-			const key = name.toLowerCase();
-			let bucket = byBossMap.get(boss);
-			if (!bucket) {
-				bucket = new Map<string, BossLeaderEntry>();
-				byBossMap.set(boss, bucket);
-			}
-			const prev = bucket.get(key);
-			if (!prev || score > prev.score) {
-				const wowClass = ch?.class ? CLASS_NAME_TO_CLASS[ch.class] : undefined;
-				bucket.set(key, {
-					name,
-					wowClass,
-					classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
-					classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
-					spec: ch?.spec ?? undefined,
-					core,
-					score
-				});
-			}
-		};
-
-		/** Record one fight a player was present in (for the histórico). */
-		const recordKill = (
-			ch: RankChar | null | undefined,
-			boss: string,
-			date: string,
-			core: string
-		) => {
-			const name = ch?.name?.trim();
-			if (!name || !boss) return;
-			const key = name.toLowerCase();
-			const list = recentRaw.get(key) ?? [];
-			const pct = ch?.rankPercent;
-			list.push({
-				boss,
-				date,
-				parse: typeof pct === 'number' && pct > 0 ? Math.round(pct) : null,
-				core
-			});
-			recentRaw.set(key, list);
-		};
-
-		const consider = (
-			ch: RankChar | null | undefined,
-			role: SpecRole,
-			core: string,
-			guildId: number | undefined
-		) => {
-			const name = ch?.name?.trim();
-			const pct = ch?.rankPercent;
-			if (!name || typeof pct !== 'number' || pct <= 0) return;
-			const score = Math.round(pct);
+	/** Record a player's best parse on a given boss (per-boss leaderboard). */
+	const considerBoss = (ch: RankChar | null | undefined, boss: string, core: string) => {
+		const name = ch?.name?.trim();
+		const pct = ch?.rankPercent;
+		if (!name || !boss || typeof pct !== 'number' || pct <= 0) return;
+		const score = Math.round(pct);
+		const key = name.toLowerCase();
+		let bucket = byBossMap.get(boss);
+		if (!bucket) {
+			bucket = new Map<string, BossLeaderEntry>();
+			byBossMap.set(boss, bucket);
+		}
+		const prev = bucket.get(key);
+		if (!prev || score > prev.score) {
 			const wowClass = ch?.class ? CLASS_NAME_TO_CLASS[ch.class] : undefined;
-			const spec = ch?.spec ?? undefined;
-			const key = name.toLowerCase();
-
-			const entry: HallOfFameEntry = {
+			bucket.set(key, {
 				name,
 				wowClass,
 				classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
 				classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
-				spec,
-				role,
+				spec: ch?.spec ?? undefined,
 				core,
 				score
-			};
-			const bucket = best.get(role)!;
-			const prev = bucket.get(key);
-			if (!prev || score > prev.score) bucket.set(key, entry);
+			});
+		}
+	};
 
-			// Character map: keep the highest-scoring parse regardless of role, so
-			// officer cards show the class/spec/role they actually played.
-			const prevChar = characters.get(key);
-			if (!prevChar || score > (prevChar.score ?? -1)) {
-				characters.set(key, {
+	/** Record one fight a player was present in (for the histórico). */
+	const recordKill = (
+		ch: RankChar | null | undefined,
+		boss: string,
+		date: string,
+		core: string
+	) => {
+		const name = ch?.name?.trim();
+		if (!name || !boss) return;
+		const key = name.toLowerCase();
+		const list = recentRaw.get(key) ?? [];
+		const pct = ch?.rankPercent;
+		list.push({
+			boss,
+			date,
+			parse: typeof pct === 'number' && pct > 0 ? Math.round(pct) : null,
+			core
+		});
+		recentRaw.set(key, list);
+	};
+
+	const consider = (
+		ch: RankChar | null | undefined,
+		role: SpecRole,
+		core: string,
+		guildId: number | undefined
+	) => {
+		const name = ch?.name?.trim();
+		const pct = ch?.rankPercent;
+		if (!name || typeof pct !== 'number' || pct <= 0) return;
+		const score = Math.round(pct);
+		const wowClass = ch?.class ? CLASS_NAME_TO_CLASS[ch.class] : undefined;
+		const spec = ch?.spec ?? undefined;
+		const key = name.toLowerCase();
+
+		const entry: HallOfFameEntry = {
+			name,
+			wowClass,
+			classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+			classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
+			spec,
+			role,
+			core,
+			score
+		};
+		const bucket = best.get(role)!;
+		const prev = bucket.get(key);
+		if (!prev || score > prev.score) bucket.set(key, entry);
+
+		// Character map: keep the highest-scoring parse regardless of role, so
+		// officer cards show the class/spec/role they actually played.
+		const prevChar = characters.get(key);
+		if (!prevChar || score > (prevChar.score ?? -1)) {
+			characters.set(key, {
+				name,
+				wowClass,
+				classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+				spec,
+				specRole: role,
+				score
+			});
+		}
+
+		// Per-core roster: bucket into the character's core, keeping the best
+		// parse per character WITHIN that core (with the class/spec/role of it).
+		if (guildId != null) {
+			let roster = rosterByGuild.get(guildId);
+			if (!roster) {
+				roster = new Map<string, WclCharacter>();
+				rosterByGuild.set(guildId, roster);
+			}
+			const prevMember = roster.get(key);
+			if (!prevMember || score > (prevMember.score ?? -1)) {
+				roster.set(key, {
 					name,
 					wowClass,
 					classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
@@ -1216,74 +1269,18 @@ export async function getWclRankings(
 					score
 				});
 			}
-
-			// Per-core roster: bucket into the character's core, keeping the best
-			// parse per character WITHIN that core (with the class/spec/role of it).
-			if (guildId != null) {
-				let roster = rosterByGuild.get(guildId);
-				if (!roster) {
-					roster = new Map<string, WclCharacter>();
-					rosterByGuild.set(guildId, roster);
-				}
-				const prevMember = roster.get(key);
-				if (!prevMember || score > (prevMember.score ?? -1)) {
-					roster.set(key, {
-						name,
-						wowClass,
-						classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
-						spec,
-						specRole: role,
-						score
-					});
-				}
-			}
-		};
-
-		// Phase 2 — report rankings, batched in chunks of report codes.
-		const CHUNK = 4;
-		for (let start = 0; start < allCodes.length; start += CHUNK) {
-			const chunk = allCodes.slice(start, start + CHUNK);
-			const data = await gql<
-				Record<string, { report: { startTime?: number | null; rankings: ReportRankings } | null }>
-			>(token, buildReportRankingsQuery(chunk));
-			if (!data) continue; // Skip a failed chunk; keep what we have.
-
-			chunk.forEach((code, i) => {
-				const report = data[`q${i}`]?.report;
-				const fights = report?.rankings?.data ?? [];
-				const core = codeToCore.get(code) ?? 'Core';
-				const guildId = codeToGuildId.get(code);
-				// Date for this report's kills (for the histórico). May be missing.
-				const date = typeof report?.startTime === 'number' ? toIsoDate(report.startTime) : null;
-				for (const fight of fights) {
-					const roles = fight?.roles;
-					if (!roles) continue;
-					const boss = fight?.encounter?.name ?? null;
-					for (const c of roles.tanks?.characters ?? []) {
-						consider(c, 'Tank', core, guildId);
-						if (boss) considerBoss(c, boss, core);
-						if (boss && date) recordKill(c, boss, date, core);
-					}
-					for (const c of roles.healers?.characters ?? []) {
-						consider(c, 'Healer', core, guildId);
-						if (boss) considerBoss(c, boss, core);
-						if (boss && date) recordKill(c, boss, date, core);
-					}
-					for (const c of roles.dps?.characters ?? []) {
-						consider(c, 'DPS', core, guildId);
-						if (boss) considerBoss(c, boss, core);
-						if (boss && date) recordKill(c, boss, date, core);
-					}
-				}
-			});
 		}
+	};
 
-		// Phase 3 — coherent scores: replace each player's report-parse score with
-		// their zoneRankings bestPerformanceAverage (the same metric /jugador/NAME
-		// shows). Falls back to the report parse for names without zoneRankings, so
-		// no one disappears. One fetch per ~20 names, riding this 1h cache.
-		const rosterNames = [...characters.values()].map((c) => c.name);
-		const zoneScores = await fetchZoneScores(token, rosterNames);
+	/** Names of every character seen (drives the Phase-3 zoneRankings fetch). */
+	const characterNames = (): string[] => [...characters.values()].map((c) => c.name);
+
+	/**
+	 * Terminal step: apply the coherent zoneRankings scores (falling back to the
+	 * report parse for names without one, so no one disappears), then sort/dedupe/
+	 * cap every structure into the final `WclRankings`. Null when nothing was seen.
+	 */
+	const build = (zoneScores: Map<string, number>): WclRankings | null => {
 		const scoreFor = (name: string, fallback: number): number =>
 			zoneScores.get(name.toLowerCase()) ?? fallback;
 
@@ -1359,7 +1356,82 @@ export async function getWclRankings(
 			byClass,
 			byBoss
 		};
-	} catch {
+	};
+
+	return { consider, considerBoss, recordKill, characterNames, build };
+}
+
+/**
+ * Report-rankings aggregate powering the Hall of Fame, per-core rosters, the
+ * per-class / per-boss leaderboards and the player-detail histórico. Orchestrates
+ * three phases — report codes → report rankings (chunked) → roster zone scores —
+ * feeding a shared accumulator. Fully resilient: returns null on any failure or
+ * if empty.
+ */
+export async function getWclRankings(
+	env: WclEnv,
+	cores?: WclSource[]
+): Promise<WclRankings | null> {
+	try {
+		const list = cores ?? defaultSources();
+		if (list.length === 0) return null;
+
+		const token = await getToken(env);
+		if (!token) return null;
+
+		// Phase 1 — recent report codes per core (single batched query).
+		const codes = await fetchReportCodes(token, list);
+		if (!codes) return null;
+		const { codeToCore, codeToGuildId } = codes;
+		const allCodes = [...codeToCore.keys()];
+		if (allCodes.length === 0) return null;
+
+		const acc = createRankingsAccumulator();
+
+		// Phase 2 — report rankings, batched in chunks of report codes.
+		const CHUNK = 4;
+		for (let start = 0; start < allCodes.length; start += CHUNK) {
+			const chunk = allCodes.slice(start, start + CHUNK);
+			const data = await gql<
+				Record<string, { report: { startTime?: number | null; rankings: ReportRankings } | null }>
+			>(token, buildReportRankingsQuery(chunk));
+			if (!data) continue; // Skip a failed chunk; keep what we have.
+
+			chunk.forEach((code, i) => {
+				const report = data[`q${i}`]?.report;
+				const fights = report?.rankings?.data ?? [];
+				const core = codeToCore.get(code) ?? 'Core';
+				const guildId = codeToGuildId.get(code);
+				// Date for this report's kills (for the histórico). May be missing.
+				const date = typeof report?.startTime === 'number' ? toIsoDate(report.startTime) : null;
+				for (const fight of fights) {
+					const roles = fight?.roles;
+					if (!roles) continue;
+					const boss = fight?.encounter?.name ?? null;
+					for (const c of roles.tanks?.characters ?? []) {
+						acc.consider(c, 'Tank', core, guildId);
+						if (boss) acc.considerBoss(c, boss, core);
+						if (boss && date) acc.recordKill(c, boss, date, core);
+					}
+					for (const c of roles.healers?.characters ?? []) {
+						acc.consider(c, 'Healer', core, guildId);
+						if (boss) acc.considerBoss(c, boss, core);
+						if (boss && date) acc.recordKill(c, boss, date, core);
+					}
+					for (const c of roles.dps?.characters ?? []) {
+						acc.consider(c, 'DPS', core, guildId);
+						if (boss) acc.considerBoss(c, boss, core);
+						if (boss && date) acc.recordKill(c, boss, date, core);
+					}
+				}
+			});
+		}
+
+		// Phase 3 — coherent scores: one fetch per ~20 names, riding this 1h cache.
+		const zoneScores = await fetchZoneScores(token, acc.characterNames());
+		return acc.build(zoneScores);
+	} catch (e) {
+		logWcl('getWclRankings', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }
@@ -1466,7 +1538,8 @@ export async function getWclProgress(
 
 		if (!guild && Object.keys(perCore).length === 0) return null;
 		return { guild, perCore };
-	} catch {
+	} catch (e) {
+		logWcl('getWclProgress', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }
@@ -1597,7 +1670,8 @@ export async function getWclAttendance(env: WclEnv): Promise<WclAttendance | nul
 
 		if (Object.keys(perCore).length === 0) return null;
 		return { perCore };
-	} catch {
+	} catch (e) {
+		logWcl('getWclAttendance', { error: e instanceof Error ? e.message : String(e) });
 		return null;
 	}
 }

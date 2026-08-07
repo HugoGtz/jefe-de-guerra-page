@@ -81,7 +81,7 @@
 		el próximo asalto y la puerta de entrada a la comunidad.
 	</p>
 
-	<div class="grid grid-cols-1 items-stretch gap-6 min-[820px]:grid-cols-2">
+	<div class="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
 		<!-- ── CUENTA ATRÁS ───────────────────────────────────────── -->
 		<div class="countdown-wrap" use:reveal={{ direction: 'left' }}>
 			<Card beam class="countdown-card">
@@ -157,7 +157,7 @@
 		max-width: 42rem;
 		margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
 		text-align: center;
-		font-size: 1.05rem;
+		font-size: var(--text-md);
 		line-height: 1.7;
 		color: var(--color-steel);
 	}
@@ -176,24 +176,24 @@
 
 	.countdown__eyebrow {
 		font-family: var(--font-display);
-		font-size: 0.82rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		margin: 0 0 1.4rem;
+		margin: 0 0 var(--spacing-2xl);
 	}
 
 	.countdown {
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
-		gap: 0.35rem;
+		gap: var(--spacing-2xs);
 	}
 	.countdown__unit {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.4rem;
+		gap: var(--spacing-2xs);
 		min-width: 3.4rem;
 	}
 	.countdown__value {
@@ -207,9 +207,9 @@
 	}
 	.countdown__label {
 		font-family: var(--font-display);
-		font-size: 0.62rem;
+		font-size: var(--text-2xs);
 		font-weight: 700;
-		letter-spacing: 0.14em;
+		letter-spacing: var(--tracking-widest);
 		text-transform: uppercase;
 		color: var(--color-steel-dim);
 	}
@@ -223,11 +223,11 @@
 	}
 
 	.countdown__meta {
-		margin: 1.5rem 0 0;
+		margin: var(--spacing-3xl) 0 0;
 		font-family: var(--font-display);
-		font-size: 0.9rem;
+		font-size: var(--text-base);
 		font-weight: 700;
-		letter-spacing: 0.04em;
+		letter-spacing: var(--tracking-heading);
 		color: var(--color-ember);
 	}
 	.countdown__meta--empty {
@@ -239,7 +239,7 @@
 	.discord-frame {
 		position: relative;
 		width: 100%;
-		border-radius: 6px;
+		border-radius: var(--radius-md);
 		overflow: hidden;
 		/* Altura del widget oficial de Discord. */
 		min-height: 500px;
@@ -259,18 +259,18 @@
 		align-items: center;
 		text-align: center;
 		justify-content: center;
-		gap: 0.9rem;
+		gap: var(--spacing-lg);
 	}
 	.discord-fallback__title {
 		font-size: clamp(1.3rem, 3vw, 1.7rem);
 		font-weight: 900;
-		letter-spacing: 0.03em;
+		letter-spacing: var(--tracking-snug);
 		margin: 0;
 	}
 	.discord-fallback__text {
 		max-width: 30rem;
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--text-base);
 		line-height: 1.6;
 		color: var(--color-steel);
 	}
@@ -278,10 +278,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		margin-top: 0.4rem;
-		padding: 0.8rem 1.8rem;
-		border-radius: 4px;
-		font-size: 0.85rem;
+		margin-top: var(--spacing-2xs);
+		padding: var(--spacing-md) 1.8rem;
+		border-radius: var(--radius-md);
+		font-size: var(--text-sm);
 		text-decoration: none;
 		color: var(--color-silver);
 		background: linear-gradient(135deg, var(--color-blood), var(--color-crimson-deep));
@@ -298,7 +298,7 @@
 	   apretado: reducimos el ancho de cada unidad y ocultamos los separadores. */
 	@media (max-width: 380px) {
 		.countdown {
-			gap: 0.2rem;
+			gap: var(--spacing-3xs);
 		}
 		.countdown__unit {
 			min-width: 2.7rem;

@@ -50,15 +50,15 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.7rem 1.5rem;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-md) var(--spacing-3xl);
 		font-family: var(--font-display);
 		font-weight: 700;
-		font-size: 0.95rem;
-		letter-spacing: 0.04em;
+		font-size: var(--text-base);
+		letter-spacing: var(--tracking-heading);
 		text-transform: uppercase;
 		line-height: 1;
-		border-radius: 2px;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		user-select: none;
 		text-decoration: none;
@@ -84,7 +84,7 @@
 		z-index: 1;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--spacing-xs);
 	}
 
 	/* Subtle continuous attention pulse (opt-in via `pulse` prop).

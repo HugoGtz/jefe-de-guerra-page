@@ -82,8 +82,8 @@
 		position: relative;
 		/* Clip the sheen band to the card's rounded bounds. */
 		overflow: hidden;
-		border-radius: 4px;
-		padding: 1.5rem;
+		border-radius: var(--radius-md);
+		padding: var(--spacing-3xl);
 		transition:
 			transform 0.25s ease,
 			box-shadow 0.3s ease,

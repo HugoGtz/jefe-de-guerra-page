@@ -69,11 +69,11 @@
 		padding: 0;
 		max-width: 48rem;
 		display: grid;
-		gap: 0.85rem;
+		gap: var(--spacing-lg);
 	}
 
 	.faq__item {
-		border-radius: 4px;
+		border-radius: var(--radius-md);
 		background-color: var(--color-stone);
 		overflow: hidden;
 	}
@@ -89,8 +89,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
-		padding: 1.1rem 1.25rem;
+		gap: var(--spacing-xl);
+		padding: var(--spacing-xl) var(--spacing-2xl);
 		background: transparent;
 		border: 0;
 		cursor: pointer;
@@ -110,7 +110,7 @@
 		font-family: var(--font-display);
 		font-weight: 700;
 		font-size: clamp(0.98rem, 2.4vw, 1.1rem);
-		letter-spacing: 0.01em;
+		letter-spacing: var(--tracking-snug);
 		line-height: 1.35;
 		transition: color 0.2s ease;
 	}
@@ -158,10 +158,10 @@
 
 	.faq__a {
 		margin: 0;
-		padding: 0 1.25rem 1.2rem;
+		padding: 0 var(--spacing-2xl) var(--spacing-2xl);
 		color: var(--color-steel);
 		line-height: 1.65;
-		font-size: 0.98rem;
+		font-size: var(--text-base);
 	}
 
 	/* [hidden] por defecto pone display:none; lo neutralizamos para poder animar

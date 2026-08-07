@@ -73,7 +73,7 @@
 		align-items: center;
 		justify-content: center;
 		text-align: center;
-		padding: 6rem 1.25rem 4rem;
+		padding: 6rem var(--spacing-2xl) 4rem;
 		overflow: hidden;
 	}
 
@@ -111,7 +111,7 @@
 
 	.hero__logo-wrap {
 		width: min(72vw, 360px);
-		margin-bottom: 1.5rem;
+		margin-bottom: var(--spacing-3xl);
 	}
 	/* Wrapper externo: inclinación 3D hacia el cursor (la action fija el
 	   transform). transform-style aquí para que el hijo 3D componga. */
@@ -134,23 +134,26 @@
 	}
 
 	.hero__name {
-		/* Clamp afinado para que "JEFE DE GUERRA" no se recorte a 320–414px:
-		   mínimo más bajo + factor vw menor evitan el desborde con el
-		   inline-block de background-clip:text. */
-		font-size: clamp(1.8rem, 8vw, 4.5rem);
+		/* Factor vw contenido para que "JEFE DE GUERRA" quepa en una línea en el
+		   rango medio (tablet/ventana angosta) sin recortarse. */
+		font-size: clamp(1.8rem, 7vw, 4.5rem);
 		font-weight: 900;
-		letter-spacing: 0.04em;
+		letter-spacing: var(--tracking-heading);
 		text-transform: uppercase;
 		margin: 0;
 		line-height: 1.02;
 		max-width: 100%;
+		/* Item de un flex column: sin esto (min-width:auto) no encoge bajo su
+		   max-content y desborda (lo recorta el overflow:hidden del hero). Con
+		   min-width:0 envuelve en vez de recortarse — red de seguridad. */
+		min-width: 0;
 		animation: hero-rise 0.6s ease-out 0.15s both;
 	}
 	/* En pantallas estrechas, reducir el tracking para ganar holgura
 	   horizontal y garantizar que el título nunca desborde el viewport. */
 	@media (max-width: 414px) {
 		.hero__name {
-			letter-spacing: 0.01em;
+			letter-spacing: var(--tracking-snug);
 		}
 	}
 	/* Texto cromado plateado: el propio glifo es un gradiente metálico
@@ -188,43 +191,50 @@
 		font-family: var(--font-display);
 		font-size: clamp(1rem, 2.4vw, 1.35rem);
 		font-style: italic;
-		letter-spacing: 0.03em;
-		margin: 1rem 0 0;
+		letter-spacing: var(--tracking-snug);
+		margin: var(--spacing-xl) 0 0;
 		animation: hero-rise 0.6s ease-out 0.3s both;
 	}
 
 	.hero__badge {
-		margin-top: 1.5rem;
+		margin-top: var(--spacing-3xl);
 		animation: hero-rise 0.6s ease-out 0.45s both;
 	}
 
 	.hero__actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: var(--spacing-xl);
 		justify-content: center;
-		margin-top: 2rem;
+		margin-top: var(--spacing-4xl);
 		animation: hero-rise 0.6s ease-out 0.6s both;
 	}
 
 	.hero__scroll {
 		position: absolute;
 		bottom: 1.75rem;
-		left: 50%;
-		transform: translateX(-50%);
+		/* Centrado sin `transform` (con left/right:0 + margin auto): así la
+		   animación hero-rise, que SÍ usa transform, no pisa el centrado. */
+		left: 0;
+		right: 0;
+		width: max-content;
+		margin-inline: auto;
 		z-index: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--spacing-xs);
 		text-decoration: none;
 		color: var(--color-steel-dim);
 		animation: hero-rise 0.6s ease-out 0.75s both;
 	}
 	.hero__scroll-text {
 		font-family: var(--font-display);
-		font-size: 0.7rem;
+		font-size: var(--text-xs);
 		letter-spacing: 0.2em;
+		/* Compensa el espacio que letter-spacing añade tras la última letra, para
+		   que el texto quede ópticamente centrado bajo el chevron. */
+		text-indent: 0.2em;
 		text-transform: uppercase;
 	}
 	.hero__scroll-chevron {

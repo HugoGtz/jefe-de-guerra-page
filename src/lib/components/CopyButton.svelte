@@ -85,18 +85,18 @@
 	.copy-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
-		padding: 0.4rem 0.85rem;
+		gap: var(--spacing-2xs);
+		padding: var(--spacing-2xs) var(--spacing-lg);
 		font-family: var(--font-display);
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
-		letter-spacing: 0.06em;
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 		line-height: 1;
 		color: var(--color-steel);
 		background-color: color-mix(in srgb, var(--color-stone) 70%, transparent);
 		border: 1px solid color-mix(in srgb, var(--color-steel) 28%, transparent);
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition:
 			transform 0.2s ease,

@@ -76,7 +76,7 @@
 		</Button>
 	</div>
 
-	<div class="grid grid-cols-1 gap-6 min-[600px]:grid-cols-2 min-[920px]:grid-cols-3">
+	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 		{#each teams as team, i (team.id)}
 			<div
 				use:reveal={{
@@ -169,7 +169,7 @@
 		margin-inline: auto;
 		margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
 		text-align: center;
-		font-size: 1.05rem;
+		font-size: var(--text-md);
 		line-height: 1.7;
 		color: var(--color-steel);
 	}
@@ -179,7 +179,7 @@
 		margin-top: -1.5rem;
 		margin-bottom: clamp(2rem, 4vw, 2.75rem);
 		text-align: center;
-		font-size: 0.8rem;
+		font-size: var(--text-sm);
 		color: var(--color-steel-dim);
 	}
 	/* Solo los márgenes custom; flex/justify/mx-auto van por utilidades. */
@@ -234,11 +234,11 @@
 	.team-card__roster-cue {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		margin: 1.1rem 0 0;
+		gap: var(--spacing-2xs);
+		margin: var(--spacing-xl) 0 0;
 		margin-top: auto;
-		padding-top: 1.1rem;
-		font-size: 0.74rem;
+		padding-top: var(--spacing-xl);
+		font-size: var(--text-xs);
 		color: var(--color-ember);
 		transition:
 			color 0.2s ease,
@@ -247,7 +247,7 @@
 	/* Cuando hay fila de enlaces (Logs/Calendario), esa fila ya está anclada
 	   abajo; el cue la sigue sin volver a empujar con auto. */
 	.team-card__links + .team-card__roster-cue {
-		margin-top: 0.55rem;
+		margin-top: var(--spacing-xs);
 		padding-top: 0;
 	}
 	.team-card__roster-arrow {
@@ -263,9 +263,9 @@
 
 	.team-card__name {
 		font-family: var(--font-display);
-		font-size: 1.4rem;
+		font-size: var(--text-xl);
 		font-weight: 900;
-		letter-spacing: 0.04em;
+		letter-spacing: var(--tracking-heading);
 		margin: 0;
 	}
 
@@ -273,15 +273,15 @@
 		display: flex;
 		align-items: baseline;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin: 0 0 1.25rem;
-		font-size: 0.85rem;
+		gap: var(--spacing-2xs);
+		margin: 0 0 var(--spacing-2xl);
+		font-size: var(--text-sm);
 		color: var(--color-steel-dim);
 	}
 	.team-card__days {
 		font-family: var(--font-display);
 		font-weight: 700;
-		letter-spacing: 0.04em;
+		letter-spacing: var(--tracking-heading);
 		color: var(--color-steel);
 	}
 	.team-card__sep {
@@ -293,20 +293,20 @@
 		color: var(--color-ember);
 	}
 	.team-card__tz {
-		font-size: 0.7rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
-		letter-spacing: 0.08em;
+		letter-spacing: var(--tracking-eyebrow);
 		text-transform: uppercase;
 		color: var(--color-ash);
 		background-color: var(--color-steel);
-		padding: 0.08rem 0.4rem;
-		border-radius: 3px;
+		padding: 0.08rem var(--spacing-2xs);
+		border-radius: var(--radius-sm);
 		align-self: center;
 	}
 
 	.team-card__note {
-		margin: 1.1rem 0 0;
-		font-size: 0.82rem;
+		margin: var(--spacing-xl) 0 0;
+		font-size: var(--text-sm);
 		line-height: 1.5;
 		color: var(--color-steel-dim);
 	}
@@ -316,9 +316,9 @@
 	.team-card__links {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1.25rem;
+		gap: var(--spacing-2xl);
 		margin-top: auto;
-		padding-top: 1.1rem;
+		padding-top: var(--spacing-xl);
 		/* Por encima del enlace estirado para que Logs/Calendario sigan
 		   siendo clicables (sin anidar <a> dentro de <a>). */
 		position: relative;
@@ -329,8 +329,8 @@
 	.team-card__logs {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
-		font-size: 0.72rem;
+		gap: var(--spacing-3xs);
+		font-size: var(--text-xs);
 		text-decoration: none;
 		color: var(--color-steel);
 		border-bottom: 1px solid color-mix(in srgb, var(--color-steel) 35%, transparent);

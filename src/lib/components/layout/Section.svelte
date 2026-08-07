@@ -48,16 +48,16 @@
 	}
 	.section__eyebrow {
 		font-family: var(--font-display);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 		font-weight: 700;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		margin: 0 0 0.75rem;
+		margin: 0 0 var(--spacing-md);
 	}
 	.section__title {
 		font-size: clamp(2rem, 5vw, 3.2rem);
 		font-weight: 900;
-		letter-spacing: 0.02em;
+		letter-spacing: var(--tracking-snug);
 		line-height: 1.05;
 		margin: 0;
 		/* Barrido de máscara izquierda→derecha al revelar la cabecera. */
@@ -74,8 +74,8 @@
 		display: block;
 		width: clamp(56px, 8vw, 96px);
 		height: 3px;
-		margin: 1.1rem auto 0;
-		border-radius: 999px;
+		margin: var(--spacing-xl) auto 0;
+		border-radius: var(--radius-full);
 		background: linear-gradient(
 			90deg,
 			transparent,

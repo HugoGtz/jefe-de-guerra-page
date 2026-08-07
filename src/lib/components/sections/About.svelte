@@ -8,7 +8,7 @@
 </script>
 
 <Section id="la-guild" eyebrow="La Guild" title="Quiénes somos">
-	<div class="grid grid-cols-1 gap-6 min-[720px]:grid-cols-2">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 		<div use:reveal={{ direction: 'left', blur: true }}>
 			<Card class="about__card">
 				<h3 class="about__card-title text-engraved">Nuestra hermandad</h3>
@@ -35,14 +35,14 @@
 		height: 100%;
 	}
 	.about__card-title {
-		font-size: 1.4rem;
-		margin: 0 0 1rem;
-		letter-spacing: 0.03em;
+		font-size: var(--text-xl);
+		margin: 0 0 var(--spacing-xl);
+		letter-spacing: var(--tracking-snug);
 	}
 	.about__text {
 		color: var(--color-steel);
 		line-height: 1.7;
-		margin: 0 0 1rem;
+		margin: 0 0 var(--spacing-xl);
 	}
 	.about__text:last-child {
 		margin-bottom: 0;

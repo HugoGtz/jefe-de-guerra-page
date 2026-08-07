@@ -2,6 +2,7 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
+	import ClassSpecIcon from '$lib/components/ui/ClassSpecIcon.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { parseTier } from '$lib/parse';
 	import { specOrClassIcon, playerHref } from '$lib/wow-icons';
@@ -31,7 +32,7 @@
 		<p class="hof__intro" use:reveal>
 			Los mejores parses de SSC y Tempest Keep entre todos nuestros cores, según WarcraftLogs.
 		</p>
-		<div class="grid grid-cols-1 gap-6 min-[720px]:grid-cols-3">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 			{#each visibleColumns as col, ci (col.key)}
 				<div use:reveal={{ delay: ci * 120, direction: 'up', blur: true }}>
 					<Card class="hof-card">
@@ -49,17 +50,14 @@
 										<span class="hof__rank" class:is-top={i === 0}>{i + 1}</span>
 										{#if icon}
 											<span class="hof__icons" aria-hidden="false">
-												<img
-													class="hof__icon"
+												<ClassSpecIcon
 													src={icon}
+													size={20}
 													alt={entry.spec ??
 														entry.classLabel ??
 														entry.wowClass ??
 														'Especialización'}
-													width="20"
-													height="20"
-													loading="lazy"
-													decoding="async"
+													class="hof__icon"
 												/>
 											</span>
 										{/if}
@@ -97,7 +95,7 @@
 	.hof__intro {
 		text-align: center;
 		max-width: 44rem;
-		margin: -1rem auto 2.5rem;
+		margin: -1rem auto var(--spacing-4xl);
 		color: var(--color-steel);
 		line-height: 1.6;
 	}
@@ -106,11 +104,11 @@
 	}
 	.hof__title {
 		font-family: var(--font-display);
-		font-size: 1.05rem;
+		font-size: var(--text-md);
 		font-weight: 900;
-		letter-spacing: 0.08em;
+		letter-spacing: var(--tracking-eyebrow);
 		text-transform: uppercase;
-		margin: 0 0 1.1rem;
+		margin: 0 0 var(--spacing-xl);
 		text-align: center;
 		color: var(--color-silver);
 	}
@@ -120,14 +118,14 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--spacing-xs);
 	}
 	.hof__row {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.45rem 0.55rem;
-		border-radius: 4px;
+		gap: var(--spacing-md);
+		padding: var(--spacing-2xs) var(--spacing-xs);
+		border-radius: var(--radius-md);
 		background: color-mix(in srgb, var(--color-stone) 60%, transparent);
 		border: 1px solid color-mix(in srgb, var(--color-steel) 14%, transparent);
 		/* Cada fila enlaza al perfil del jugador en WarcraftLogs. */
@@ -158,7 +156,7 @@
 		text-align: center;
 		font-family: var(--font-display);
 		font-weight: 900;
-		font-size: 0.95rem;
+		font-size: var(--text-base);
 		color: var(--color-steel-dim);
 	}
 	.hof__rank.is-top {
@@ -170,10 +168,11 @@
 		display: inline-flex;
 		align-items: center;
 	}
-	.hof__icon {
+	/* :global — se aplica al <img> renderizado por ClassSpecIcon (componente hijo). */
+	:global(.hof__icon) {
 		width: 20px;
 		height: 20px;
-		border-radius: 4px;
+		border-radius: var(--radius-md);
 		object-fit: cover;
 		border: 1px solid color-mix(in srgb, var(--color-steel) 34%, transparent);
 		box-shadow: inset 0 1px 0 rgba(229, 229, 229, 0.1);
@@ -187,19 +186,19 @@
 	}
 	.hof__name {
 		font-weight: 700;
-		letter-spacing: 0.02em;
+		letter-spacing: var(--tracking-snug);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		color: var(--color-silver);
 	}
 	.hof__meta {
-		font-size: 0.72rem;
-		letter-spacing: 0.05em;
+		font-size: var(--text-xs);
+		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
 		color: var(--color-steel-dim);
 	}
 	.hof__dot {
-		margin: 0 0.3rem;
+		margin: 0 var(--spacing-3xs);
 	}
 </style>

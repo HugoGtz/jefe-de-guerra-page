@@ -88,7 +88,7 @@
 		max-width: 42rem;
 		margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
 		text-align: center;
-		font-size: 1.05rem;
+		font-size: var(--text-md);
 		line-height: 1.7;
 		color: var(--color-steel);
 	}
@@ -119,7 +119,7 @@
 
 	.feat {
 		position: relative;
-		padding: 0 0 1.6rem 2.4rem;
+		padding: 0 0 var(--spacing-3xl) 2.4rem;
 	}
 	.feat:last-child {
 		padding-bottom: 0;
@@ -145,26 +145,26 @@
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.6rem;
-		margin-bottom: 0.4rem;
+		gap: var(--spacing-sm);
+		margin-bottom: var(--spacing-2xs);
 	}
 	.feat__boss {
 		font-family: var(--font-display);
 		font-size: clamp(1.05rem, 2.5vw, 1.3rem);
 		font-weight: 900;
-		letter-spacing: 0.02em;
+		letter-spacing: var(--tracking-snug);
 		margin: 0;
 		color: var(--color-silver);
 	}
 	.feat__first {
 		display: inline-flex;
 		align-items: center;
-		padding: 0.18rem 0.55rem;
-		border-radius: 999px;
+		padding: 0.18rem var(--spacing-xs);
+		border-radius: var(--radius-full);
 		font-family: var(--font-display);
-		font-size: 0.6rem;
+		font-size: var(--text-2xs);
 		font-weight: 700;
-		letter-spacing: 0.12em;
+		letter-spacing: var(--tracking-widest);
 		text-transform: uppercase;
 		color: var(--color-ash);
 		background: linear-gradient(135deg, var(--color-ember), var(--color-lava));
@@ -175,19 +175,19 @@
 		display: flex;
 		align-items: baseline;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-		font-size: 0.85rem;
+		gap: var(--spacing-xs);
+		font-size: var(--text-sm);
 		color: var(--color-steel-dim);
 	}
 	.feat__raid {
 		font-family: var(--font-display);
-		font-size: 0.68rem;
+		font-size: var(--text-xs);
 		font-weight: 700;
-		letter-spacing: 0.1em;
+		letter-spacing: var(--tracking-caps);
 		color: var(--color-ash);
 		background-color: var(--color-steel);
-		padding: 0.12rem 0.5rem;
-		border-radius: 3px;
+		padding: 0.12rem var(--spacing-xs);
+		border-radius: var(--radius-sm);
 	}
 	.feat__date {
 		font-variant-numeric: tabular-nums;

@@ -1,4 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
+import { getDb } from '$lib/server/db/client';
+import { getCache, setCache } from '$lib/server/repositories';
+import { rateLimit } from '$lib/server/ratelimit';
 
 /**
  * POST /api/apply — recruitment application.
@@ -7,8 +10,12 @@ import { json, type RequestHandler } from '@sveltejs/kit';
  *
  * Set the secret on the Pages project:
  *   wrangler pages secret put DISCORD_WEBHOOK_URL --project-name jefe-de-guerra
- * Anti-spam: honeypot ("website") + validation + size caps.
+ * Anti-spam: honeypot ("website") + per-IP rate limit + validation + size caps.
  */
+
+/** Max applications per IP per hour (fixed window, D1-backed, fail-open). */
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 const clamp = (v: unknown, n: number) =>
 	String(v ?? '')
@@ -26,6 +33,28 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 	// Honeypot: si un bot rellena el campo oculto, descartamos en silencio.
 	if (clamp(data.website, 1)) {
 		return json({ ok: true });
+	}
+
+	// Per-IP rate limit (fail-open: if there's no IP or no DB, we skip it rather
+	// than block a legitimate applicant).
+	const ip = request.headers.get('cf-connecting-ip');
+	const dbBinding = platform?.env?.DB;
+	if (ip && dbBinding) {
+		const db = getDb(dbBinding);
+		const key = `ratelimit:apply:${ip}`;
+		const { allowed } = await rateLimit({
+			now: Date.now(),
+			limit: RATE_LIMIT,
+			windowMs: RATE_WINDOW_MS,
+			read: () => getCache(db, key),
+			write: (jsonStr, windowStart) => setCache(db, key, jsonStr, windowStart)
+		});
+		if (!allowed) {
+			return json(
+				{ ok: false, error: 'Demasiados intentos. Prueba de nuevo en un rato.' },
+				{ status: 429 }
+			);
+		}
 	}
 
 	const character = clamp(data.character, 80);
