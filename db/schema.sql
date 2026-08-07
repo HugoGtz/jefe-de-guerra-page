@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS `teams` (
 	`recruiting` integer DEFAULT 0 NOT NULL,
 	`note` text,
 	`wcl_guild_id` integer,
+	`wcl_tag_id` integer,
 	`sort` integer DEFAULT 0 NOT NULL
 );
 

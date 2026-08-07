@@ -40,7 +40,7 @@ export async function getTeams(db: Db): Promise<Team[]> {
 		tk: { kills: t.tkKills, total: t.tkTotal },
 		recruiting: t.recruiting === 1,
 		note: t.note ?? undefined,
-		wclGuildId: t.wclGuildId ?? undefined
+		wclGuildId: t.wclGuildId ?? undefined,
 		wclTagId: t.wclTagId ?? undefined
 	}));
 }

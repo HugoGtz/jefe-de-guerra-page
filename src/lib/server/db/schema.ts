@@ -93,6 +93,7 @@ export const teams = sqliteTable('teams', {
 	recruiting: integer('recruiting').notNull().default(0),
 	note: text('note'),
 	wclGuildId: integer('wcl_guild_id'),
+	wclTagId: integer('wcl_tag_id'),
 	sort: integer('sort').notNull().default(0)
 });
 

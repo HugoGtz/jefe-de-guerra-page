@@ -25,6 +25,8 @@ function int(raw: FormDataEntryValue | null, fallback = 0): number {
 function parseFields(form: FormData): Omit<TeamInput, 'id'> {
 	const wclRaw = String(form.get('wclGuildId') ?? '').trim();
 	const wclNum = Number.parseInt(wclRaw, 10);
+	const wclTagRaw = String(form.get('wclTagId') ?? '').trim();
+	const wclTagNum = Number.parseInt(wclTagRaw, 10);
 	return {
 		name: String(form.get('name') ?? '').trim(),
 		scheduleDays: String(form.get('scheduleDays') ?? '').trim(),
@@ -40,6 +42,7 @@ function parseFields(form: FormData): Omit<TeamInput, 'id'> {
 			return n.length > 0 ? n : null;
 		})(),
 		wclGuildId: wclRaw.length > 0 && Number.isFinite(wclNum) ? wclNum : null,
+		wclTagId: wclTagRaw.length > 0 && Number.isFinite(wclTagNum) ? wclTagNum : null,
 		sort: int(form.get('sort'))
 	};
 }

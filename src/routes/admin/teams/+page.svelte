@@ -121,6 +121,16 @@
 				/>
 			</div>
 			<div class="admin-field">
+				<label for="wcltag-{team.id}">WCL Tag ID (opcional)</label>
+				<input
+					id="wcltag-{team.id}"
+					name="wclTagId"
+					type="number"
+					min="0"
+					value={team.wclTagId ?? ''}
+				/>
+			</div>
+			<div class="admin-field">
 				<label for="sort-{team.id}">Orden</label>
 				<input id="sort-{team.id}" name="sort" type="number" value={data.teams.indexOf(team)} />
 			</div>
@@ -192,6 +202,10 @@
 		<div class="admin-field">
 			<label for="new-wcl">WCL Guild ID (opcional)</label>
 			<input id="new-wcl" name="wclGuildId" type="number" min="0" />
+		</div>
+		<div class="admin-field">
+			<label for="new-wcltag">WCL Tag ID (opcional)</label>
+			<input id="new-wcltag" name="wclTagId" type="number" min="0" />
 		</div>
 		<div class="admin-field">
 			<label for="new-sort">Orden</label>
