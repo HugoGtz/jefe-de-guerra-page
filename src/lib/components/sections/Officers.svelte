@@ -3,18 +3,32 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import ParseBadge from '$lib/components/ui/ParseBadge.svelte';
 	import ClassSpecIcon from '$lib/components/ui/ClassSpecIcon.svelte';
+	import { untrack } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
 	import type { Officer } from '$lib/data/officers';
+	import type { WclExtras } from '$lib/server/data';
 	import { parseTier } from '$lib/parse';
 	import { specIconUrl, specOrClassIcon } from '$lib/wow-icons';
 
-	let { officers }: { officers: Officer[] } = $props();
+	let { officers, wclExtras }: { officers: Officer[]; wclExtras: Promise<WclExtras> } = $props();
+
+	// Render the base (D1-only) list immediately; swap in the WCL-enriched one
+	// (spec/score) once it streams in. Keyed `{#each}` below reconciles this
+	// in place instead of re-mounting the cards. Only the INITIAL `officers`
+	// value seeds this — deliberate, not meant to track later prop changes.
+	let displayOfficers = $state<Officer[]>(untrack(() => officers));
+	$effect(() => {
+		wclExtras.then((extras) => {
+			displayOfficers = extras.officers;
+		});
+	});
 </script>
 
 <Section id="oficiales" eyebrow="Oficiales" title="El consejo de guerra">
 	<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-		{#each officers as officer, i (officer.name)}
+		{#each displayOfficers as officer, i (officer.name)}
 			{@const specIcon = specIconUrl(officer.wowClass, officer.spec)}
 			{@const avatarIcon = specOrClassIcon(officer.wowClass, officer.spec)}
 			<div
@@ -28,17 +42,21 @@
 					<Card class="officer">
 						<div class="officer__row">
 							{#if avatarIcon}
-								<ClassSpecIcon
-									src={avatarIcon}
-									size={48}
-									alt={(specIcon ? officer.spec : null) ??
-										officer.classLabel ??
-										officer.wowClass ??
-										'Clase'}
-									class="officer__avatar officer__avatar--icon"
-								/>
+								<div class="officer__avatar-wrap" transition:fade={{ duration: 200 }}>
+									<ClassSpecIcon
+										src={avatarIcon}
+										size={48}
+										alt={(specIcon ? officer.spec : null) ??
+											officer.classLabel ??
+											officer.wowClass ??
+											'Clase'}
+										class="officer__avatar officer__avatar--icon"
+									/>
+								</div>
 							{:else}
-								<span class="officer__avatar" aria-hidden="true">{officer.name.charAt(0)}</span>
+								<span class="officer__avatar" aria-hidden="true" transition:fade={{ duration: 200 }}
+									>{officer.name.charAt(0)}</span
+								>
 							{/if}
 
 							<div class="officer__body">
@@ -51,7 +69,7 @@
 
 							{#if officer.score != null}
 								{@const tier = parseTier(officer.score)}
-								<span class="officer__parse-wrap">
+								<span class="officer__parse-wrap" transition:fade={{ duration: 200 }}>
 									<ParseBadge
 										score={officer.score}
 										title={`Parse ${officer.score} · ${tier.label} — mejor parse medio en SSC/TK (WarcraftLogs)`}
@@ -81,6 +99,14 @@
 		align-items: center;
 		gap: var(--spacing-lg);
 		height: 100%;
+	}
+
+	/* Wraps ClassSpecIcon so the fade transition (icon swapping in once WCL
+	   enrichment resolves) has an element to animate — transitions can't attach
+	   directly to a component tag. Only carries layout, no visual styling. */
+	.officer__avatar-wrap {
+		flex-shrink: 0;
+		display: inline-flex;
 	}
 
 	/* :global — la variante --icon la lleva el <img> de ClassSpecIcon (hijo); la

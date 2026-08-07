@@ -4,6 +4,7 @@
 	import RaidCard from '$lib/components/sections/RaidCard.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { countUp } from '$lib/actions/countUp';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 	import type { Phase, Raid } from '$lib/data/raids';
 
 	// Forma de las stats (espejo de GuildStats en $lib/server/data). Local para
@@ -18,7 +19,50 @@
 		fullClearCores: number;
 	};
 
-	let { phases, stats }: { phases: Phase[]; stats?: GuildStats } = $props();
+	/** Espejo de WclRankTriple/WclProgress — solo lo que este componente lee. */
+	type RankTriple = { world: number | null; region: number | null; server: number | null };
+	type Progress = {
+		guild: RankTriple | null;
+		perCore: Record<number, RankTriple>;
+		guildSpeed: RankTriple | null;
+		perCoreSpeed: Record<number, RankTriple>;
+	} | null;
+	/** Espejo mínimo de WclExtras — solo el campo que este componente lee. */
+	type WclExtras = { progress: Progress };
+
+	let {
+		phases,
+		stats,
+		wclExtras
+	}: { phases: Phase[]; stats?: GuildStats; wclExtras?: Promise<WclExtras> } = $props();
+
+	// Rank mundial/regional/servidor — llega streameado después del resto de la
+	// página (mismo patrón que Officers/HallOfFame), por eso arranca null.
+	let progress = $state<Progress>(null);
+	$effect(() => {
+		wclExtras?.then((extras) => {
+			progress = extras.progress;
+		});
+	});
+	// Prefiere el rank de la guild padre; si no está rankeada (algunos cores
+	// suben logs bajo su propio guild object, no bajo la guild padre), cae al
+	// MEJOR (número más bajo = mejor) rank entre los cores individuales.
+	const worldRank = $derived.by(() => {
+		if (progress?.guild?.world != null) return progress.guild.world;
+		const coreRanks = Object.values(progress?.perCore ?? {})
+			.map((t) => t.world)
+			.filter((n): n is number => n != null);
+		return coreRanks.length > 0 ? Math.min(...coreRanks) : null;
+	});
+	// Mismo fallback que worldRank, pero para el rank de velocidad (kills más
+	// rápidos), del mismo fetch — no cuesta una query aparte.
+	const speedRank = $derived.by(() => {
+		if (progress?.guildSpeed?.world != null) return progress.guildSpeed.world;
+		const coreRanks = Object.values(progress?.perCoreSpeed ?? {})
+			.map((t) => t.world)
+			.filter((n): n is number => n != null);
+		return coreRanks.length > 0 ? Math.min(...coreRanks) : null;
+	});
 
 	// Fecha de la última hazaña formateada en es-ES (corta), o null.
 	const lastFeatLabel = $derived(
@@ -109,6 +153,23 @@
 		{/if}
 	</div>
 
+	{#if worldRank != null && speedRank != null}
+		<p class="world-rank" use:reveal>
+			🏆 Rank <strong>#{worldRank.toLocaleString('es-ES')}</strong> mundial en progreso de SSC/TK ·
+			⚡ Rank <strong>#{speedRank.toLocaleString('es-ES')}</strong> mundial en velocidad, según WarcraftLogs.
+		</p>
+	{:else if worldRank != null}
+		<p class="world-rank" use:reveal>
+			🏆 Rank <strong>#{worldRank.toLocaleString('es-ES')}</strong> mundial en progreso de SSC/TK, según
+			WarcraftLogs.
+		</p>
+	{:else if speedRank != null}
+		<p class="world-rank" use:reveal>
+			⚡ Rank <strong>#{speedRank.toLocaleString('es-ES')}</strong> mundial en velocidad de SSC/TK, según
+			WarcraftLogs.
+		</p>
+	{/if}
+
 	<!-- ── FASE 1 — COMPLETADA ─────────────────────────────────── -->
 	<div class="phase phase--done" use:reveal>
 		<div class="phase__banner phase__banner--done">
@@ -133,7 +194,7 @@
 	</div>
 
 	<!-- ── FASE 2 — EN PROGRESO ────────────────────────────────── -->
-	<div class="phase phase--active" use:reveal={{ delay: 100 }}>
+	<div class="phase phase--active" use:reveal={{ delay: 100 }} use:pauseOffscreen>
 		<div class="phase__banner phase__banner--active">
 			<span class="phase__pulse" aria-hidden="true"></span>
 			<div>
@@ -163,6 +224,15 @@
 		border: 1px solid color-mix(in srgb, var(--color-steel) 16%, transparent);
 		border-radius: var(--radius-md);
 		overflow: hidden;
+	}
+	.world-rank {
+		text-align: center;
+		margin: -1.75rem 0 2.75rem;
+		font-size: var(--text-sm);
+		color: var(--color-steel);
+	}
+	.world-rank strong {
+		color: var(--color-ember);
 	}
 	.stat {
 		display: flex;

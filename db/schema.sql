@@ -13,6 +13,20 @@ CREATE TABLE IF NOT EXISTS `about_paragraphs` (
 	CONSTRAINT "about_paragraphs_kind" CHECK("about_paragraphs"."kind" IN ('who', 'vibe'))
 );
 
+CREATE TABLE IF NOT EXISTS `applications` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`character` text NOT NULL,
+	`wow_class` text NOT NULL,
+	`spec` text,
+	`ilvl` text,
+	`logs` text,
+	`experience` text,
+	`availability` text,
+	`message` text,
+	`created_at` integer NOT NULL,
+	`reviewed` integer DEFAULT 0 NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS `bosses` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`raid_id` text NOT NULL,

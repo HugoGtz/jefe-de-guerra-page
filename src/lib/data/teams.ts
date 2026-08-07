@@ -51,6 +51,20 @@ export type Team = {
 	 * este id para atribuir al core correcto los reports que viven en el padre.
 	 */
 	wclTagId?: number;
+	/**
+	 * Actividad reciente derivada de WCL (misma ventana de reports que el resto
+	 * del progreso en vivo) — noches de raid, kills totales, última raid y el
+	 * récord de velocidad por jefe. Ausente cuando WCL no tiene datos para este
+	 * core. Forma espejo de `WclCoreStats` en `$lib/server/wcl` — no se importa
+	 * directo para no meter código server-only en un tipo que consumen
+	 * componentes de cliente.
+	 */
+	activity?: {
+		raids: number;
+		totalKills: number;
+		lastRaid: string | null;
+		fastestByBoss: Record<string, number>;
+	};
 };
 
 /**

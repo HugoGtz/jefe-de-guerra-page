@@ -3,6 +3,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { tilt } from '$lib/actions/tilt';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 	import type { Recruitment, RecruitNeed } from '$lib/data/recruitment';
 	import { resolveRecruitNeed } from '$lib/wow-icons';
 
@@ -42,6 +43,7 @@
 							threshold: 0.05,
 							direction: i % 2 === 0 ? 'left' : 'right'
 						}}
+						use:pauseOffscreen
 					>
 						<span class="need__icon" aria-hidden="true">
 							{#if resolved.iconUrl}

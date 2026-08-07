@@ -193,7 +193,13 @@ Usa el componente `Section` (`src/lib/components/layout/Section.svelte`) para to
 
 ### Grids responsivos
 
-El patrón consistente es **1 columna en móvil → N columnas en un breakpoint**, definido en `<style>` scoped (no con las clases `grid-cols-*` de Tailwind, para poder afinar gaps y breakpoints por componente):
+Para el caso común — **1 columna en móvil → N columnas en un breakpoint, con el mismo gap en todos los tamaños** — usa utilidades Tailwind con las variantes de breakpoint (§4 Breakpoints), como ya hace la mayoría de las secciones:
+
+```svelte
+<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+```
+
+Reserva el `<style>` scoped para grids **bespoke** que Tailwind no expresa limpiamente: columnas asimétricas (`1fr 1fr`, `repeat(4, 1fr)` para fases), gaps que cambian por breakpoint, o `repeat(auto-fill, minmax(...))`. Ejemplo real (`RaidProgress.svelte`):
 
 ```css
 .grid {

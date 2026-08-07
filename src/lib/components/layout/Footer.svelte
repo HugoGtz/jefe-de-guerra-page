@@ -32,6 +32,9 @@
 		{guild.name} · Hermandad de {guild.faction} en {guild.server}. Hecho por y para la comunidad. No
 		afiliado a Blizzard Entertainment.
 	</p>
+	<p class="footer__legal">
+		<a href="/aviso-privacidad" class="footer__legal-link">Aviso de privacidad</a>
+	</p>
 </footer>
 
 <style>
@@ -89,5 +92,19 @@
 		color: var(--color-steel-dim);
 		font-size: var(--text-xs);
 		line-height: 1.6;
+	}
+	.footer__legal {
+		margin: var(--spacing-sm) 0 0;
+		text-align: center;
+		font-size: var(--text-xs);
+	}
+	.footer__legal-link {
+		color: var(--color-steel-dim);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		transition: color 0.2s ease;
+	}
+	.footer__legal-link:hover {
+		color: var(--color-lava);
 	}
 </style>

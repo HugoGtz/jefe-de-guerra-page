@@ -75,19 +75,20 @@ export const actions: Actions = {
 			if (total <= 1) {
 				return fail(409, {
 					error: 'No puedes eliminar al último usuario: la cuenta quedaría sin acceso.',
-					scope: 'delete'
+					scope: 'delete',
+					id
 				});
 			}
 			const target = await getById(db, id);
 			if (!target) {
-				return fail(404, { error: 'El usuario ya no existe.', scope: 'delete' });
+				return fail(404, { error: 'El usuario ya no existe.', scope: 'delete', id });
 			}
 			await deleteUser(db, id);
 		} catch {
-			return fail(503, { error: DB_ERROR, scope: 'delete' });
+			return fail(503, { error: DB_ERROR, scope: 'delete', id });
 		}
 
 		const self = locals.user?.id === id;
-		return { deleted: true, self, scope: 'delete' };
+		return { deleted: true, self, scope: 'delete', id };
 	}
 };

@@ -21,8 +21,18 @@ export const GRAPHQL_URL = 'https://fresh.warcraftlogs.com/api/v2/client';
  * constant only controls how far back a single fetch looks for NEW kills to
  * add to the ledger, and how much "Últimas hazañas"/activity-stats history is
  * visible in one pass.
+ *
+ * MUST stay low enough that the batched query (8 sources × this many reports,
+ * each with a nested `fights` list) fits under WCL's max query complexity
+ * (50,000). Confirmed empirically against the live API: 25 → "Max query
+ * complexity should be 50000 but got 82008" (fails on EVERY call, not a rate
+ * limit — a real, deterministic bug); 15 and 12 both passed cleanly. Kept at
+ * 12 for headroom (~21% under budget) since the ledger already makes a
+ * shorter window safe — it no longer needs to be large enough to "not miss" a
+ * kill, only large enough to notice one at all before the ledger remembers it
+ * forever.
  */
-export const REPORTS_PER_GUILD = 25;
+export const REPORTS_PER_GUILD = 12;
 
 /** Max feats returned (most recent first-kills/kills). */
 export const MAX_FEATS = 10;

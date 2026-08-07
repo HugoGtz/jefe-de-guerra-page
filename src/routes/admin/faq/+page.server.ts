@@ -49,14 +49,14 @@ export const actions: Actions = {
 		const fields = parseFields(form);
 		if (id < 0) return fail(400, { error: 'Falta el identificador de la pregunta.' });
 		if (fields.q.length === 0 || fields.a.length === 0) {
-			return fail(400, { error: 'La pregunta y la respuesta son obligatorias.' });
+			return fail(400, { error: 'La pregunta y la respuesta son obligatorias.', id });
 		}
 		try {
 			await updateFaq(requireDb(platform), id, fields);
 		} catch {
-			return fail(503, { error: DB_ERROR });
+			return fail(503, { error: DB_ERROR, id });
 		}
-		return { success: 'Pregunta actualizada.' };
+		return { success: 'Pregunta actualizada.', id };
 	},
 
 	delete: async ({ request, platform }) => {

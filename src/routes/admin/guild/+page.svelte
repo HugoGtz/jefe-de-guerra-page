@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import AdminFormMessage from '$lib/components/admin/AdminFormMessage.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -7,6 +8,8 @@
 	const g = $derived(data.guild);
 	// Prefer values echoed back on a failed submit, else the loaded guild data.
 	const v = $derived(form?.values);
+
+	let submitting = $state(false);
 </script>
 
 <svelte:head>
@@ -44,47 +47,16 @@
 	</div>
 {/if}
 
-{#if form?.success}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>Cambios guardados correctamente.</span>
-	</div>
-{/if}
-{#if form?.error}
-	<div class="admin-msg err" role="alert">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-				x1="12"
-				y1="16"
-				x2="12"
-				y2="16"
-			/>
-		</svg>
-		<span>{form.error}</span>
-	</div>
-{/if}
-
-<form method="POST" use:enhance>
+<form
+	method="POST"
+	use:enhance={() => {
+		submitting = true;
+		return async ({ update }) => {
+			await update({ reset: false });
+			submitting = false;
+		};
+	}}
+>
 	<div class="admin-card">
 		<h2>Identidad</h2>
 		<div class="admin-field">
@@ -192,6 +164,18 @@
 	</div>
 
 	<div class="admin-actions footer">
-		<button type="submit" class="admin-btn">Guardar cambios</button>
+		<button type="submit" class="admin-btn" disabled={submitting}>
+			{#if submitting}
+				<span class="admin-spinner" aria-hidden="true"></span>Guardando…
+			{:else}
+				Guardar cambios
+			{/if}
+		</button>
+		<div style="flex: 1 1 100%; margin-top: var(--spacing-lg);">
+			<AdminFormMessage
+				success={form?.success ? 'Cambios guardados correctamente.' : undefined}
+				error={form?.error}
+			/>
+		</div>
 	</div>
 </form>

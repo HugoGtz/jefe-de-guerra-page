@@ -1,4 +1,23 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	/** Coarse "hace X" relative label — a static snapshot from load, not a live tick.
+	 *  `fetchedAt <= 0` is the single-flight lock's placeholder sentinel (never a
+	 *  real fetch timestamp), so it reads as "nunca" too. */
+	function relativeLabel(fetchedAt: number | null, now: number): string {
+		if (fetchedAt == null || fetchedAt <= 0) return 'nunca';
+		const diffMs = now - fetchedAt;
+		const minutes = Math.round(diffMs / 60_000);
+		if (minutes < 1) return 'hace un momento';
+		if (minutes < 60) return `hace ${minutes} min`;
+		const hours = Math.round(minutes / 60);
+		if (hours < 24) return `hace ${hours} h`;
+		const days = Math.round(hours / 24);
+		return `hace ${days} d`;
+	}
+
 	// Dashboard: links to every editor. The shell/nav/logout live in +layout.svelte.
 	const links = [
 		{
@@ -14,6 +33,18 @@
 			icon: 'users'
 		},
 		{
+			href: '/admin/raids',
+			title: 'Progreso de raid',
+			desc: 'Fases, raids y jefes derrotados.',
+			icon: 'chart'
+		},
+		{
+			href: '/admin/hazanas',
+			title: 'Últimas hazañas',
+			desc: 'Kills manuales para el histórico del sitio.',
+			icon: 'medal'
+		},
+		{
 			href: '/admin/officers',
 			title: 'Consejo de Guerra',
 			desc: 'Oficiales y raid líderes.',
@@ -26,6 +57,12 @@
 			icon: 'flag'
 		},
 		{
+			href: '/admin/aplicaciones',
+			title: 'Aplicaciones',
+			desc: 'Solicitudes enviadas por el formulario público.',
+			icon: 'inbox'
+		},
+		{
 			href: '/admin/faq',
 			title: 'Preguntas frecuentes',
 			desc: 'Crear, editar y eliminar preguntas.',
@@ -36,6 +73,12 @@
 			title: 'Comunidad',
 			desc: 'Discord, zona horaria y noches de raid.',
 			icon: 'chat'
+		},
+		{
+			href: '/admin/wcl',
+			title: 'Estado de WarcraftLogs',
+			desc: 'Refrescar caché y corregir el histórico de jefes.',
+			icon: 'refresh'
 		},
 		{
 			href: '/admin/usuarios',
@@ -54,6 +97,38 @@
 <div class="admin-page-head">
 	<h1>Panel de administración</h1>
 	<p class="lead">Edita el contenido editorial del sitio. Los cambios se reflejan al instante.</p>
+</div>
+
+<div class="admin-row">
+	<a class="admin-card admin-stat" href="/admin/aplicaciones">
+		<span class="admin-stat__value">{data.pendingApplications}</span>
+		<span class="admin-stat__label">Aplicaciones pendientes</span>
+	</a>
+	<a class="admin-card admin-stat" href="/admin/raids">
+		<span class="admin-stat__value"
+			>{data.stats.phase2BossesDown}/{data.stats.phase2BossesTotal}</span
+		>
+		<span class="admin-stat__label">Jefes de Fase 2 derrotados</span>
+	</a>
+	<a class="admin-card admin-stat" href="/admin/teams">
+		<span class="admin-stat__value">{data.stats.fullClearCores}/{data.stats.activeCores}</span>
+		<span class="admin-stat__label">Cores con clear completo</span>
+	</a>
+</div>
+
+<div class="admin-card">
+	<h2>Estado de WarcraftLogs</h2>
+	<div class="admin-list">
+		{#each data.cacheStatus as ck (ck.key)}
+			<div class="admin-list-row">
+				<span class="admin-field-action" style="flex:1">{ck.label}</span>
+				<span class="hint">{relativeLabel(ck.fetchedAt, data.now)}</span>
+			</div>
+		{/each}
+	</div>
+	<div class="admin-actions">
+		<a href="/admin/wcl" class="admin-btn secondary">Ver detalle / refrescar</a>
+	</div>
 </div>
 
 <ul class="admin-dash-links">
@@ -86,6 +161,18 @@
 							/><line x1="12" y1="17" x2="12" y2="17" />
 						{:else if l.icon === 'chat'}
 							<path d="M4 5h16v10H8l-4 4z" />
+						{:else if l.icon === 'chart'}
+							<path d="M3 3v18h18" /><path d="M7 16v-4" /><path d="M12 16V8" /><path
+								d="M17 16v-7"
+							/>
+						{:else if l.icon === 'medal'}
+							<circle cx="12" cy="8" r="5" /><path d="M8.5 12.5 6 21l6-3 6 3-2.5-8.5" />
+						{:else if l.icon === 'inbox'}
+							<path d="M4 4h16v16H4z" /><path d="M4 4l8 8 8-8" />
+						{:else if l.icon === 'refresh'}
+							<path d="M21 2v6h-6" /><path d="M3 22v-6h6" /><path
+								d="M21 8A9 9 0 0 0 6 4.6L3 8"
+							/><path d="M3 16a9 9 0 0 0 15 4.4l3-3.4" />
 						{/if}
 					</svg>
 				</span>

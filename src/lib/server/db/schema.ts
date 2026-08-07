@@ -175,6 +175,26 @@ export const raidNights = sqliteTable('raid_nights', {
 	sort: integer('sort').notNull().default(0)
 });
 
+// ── Guild applications (formulario público /api/apply) ───────────────────────
+// The webhook post to Discord is the critical path (real-time notification for
+// officers); this table is a best-effort secondary record so applications are
+// also visible/reviewable from the admin panel. A D1 write failure here must
+// never block or fail the Discord notification.
+export const applications = sqliteTable('applications', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	character: text('character').notNull(),
+	wowClass: text('wow_class').notNull(),
+	spec: text('spec'),
+	ilvl: text('ilvl'),
+	logs: text('logs'),
+	experience: text('experience'),
+	availability: text('availability'),
+	message: text('message'),
+	/** epoch ms (Date.now()) */
+	createdAt: integer('created_at').notNull(),
+	reviewed: integer('reviewed').notNull().default(0)
+});
+
 // ── Admin users (panel de oficiales) ─────────────────────────────────────────
 // Replaces the single shared password. Any user is equal (flat roles): can edit
 // content AND manage other users. `must_change_password` forces onboarding on
@@ -238,4 +258,5 @@ export type CommunityMetaRow = typeof communityMeta.$inferSelect;
 export type RaidNightRow = typeof raidNights.$inferSelect;
 export type WclCacheRow = typeof wclCache.$inferSelect;
 export type WclBossKillRow = typeof wclBossKills.$inferSelect;
+export type ApplicationRow = typeof applications.$inferSelect;
 export type UserRow = typeof users.$inferSelect;

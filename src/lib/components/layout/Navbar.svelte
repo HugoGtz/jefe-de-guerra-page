@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { scrollSpy } from '$lib/actions/scrollSpy';
@@ -15,9 +16,11 @@
 		{ href: '/#inicio', label: 'Inicio' },
 		{ href: '/#la-guild', label: 'La Guild' },
 		{ href: '/#progreso', label: 'Progreso' },
+		{ href: '/#hazanas', label: 'Hazañas' },
 		{ href: '/#equipos', label: 'Equipos' },
 		{ href: '/#comunidad', label: 'Comunidad' },
 		{ href: '/#reclutamiento', label: 'Reclutamiento' },
+		{ href: '/#faq', label: 'FAQ' },
 		{ href: '/#oficiales', label: 'Oficiales' },
 		{ href: '/#salon-fama', label: 'Salón de la Fama' }
 	];
@@ -128,7 +131,12 @@
 	</nav>
 
 	{#if open}
-		<div class="nav__mobile surface" id="nav-mobile-menu" bind:this={mobileNavEl}>
+		<div
+			class="nav__mobile surface"
+			id="nav-mobile-menu"
+			bind:this={mobileNavEl}
+			transition:fly={{ y: -12, duration: 220 }}
+		>
 			<ul class="nav__mobile-links">
 				{#each links as link (link.href)}
 					<li>
@@ -179,10 +187,10 @@
 	.nav__inner {
 		max-width: 80rem;
 		margin: 0 auto;
-		padding: var(--spacing-md) var(--spacing-2xl);
+		padding: var(--spacing-md) var(--spacing-xl);
 		display: flex;
 		align-items: center;
-		gap: var(--spacing-xl);
+		gap: var(--spacing-lg);
 	}
 
 	.nav__brand {
@@ -216,7 +224,7 @@
 	.nav__links {
 		display: none;
 		align-items: center;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-sm);
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -225,7 +233,7 @@
 	.nav__link {
 		color: var(--color-steel);
 		font-family: var(--font-display);
-		font-size: var(--text-sm);
+		font-size: var(--text-xs);
 		font-weight: 500;
 		letter-spacing: var(--tracking-wide);
 		text-transform: uppercase;
@@ -262,6 +270,12 @@
 
 	.nav__cta {
 		display: none;
+	}
+	/* Slightly more compact than the default jdg-btn padding so the CTA
+	   doesn't crowd out the 10-item link list at the `lg` collapse point. */
+	:global(.nav__cta .jdg-btn) {
+		padding-left: var(--spacing-xl);
+		padding-right: var(--spacing-xl);
 	}
 
 	.nav__toggle {
@@ -314,10 +328,9 @@
 		width: 100%;
 	}
 
-	/* El nav horizontal solo aparece cuando caben los 8 ítems + brand + CTA en una
-	   línea (~1280px). Por debajo (tablet/iPad Pro incluido) se usa la hamburguesa,
-	   que entra sin problema. Breakpoint específico del componente. */
-	@media (min-width: 1280px) {
+	/* lg (1024px) = "colapso de nav" en el design system. Por debajo (tablet/iPad
+	   Pro incluido) se usa la hamburguesa, que entra sin problema. */
+	@media (min-width: 1024px) {
 		.nav__links {
 			display: flex;
 		}

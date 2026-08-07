@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db/client';
-import { getCache, setCache } from '$lib/server/repositories';
+import { getCache, setCache, createApplication } from '$lib/server/repositories';
 import { rateLimit } from '$lib/server/ratelimit';
 
 /**
@@ -71,6 +71,23 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 	}
 	if (logs && !/^https?:\/\//i.test(logs)) {
 		return json({ ok: false, error: 'El enlace de logs no es válido.' }, { status: 400 });
+	}
+
+	// Best-effort secondary record so the application is also visible from
+	// /admin/aplicaciones. Never throws — the Discord webhook below is the
+	// critical path (real-time officer notification) and must not be blocked
+	// or failed by a D1 problem.
+	if (dbBinding) {
+		await createApplication(getDb(dbBinding), {
+			character,
+			wowClass,
+			spec: spec || null,
+			ilvl: ilvl || null,
+			logs: logs || null,
+			experience: experience || null,
+			availability: availability || null,
+			message: message || null
+		});
 	}
 
 	const webhook = platform?.env?.DISCORD_WEBHOOK_URL;

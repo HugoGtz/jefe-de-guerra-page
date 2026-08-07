@@ -8,7 +8,7 @@
  * failure is swallowed (never throws) so a ledger problem never breaks the page.
  */
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Db } from '$lib/server/db/client';
 import { wclBossKills } from '$lib/server/db/schema';
 
@@ -52,5 +52,27 @@ export async function upsertBossKills(
 			});
 	} catch {
 		// Best-effort ledger write; ignore failures.
+	}
+}
+
+/** Remove one ledger row (admin correction of a bad entry). Best-effort: never throws. */
+export async function deleteBossKill(
+	db: Db,
+	coreWclGuildId: number,
+	boss: string,
+	tier: string
+): Promise<void> {
+	try {
+		await db
+			.delete(wclBossKills)
+			.where(
+				and(
+					eq(wclBossKills.coreWclGuildId, coreWclGuildId),
+					eq(wclBossKills.boss, boss),
+					eq(wclBossKills.tier, tier)
+				)
+			);
+	} catch {
+		// Best-effort; ignore failures.
 	}
 }

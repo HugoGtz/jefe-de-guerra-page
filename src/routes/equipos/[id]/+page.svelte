@@ -42,7 +42,7 @@
 				<p class="roster__hint" use:reveal={{ delay: 40 }}>
 					Derivado de los logs recientes de SSC y Tempest Keep (WarcraftLogs).
 				</p>
-				<ul class="m-0 grid list-none grid-cols-1 gap-[0.85rem] p-0 sm:grid-cols-2 lg:grid-cols-3">
+				<ul class="m-0 grid list-none grid-cols-1 gap-lg p-0 sm:grid-cols-2 lg:grid-cols-3">
 					{#each roster as member, i (member.name)}
 						<li use:reveal={{ delay: Math.min(i * 50, 400), blur: true }}>
 							<RosterMember {member} />

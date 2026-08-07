@@ -50,37 +50,41 @@
 		levanta.
 	</p>
 
-	<ol class="timeline">
-		{#each feats as feat, i (feat.boss + feat.date)}
-			<li
-				class="feat"
-				class:is-first={feat.firstKill}
-				use:reveal={{ delay: 80 + i * 90, direction: 'left' }}
-			>
-				<span class="feat__node" aria-hidden="true"></span>
+	{#if feats.length > 0}
+		<ol class="timeline">
+			{#each feats as feat, i (feat.boss + feat.date)}
+				<li
+					class="feat"
+					class:is-first={feat.firstKill}
+					use:reveal={{ delay: 80 + i * 90, direction: 'left' }}
+				>
+					<span class="feat__node" aria-hidden="true"></span>
 
-				<div class="feat__body">
-					<div class="feat__head">
-						<h3 class="feat__boss text-engraved">{feat.boss}</h3>
-						{#if feat.firstKill}
-							<span class="feat__first">First Kill</span>
-						{/if}
-					</div>
+					<div class="feat__body">
+						<div class="feat__head">
+							<h3 class="feat__boss text-engraved">{feat.boss}</h3>
+							{#if feat.firstKill}
+								<span class="feat__first">First Kill</span>
+							{/if}
+						</div>
 
-					<div class="feat__meta">
-						<span class="feat__raid" title={raidName(feat.raid)}>{feat.raid}</span>
-						<time class="feat__date" datetime={feat.date}>
-							{formatDate(feat.date)}
-						</time>
-						{#if feat.team}
-							<span class="feat__sep" aria-hidden="true">·</span>
-							<span class="feat__team">{feat.team}</span>
-						{/if}
+						<div class="feat__meta">
+							<span class="feat__raid" title={raidName(feat.raid)}>{feat.raid}</span>
+							<time class="feat__date" datetime={feat.date}>
+								{formatDate(feat.date)}
+							</time>
+							{#if feat.team}
+								<span class="feat__sep" aria-hidden="true">·</span>
+								<span class="feat__team">{feat.team}</span>
+							{/if}
+						</div>
 					</div>
-				</div>
-			</li>
-		{/each}
-	</ol>
+				</li>
+			{/each}
+		</ol>
+	{:else}
+		<p class="feats__empty">Aún no hay hazañas registradas.</p>
+	{/if}
 </Section>
 
 <style>
@@ -91,6 +95,12 @@
 		font-size: var(--text-md);
 		line-height: 1.7;
 		color: var(--color-steel);
+	}
+
+	.feats__empty {
+		text-align: center;
+		color: var(--color-steel-dim);
+		padding: var(--spacing-2xl) 0;
 	}
 
 	.timeline {

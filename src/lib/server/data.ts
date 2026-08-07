@@ -45,7 +45,8 @@ import {
 	type WclBossDetail,
 	type WclRecentKill,
 	type WclProgress,
-	type WclAttendance
+	type WclAttendance,
+	type BossLeaderEntry
 } from '$lib/server/wcl';
 import { getDb, type Db } from '$lib/server/db/client';
 import { cacheThrough } from '$lib/server/cache';
@@ -87,27 +88,49 @@ export type GuildStats = {
 	fullClearCores: number;
 };
 
+/** The rankings-derived data streamed in AFTER the rest of the page — see the
+ *  comment on `loadWclExtras` for why these are bundled together. */
+export type WclExtras = {
+	/** Top-10 DPS / Healers / Tanks across all cores (WCL), or null if unavailable. */
+	hallOfFame: HallOfFame | null;
+	/** Officers enriched with WCL spec/score, on top of the base D1 officers. */
+	officers: Officer[];
+	/** Top-10 per WoW class, from the SAME rankings fetch as `hallOfFame`. */
+	byClass: Record<string, WclCharacter[]> | null;
+	/** Top-10 per boss, from the SAME rankings fetch as `hallOfFame`. */
+	byBoss: Record<string, BossLeaderEntry[]> | null;
+	/** Guild world/region/server progress + speed rank in SSC/TK, or null. */
+	progress: WclProgress | null;
+};
+
 export type GuildData = {
 	guild: Guild;
 	phases: Phase[];
+	/** BASE officers (D1 only: name/role/manually-set class) — renders immediately,
+	 *  before the WCL enrichment in `wclExtras` streams in. */
 	officers: Officer[];
 	recruitment: Recruitment;
 	teams: Team[];
 	feats: Feat[];
 	faq: FaqItem[];
 	stats: GuildStats;
-	/** Top-10 DPS / Healers / Tanks across all cores (WCL), or null if unavailable. */
-	hallOfFame: HallOfFame | null;
 	community: {
 		discordServerId: string;
 		discordInvite: string;
 		raidTimezone: string;
 		raidNights: RaidNight[];
 	};
+	/**
+	 * Deferred: NOT awaited by `loadGuildData` — SvelteKit streams this in once
+	 * it resolves, instead of blocking the whole page on the heaviest WCL
+	 * endpoint (~12h cache, several chunked round-trips when cold). See
+	 * `loadWclExtras`.
+	 */
+	wclExtras: Promise<WclExtras>;
 };
 
 /** Static fallback assembled from the hardcoded data files. */
-function staticFallback(): GuildData {
+function staticFallback(): Omit<GuildData, 'wclExtras'> {
 	return {
 		guild: staticGuild,
 		phases: staticPhases,
@@ -117,13 +140,26 @@ function staticFallback(): GuildData {
 		feats: staticFeats,
 		faq: staticFaq,
 		stats: computeStats(staticPhases, staticFeats, staticTeams, Date.now()),
-		hallOfFame: null,
 		community: {
 			discordServerId: staticDiscordServerId,
 			discordInvite: staticDiscordInvite,
 			raidTimezone: staticRaidTimezone,
 			raidNights: staticRaidNights
 		}
+	};
+}
+
+/** `staticFallback()` plus a already-resolved `wclExtras` (no WCL data available). */
+function staticGuildData(): GuildData {
+	return {
+		...staticFallback(),
+		wclExtras: Promise.resolve({
+			hallOfFame: null,
+			officers: staticOfficers,
+			byClass: null,
+			byBoss: null,
+			progress: null
+		})
 	};
 }
 
@@ -761,19 +797,23 @@ function withTeamPercents(teams: Team[]): Team[] {
 /**
  * Override each team's SSC/TK kill counts from its OWN WCL core data. A team is
  * only overridden when its wclGuildId is present in `wcl.perCore` (i.e. WCL
- * returned data for that core); otherwise the manual D1 value is kept.
+ * returned data for that core); otherwise the manual D1 value is kept. Also
+ * attaches `activity` (raids/kills/last raid/speed records) from the SAME
+ * fetch, when present — no extra network cost.
  */
 function applyTeamWclOverride(teams: Team[], wcl: WclData): Team[] {
 	return teams.map((team) => {
 		if (team.wclGuildId == null) return team;
 		const killed = wcl.perCore[team.wclGuildId];
-		if (!killed) return team; // No WCL data for this core → keep manual.
+		const activity = wcl.perCoreStats?.[team.wclGuildId];
+		if (!killed) return activity ? { ...team, activity } : team;
 		const sscKills = killed.filter((b) => SSC_BOSSES.has(b)).length;
 		const tkKills = killed.filter((b) => TK_BOSSES.has(b)).length;
 		return {
 			...team,
 			ssc: { kills: sscKills, total: SSC_TOTAL },
-			tk: { kills: tkKills, total: TK_TOTAL }
+			tk: { kills: tkKills, total: TK_TOTAL },
+			...(activity ? { activity } : {})
 		};
 	});
 }
@@ -783,7 +823,12 @@ function applyTeamWclOverride(teams: Team[], wcl: WclData): Team[] {
  * feats and teams — so it works whether or not WCL was available. Pass the
  * runtime `now` (ms) so module scope stays free of Date.now.
  */
-function computeStats(phases: Phase[], feats: Feat[], teams: Team[], now: number): GuildStats {
+export function computeStats(
+	phases: Phase[],
+	feats: Feat[],
+	teams: Team[],
+	now: number
+): GuildStats {
 	// Phase 2 bosses down (union across cores) from the phase-2 raids.
 	const phase2 = phases.find((p) => p.id === 'phase-2');
 	const phase2BossesDown = phase2 ? phase2.raids.reduce((acc, r) => acc + r.kills, 0) : 0;
@@ -830,13 +875,81 @@ function computeStats(phases: Phase[], feats: Feat[], teams: Team[], now: number
 }
 
 /**
+ * Rankings-derived data: the Hall of Fame, per-class/per-boss leaderboards AND
+ * officer WCL spec/score enrichment, all sourced from the SAME ~12h-cache
+ * report-rankings fetch — the heaviest endpoint in this file (chunked
+ * report-rankings + per-name zoneRankings round-trips when the cache is cold).
+ * The guild progress/speed rank rides alongside on its own independent 6h
+ * cache, fetched concurrently since it doesn't depend on rankings.
+ * `loadGuildData` calls this WITHOUT awaiting it and attaches the promise
+ * directly to `GuildData.wclExtras`, so SvelteKit can stream it to the client
+ * after the fast D1 data instead of blocking the whole page on it. Never
+ * throws — resolves to base officers + nulls on any failure.
+ */
+async function loadWclExtras(
+	platform: App.Platform,
+	db: Db,
+	env: App.Platform['env'],
+	baseOfficers: Officer[]
+): Promise<WclExtras> {
+	const [rankingsResult, progress] = await Promise.all([
+		(async () => {
+			let hallOfFame: HallOfFame | null = null;
+			let byClass: Record<string, WclCharacter[]> | null = null;
+			let byBoss: Record<string, BossLeaderEntry[]> | null = null;
+			let reliableChars: Record<string, WclCharacter> = {};
+			try {
+				const rankings = await loadWclRankingsCached(platform);
+				// Guard against a stale cache row from the old (HallOfFame-only) shape.
+				if (rankings && rankings.hallOfFame) {
+					hallOfFame = rankings.hallOfFame;
+					reliableChars = rankings.characters ?? {};
+					byClass = rankings.byClass ?? null;
+					byBoss = rankings.byBoss ?? null;
+				}
+			} catch {
+				hallOfFame = null;
+			}
+			return { hallOfFame, byClass, byBoss, reliableChars };
+		})(),
+		loadWclProgressCached(platform).catch(() => null)
+	]);
+	const { hallOfFame, byClass, byBoss, reliableChars } = rankingsResult;
+
+	// Officer enrichment: reliable spec from the rankings map above, with a
+	// class-only fallback (classID lookup, cached ~1h) for officers absent from
+	// the rankings — so they at least get a class, but no noisy spec.
+	let outOfficers = baseOfficers;
+	try {
+		let classOnly: Record<string, WclCharacter> = {};
+		// Only spend the extra (cheap) classID call when an officer is missing
+		// from the reliable rankings map.
+		const needFallback = baseOfficers.some((o) => !reliableChars[o.name.toLowerCase()]);
+		if (needFallback) {
+			const enrich = await loadJsonCached<Record<string, WclCharacter>>(
+				db,
+				WCL_OFFICERS_KEY,
+				WCL_OFFICERS_TTL_MS,
+				() => getWclOfficers(env)
+			);
+			if (enrich) classOnly = enrich;
+		}
+		outOfficers = mergeOfficerWcl(baseOfficers, reliableChars, classOnly);
+	} catch {
+		// Keep base officers (name + role) on any failure.
+	}
+
+	return { hallOfFame, officers: outOfficers, byClass, byBoss, progress };
+}
+
+/**
  * Load all guild data. Uses D1 (via Drizzle repositories) when the binding is
  * present; otherwise (or on any error) returns the static fallback from
  * `$lib/data/*`.
  */
 export async function loadGuildData(platform: App.Platform | undefined): Promise<GuildData> {
 	const binding = platform?.env?.DB;
-	if (!binding) return staticFallback();
+	if (!binding) return staticGuildData();
 
 	try {
 		const env = platform!.env;
@@ -856,7 +969,7 @@ export async function loadGuildData(platform: App.Platform | undefined): Promise
 			]);
 
 		// Missing singleton rows → treat as "no data yet" and fall back.
-		if (!guild || !recruitment || !communityMeta) return staticFallback();
+		if (!guild || !recruitment || !communityMeta) return staticGuildData();
 
 		// ── Community (discordInvite mirrors the recruitment Discord URL) ──
 		const community = {
@@ -903,61 +1016,29 @@ export async function loadGuildData(platform: App.Platform | undefined): Promise
 			logWclEvent('wcl-override-failed', { error: e instanceof Error ? e.message : String(e) });
 		}
 
-		// Report rankings — ONE cached fetch (~12h) feeds BOTH the Hall of Fame
-		// and reliable officer spec enrichment (best parse per character, with the
-		// class/spec/role they actually played).
-		let hallOfFame: HallOfFame | null = null;
-		let reliableChars: Record<string, WclCharacter> = {};
-		try {
-			const rankings = await loadWclRankingsCached(platform);
-			// Guard against a stale cache row from the old (HallOfFame-only) shape.
-			if (rankings && rankings.hallOfFame) {
-				hallOfFame = rankings.hallOfFame;
-				reliableChars = rankings.characters ?? {};
-			}
-		} catch {
-			hallOfFame = null;
-		}
-
-		// Officer enrichment: reliable spec from the rankings map above, with a
-		// class-only fallback (classID lookup, cached ~6h) for officers absent from
-		// the rankings — so they at least get a class, but no noisy spec.
-		let outOfficers = officers;
-		try {
-			let classOnly: Record<string, WclCharacter> = {};
-			// Only spend the extra (cheap) classID call when an officer is missing
-			// from the reliable rankings map.
-			const needFallback = officers.some((o) => !reliableChars[o.name.toLowerCase()]);
-			if (needFallback) {
-				const enrich = await loadJsonCached<Record<string, WclCharacter>>(
-					db,
-					WCL_OFFICERS_KEY,
-					WCL_OFFICERS_TTL_MS,
-					() => getWclOfficers(env)
-				);
-				if (enrich) classOnly = enrich;
-			}
-			outOfficers = mergeOfficerWcl(officers, reliableChars, classOnly);
-		} catch {
-			// Keep base officers (name + role) on any failure.
-		}
-
-		// Stats are derived from whatever data we ended up with (WCL or manual).
+		// Stats are derived from whatever data we ended up with (WCL or manual) —
+		// none of it depends on the deferred rankings/officers below.
 		const stats = computeStats(outPhases, outFeats, outTeams, Date.now());
+
+		// Deliberately NOT awaited: `loadWclExtras` is the heaviest WCL fetch in
+		// this file. Handing the raw promise to the client lets SvelteKit stream
+		// the fast data above immediately and fill in Hall of Fame / officer
+		// enrichment once it resolves, instead of blocking the whole page on it.
+		const wclExtras = loadWclExtras(platform!, db, env, officers);
 
 		return {
 			guild,
 			phases: outPhases,
-			officers: outOfficers,
+			officers,
 			recruitment,
 			teams: withTeamPercents(outTeams),
 			feats: outFeats,
 			faq,
 			stats,
-			hallOfFame,
-			community
+			community,
+			wclExtras
 		};
 	} catch {
-		return staticFallback();
+		return staticGuildData();
 	}
 }

@@ -4,10 +4,12 @@
 	 * the team detail page. When open, a lava dot pulses (unless the user prefers
 	 * reduced motion).
 	 */
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
+
 	let { open }: { open: boolean } = $props();
 </script>
 
-<span class="pill label-caps" class:pill--open={open} class:pill--closed={!open}>
+<span class="pill label-caps" class:pill--open={open} class:pill--closed={!open} use:pauseOffscreen>
 	{open ? 'Reclutando' : 'Cerrado'}
 </span>
 

@@ -2,6 +2,7 @@
 	import './admin.css';
 	import { page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
+	import { fly } from 'svelte/transition';
 	import type { Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 
@@ -18,10 +19,14 @@
 		{ href: '/admin', label: 'Resumen', icon: 'home', exact: true },
 		{ href: '/admin/guild', label: 'Identidad y horario', icon: 'shield' },
 		{ href: '/admin/teams', label: 'Equipos (Cores)', icon: 'users' },
+		{ href: '/admin/raids', label: 'Progreso de raid', icon: 'chart' },
+		{ href: '/admin/hazanas', label: 'Últimas hazañas', icon: 'medal' },
 		{ href: '/admin/officers', label: 'Consejo de Guerra', icon: 'star' },
 		{ href: '/admin/recruitment', label: 'Reclutamiento', icon: 'flag' },
+		{ href: '/admin/aplicaciones', label: 'Aplicaciones', icon: 'inbox' },
 		{ href: '/admin/faq', label: 'Preguntas frecuentes', icon: 'question' },
-		{ href: '/admin/community', label: 'Comunidad', icon: 'chat' }
+		{ href: '/admin/community', label: 'Comunidad', icon: 'chat' },
+		{ href: '/admin/wcl', label: 'Estado de WarcraftLogs', icon: 'refresh' }
 	];
 
 	// Account / access management section.
@@ -129,6 +134,18 @@
 								/><line x1="12" y1="17" x2="12" y2="17" />
 							{:else if s.icon === 'chat'}
 								<path d="M4 5h16v10H8l-4 4z" />
+							{:else if s.icon === 'chart'}
+								<path d="M3 3v18h18" /><path d="M7 16v-4" /><path d="M12 16V8" /><path
+									d="M17 16v-7"
+								/>
+							{:else if s.icon === 'medal'}
+								<circle cx="12" cy="8" r="5" /><path d="M8.5 12.5 6 21l6-3 6 3-2.5-8.5" />
+							{:else if s.icon === 'inbox'}
+								<path d="M4 4h16v16H4z" /><path d="M4 4l8 8 8-8" />
+							{:else if s.icon === 'refresh'}
+								<path d="M21 2v6h-6" /><path d="M3 22v-6h6" /><path
+									d="M21 8A9 9 0 0 0 6 4.6L3 8"
+								/><path d="M3 16a9 9 0 0 0 15 4.4l3-3.4" />
 							{/if}
 						</svg>
 						<span>{s.label}</span>
@@ -191,7 +208,11 @@
 		<!-- Content -->
 		<main class="admin-main">
 			<div class="admin-content">
-				{@render children()}
+				{#key $page.url.pathname}
+					<div in:fly={{ y: 12, duration: 180 }}>
+						{@render children()}
+					</div>
+				{/key}
 			</div>
 		</main>
 	</div>

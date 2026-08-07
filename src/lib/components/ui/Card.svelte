@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 
 	type Props = {
 		/** Continuous light beam traveling around the border (raid cards). */
@@ -64,6 +65,7 @@
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
 	onpointerdown={handlePointerDown}
+	use:pauseOffscreen
 	{...rest}
 >
 	<!-- Cursor spotlight — its own inner absolutely-positioned layer so it

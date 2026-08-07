@@ -13,8 +13,6 @@
    background/border vars → invisible field. */
 :root {
 	--admin-gap: var(--spacing-xl);
-	--admin-radius: 0.625rem;
-	--admin-radius-sm: 0.45rem;
 	--admin-border: color-mix(in srgb, var(--color-steel) 22%, transparent);
 	--admin-border-strong: color-mix(in srgb, var(--color-steel) 40%, transparent);
 	--admin-surface: var(--color-iron);
@@ -118,7 +116,7 @@
 	align-items: center;
 	gap: var(--spacing-sm);
 	padding: var(--spacing-xs) var(--spacing-md);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	text-decoration: none;
 	color: var(--color-steel);
 	font-size: var(--text-base);
@@ -186,7 +184,7 @@
 	align-items: center;
 	gap: var(--spacing-xs);
 	padding: var(--spacing-xs) var(--spacing-md);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	border: 1px solid var(--admin-border-strong);
 	background: var(--admin-surface);
 	color: var(--color-silver);
@@ -261,12 +259,19 @@
 	background-color: var(--admin-surface);
 	background-image: linear-gradient(180deg, rgba(229, 229, 229, 0.03), rgba(0, 0, 0, 0.22));
 	border: 1px solid var(--admin-border);
-	border-radius: var(--admin-radius);
+	border-radius: var(--radius-lg);
 	padding: clamp(1.1rem, 3vw, 1.6rem);
 	margin-bottom: var(--spacing-2xl);
 	box-shadow:
 		inset 0 1px 0 rgba(229, 229, 229, 0.04),
 		0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* A card nested under a parent card (e.g. a raid under its phase) — same look,
+   indented + slightly muted so the hierarchy reads at a glance. */
+.admin-card.admin-nested {
+	margin-left: clamp(0.75rem, 3vw, 2rem);
+	border-left: 2px solid var(--admin-border);
 }
 
 /* Card header for repeatable item cards (teams/officers/faq) */
@@ -322,7 +327,7 @@
 	box-sizing: border-box;
 	padding: var(--spacing-sm) var(--spacing-md);
 	border: 1px solid var(--admin-border-strong);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	background: var(--admin-field-bg);
 	color: var(--color-silver);
 	font: inherit;
@@ -403,7 +408,7 @@
 	margin-bottom: var(--spacing-xl);
 	padding: var(--spacing-xs) var(--spacing-md);
 	border: 1px solid var(--admin-border);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	background: var(--admin-surface-2);
 	cursor: pointer;
 }
@@ -437,7 +442,7 @@
 	gap: var(--spacing-xl);
 	padding: var(--spacing-lg);
 	border: 1px solid var(--admin-border);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	background: var(--admin-surface-2);
 }
 .admin-list-row .admin-field {
@@ -447,7 +452,7 @@
 .admin-list-empty {
 	padding: var(--spacing-xl);
 	border: 1px dashed var(--admin-border-strong);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	color: var(--admin-muted);
 	font-size: var(--text-sm);
 	text-align: center;
@@ -464,7 +469,7 @@
 	gap: var(--spacing-2xs);
 	padding: var(--spacing-sm) var(--spacing-xl);
 	border: 1px solid transparent;
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	font: inherit;
 	font-weight: 600;
 	font-size: var(--text-base);
@@ -537,6 +542,33 @@
 	box-shadow: none;
 }
 
+.admin-btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+.admin-btn:disabled:hover,
+.admin-btn:disabled:active {
+	transform: none;
+	box-shadow: none;
+}
+
+/* Inline loading spinner for a button mid-submit (see `pending` state in
+   +page.svelte). Respects the global reduced-motion rule (app.css). */
+.admin-spinner {
+	display: inline-block;
+	width: 0.85em;
+	height: 0.85em;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: var(--radius-full);
+	animation: admin-spin 0.6s linear infinite;
+}
+@keyframes admin-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 /* Logout button in sidebar — full width quiet */
 .admin-logout {
 	width: 100%;
@@ -564,7 +596,7 @@
 	align-items: flex-start;
 	gap: var(--spacing-sm);
 	padding: var(--spacing-md) var(--spacing-xl);
-	border-radius: var(--admin-radius-sm);
+	border-radius: var(--radius-md);
 	margin: 0 0 var(--spacing-2xl);
 	font-size: var(--text-base);
 	line-height: 1.45;
@@ -576,20 +608,54 @@
 	margin-top: 0.05rem;
 }
 .admin-msg.ok {
-	color: #bbf7d0;
-	background: color-mix(in srgb, #166534 28%, var(--color-iron));
-	border: 1px solid rgba(34, 197, 94, 0.45);
+	color: var(--color-success-tint);
+	background: color-mix(in srgb, var(--color-success-deep) 28%, var(--color-iron));
+	border: 1px solid color-mix(in srgb, var(--color-success) 45%, transparent);
 }
 .admin-msg.ok .msg-ico {
-	color: #4ade80;
+	color: var(--color-success);
 }
 .admin-msg.err {
-	color: #fecaca;
+	color: var(--color-lava);
 	background: color-mix(in srgb, var(--color-blood) 22%, var(--color-iron));
-	border: 1px solid rgba(248, 113, 113, 0.5);
+	border: 1px solid color-mix(in srgb, var(--color-lava) 50%, transparent);
 }
 .admin-msg.err .msg-ico {
-	color: #f87171;
+	color: var(--color-lava);
+}
+
+/* ============================================================
+   Dashboard stat cards
+   ============================================================ */
+.admin-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-2xs);
+	text-align: center;
+	text-decoration: none;
+	color: inherit;
+	transition:
+		border-color 0.18s ease,
+		transform 0.18s ease;
+}
+.admin-stat:hover {
+	color: inherit;
+	border-color: color-mix(in srgb, var(--color-lava) 50%, transparent);
+	transform: translateY(-2px);
+}
+.admin-stat__value {
+	font-family: var(--font-display);
+	font-size: var(--text-xl);
+	font-weight: 900;
+	color: var(--color-silver);
+}
+.admin-stat__label {
+	font-size: var(--text-xs);
+	letter-spacing: var(--tracking-wide);
+	text-transform: uppercase;
+	color: var(--admin-muted);
 }
 
 /* ============================================================
@@ -609,7 +675,7 @@
 	gap: var(--spacing-lg);
 	padding: var(--spacing-2xl);
 	border: 1px solid var(--admin-border);
-	border-radius: var(--admin-radius);
+	border-radius: var(--radius-lg);
 	text-decoration: none;
 	color: var(--color-silver);
 	background-color: var(--admin-surface);
@@ -673,7 +739,7 @@
 	width: 100%;
 	max-width: 26rem;
 	padding: clamp(1.5rem, 5vw, 2.25rem);
-	border-radius: var(--admin-radius);
+	border-radius: var(--radius-lg);
 	background-color: var(--color-iron);
 	background-image: linear-gradient(180deg, rgba(229, 229, 229, 0.04), rgba(0, 0, 0, 0.28));
 	border: 1px solid var(--admin-border-strong);

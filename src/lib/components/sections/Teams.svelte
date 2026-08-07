@@ -95,7 +95,7 @@
 							href="/equipos/{team.id}"
 							aria-label="Ver roster de {team.name}"
 						></a>
-						<header class="mb-[0.85rem] flex items-center justify-between gap-3">
+						<header class="mb-lg flex items-center justify-between gap-3">
 							<h3 class="team-card__name text-engraved">{team.name}</h3>
 							<StatusPill open={team.recruiting} />
 						</header>
@@ -109,7 +109,7 @@
 							{/if}
 						</p>
 
-						<div class="grid gap-[0.85rem]">
+						<div class="grid gap-lg">
 							<ProgressBar
 								value={barValue(team.id, team.ssc)}
 								label={`SSC ${team.ssc.kills}/${team.ssc.total}`}

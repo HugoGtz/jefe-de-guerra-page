@@ -94,3 +94,16 @@ export async function tryAcquireLock(
 		return true;
 	}
 }
+
+/**
+ * Delete a cache row by key (admin "refresh now" action) — the next
+ * `cacheThrough` read treats it as a miss and fetches live. Best-effort:
+ * never throws.
+ */
+export async function deleteCache(db: Db, key: string): Promise<void> {
+	try {
+		await db.delete(wclCache).where(eq(wclCache.key, key));
+	} catch {
+		// Best-effort; ignore failures.
+	}
+}

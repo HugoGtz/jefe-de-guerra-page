@@ -2,6 +2,7 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import StatusPill from '$lib/components/ui/StatusPill.svelte';
 	import { wclGuildUrl, wclCalendarUrl } from '$lib/data/teams';
+	import { formatDuration } from '$lib/parse';
 
 	type RaidProgress = { kills: number; total: number; percent?: number };
 	type Team = {
@@ -12,11 +13,50 @@
 		ssc: RaidProgress;
 		tk: RaidProgress;
 		wclGuildId?: number;
+		activity?: {
+			raids: number;
+			totalKills: number;
+			lastRaid: string | null;
+			fastestByBoss: Record<string, number>;
+		};
 	};
 
 	let { team }: { team: Team } = $props();
 
 	const pct = (p: RaidProgress): number => p.percent ?? 0;
+
+	const MONTHS_ES = [
+		'ene',
+		'feb',
+		'mar',
+		'abr',
+		'may',
+		'jun',
+		'jul',
+		'ago',
+		'sep',
+		'oct',
+		'nov',
+		'dic'
+	];
+
+	/** Formatea 'yyyy-mm-dd' como "12 jun". */
+	function formatShortDate(iso: string): string {
+		const [, m, d] = iso.split('-').map(Number);
+		if (!m || !d) return iso;
+		return `${d} ${MONTHS_ES[m - 1] ?? ''}`;
+	}
+
+	/** El récord de velocidad más rápido entre todos los bosses del core, o null. */
+	const speedRecord = $derived.by(() => {
+		const byBoss = team.activity?.fastestByBoss;
+		if (!byBoss) return null;
+		let best: { boss: string; ms: number } | null = null;
+		for (const [boss, ms] of Object.entries(byBoss)) {
+			if (!best || ms < best.ms) best = { boss, ms };
+		}
+		return best;
+	});
 </script>
 
 <header class="core__head">
@@ -50,6 +90,34 @@
 			complete={team.tk.kills >= team.tk.total}
 		/>
 	</div>
+
+	{#if team.activity && team.activity.raids > 0}
+		<div class="core__activity">
+			<div class="core__stat">
+				<span class="core__stat-value">{team.activity.raids}</span>
+				<span class="core__stat-label">Noches de raid</span>
+			</div>
+			<div class="core__stat">
+				<span class="core__stat-value">{team.activity.totalKills}</span>
+				<span class="core__stat-label">Kills registrados</span>
+			</div>
+			{#if team.activity.lastRaid}
+				<div class="core__stat">
+					<span class="core__stat-value">{formatShortDate(team.activity.lastRaid)}</span>
+					<span class="core__stat-label">Última raid</span>
+				</div>
+			{/if}
+			{#if speedRecord}
+				{@const time = formatDuration(speedRecord.ms)}
+				{#if time}
+					<div class="core__stat">
+						<span class="core__stat-value">{time}</span>
+						<span class="core__stat-label">Récord · {speedRecord.boss}</span>
+					</div>
+				{/if}
+			{/if}
+		</div>
+	{/if}
 
 	{#if team.wclGuildId}
 		<div class="core__links">
@@ -140,6 +208,33 @@
 		display: grid;
 		gap: var(--spacing-lg);
 		max-width: 32rem;
+	}
+
+	.core__activity {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-2xl);
+		margin-top: var(--spacing-2xl);
+		padding-top: var(--spacing-xl);
+		border-top: 1px solid color-mix(in srgb, var(--color-steel) 14%, transparent);
+	}
+	.core__stat {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-3xs);
+	}
+	.core__stat-value {
+		font-family: var(--font-display);
+		font-weight: 900;
+		font-size: var(--text-lg);
+		color: var(--color-ember);
+		font-variant-numeric: tabular-nums;
+	}
+	.core__stat-label {
+		font-size: var(--text-xs);
+		letter-spacing: var(--tracking-wide);
+		text-transform: uppercase;
+		color: var(--color-steel-dim);
 	}
 
 	.core__links {

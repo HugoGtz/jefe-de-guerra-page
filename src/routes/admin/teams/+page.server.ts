@@ -73,16 +73,17 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '').trim();
 		const fields = parseFields(form);
-		if (id.length === 0 || fields.name.length === 0) {
-			return fail(400, { error: 'El nombre del equipo es obligatorio.' });
+		if (id.length === 0) return fail(400, { error: 'Falta el identificador del equipo.' });
+		if (fields.name.length === 0) {
+			return fail(400, { error: 'El nombre del equipo es obligatorio.', id });
 		}
 		try {
 			const db = requireDb(platform);
 			await updateTeam(db, id, fields);
 		} catch {
-			return fail(503, { error: DB_ERROR });
+			return fail(503, { error: DB_ERROR, id });
 		}
-		return { success: 'Equipo actualizado.' };
+		return { success: 'Equipo actualizado.', id };
 	},
 
 	delete: async ({ request, platform }) => {

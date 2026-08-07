@@ -34,6 +34,8 @@ export type WclCharacter = {
 	name: string;
 	wowClass?: WowClass;
 	classLabel?: string;
+	/** Hex class color, populated on the `characters` map (per-class leaderboard); absent on rosters/officer enrichment paths that don't set it. */
+	classColor?: string;
 	spec?: string;
 	specRole?: SpecRole;
 	/** Rounded bestPerformanceAverage (0–100), if WCL had rankings. */
@@ -236,6 +238,10 @@ export type WclProgress = {
 	guild: WclRankTriple | null;
 	/** wclGuildId → that core's OWN guild-object progress rank (only when ranked). */
 	perCore: Record<number, WclRankTriple>;
+	/** Whole-guild speed rank (fastest kills) in SSC/TK, or null. */
+	guildSpeed: WclRankTriple | null;
+	/** wclGuildId → that core's OWN guild-object speed rank (only when ranked). */
+	perCoreSpeed: Record<number, WclRankTriple>;
 };
 
 /** One player's attendance within a core. */
@@ -253,4 +259,21 @@ export type WclAttendee = {
 export type WclAttendance = {
 	/** wclGuildId → attendees sorted by raids attended (desc). */
 	perCore: Record<number, WclAttendee[]>;
+};
+
+/** Live API quota state, from the top-level `rateLimitData` query. */
+export type WclRateLimit = {
+	limitPerHour: number;
+	pointsSpentThisHour: number;
+	pointsResetIn: number;
+};
+
+/** One of a character's recent reports (any guild, any zone) — recruitment
+ *  screening: "has this applicant actually been raiding lately?" */
+export type WclRecentReport = {
+	code: string;
+	/** Epoch ms. */
+	startTime: number;
+	/** Zone/instance name (e.g. "SSC / TK", "Karazhan"), or null if unknown. */
+	zoneName: string | null;
 };

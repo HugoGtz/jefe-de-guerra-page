@@ -20,12 +20,17 @@
 	const siteUrl = 'https://jefedeguerra.com';
 	const ogImage = `${siteUrl}/og-image.png`;
 
+	// Título compuesto a partir de la identidad editable en /admin/guild, para
+	// que cambiar el nombre/facción/servidor ahí se refleje en el SEO sin tocar
+	// código.
+	const siteTitle = $derived(`${data.guild.name} · ${data.guild.faction} · ${data.guild.server}`);
+
 	// Datos estructurados (SEO). Ayuda a buscadores a entender la entidad.
 	const jsonLd = $derived({
 		'@context': 'https://schema.org',
 		'@type': 'Organization',
-		name: 'Jefe de Guerra',
-		alternateName: 'Jefe de Guerra · Horda · Dreamscythe',
+		name: data.guild.name,
+		alternateName: siteTitle,
 		url: siteUrl,
 		logo: `${siteUrl}/icon-512.png`,
 		image: ogImage,
@@ -36,7 +41,7 @@
 </script>
 
 <svelte:head>
-	<title>Jefe de Guerra · Horda · Dreamscythe</title>
+	<title>{siteTitle}</title>
 	<meta
 		name="description"
 		content="Jefe de Guerra — hermandad de la Horda en Dreamscythe (TBC Classic). Fase 1 completada al 100%, ahora progresando en SSC y Tempest Keep. Reclutamiento abierto."
@@ -44,23 +49,23 @@
 	<link rel="canonical" href={siteUrl} />
 
 	<!-- Open Graph (Discord, WhatsApp, Facebook…) -->
-	<meta property="og:title" content="Jefe de Guerra · Horda · Dreamscythe" />
+	<meta property="og:title" content={siteTitle} />
 	<meta
 		property="og:description"
 		content="El orgullo de la Horda en Dreamscythe. Raids serios, buen ambiente y reclutamiento abierto para la Fase 2 de TBC Classic."
 	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={siteUrl} />
-	<meta property="og:site_name" content="Jefe de Guerra" />
+	<meta property="og:site_name" content={data.guild.name} />
 	<meta property="og:locale" content="es_ES" />
 	<meta property="og:image" content={ogImage} />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
-	<meta property="og:image:alt" content="Emblema de la guild Jefe de Guerra" />
+	<meta property="og:image:alt" content="Emblema de la guild {data.guild.name}" />
 
 	<!-- Twitter / X -->
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Jefe de Guerra · Horda · Dreamscythe" />
+	<meta name="twitter:title" content={siteTitle} />
 	<meta
 		name="twitter:description"
 		content="El orgullo de la Horda en Dreamscythe. Reclutamiento abierto para la Fase 2 de TBC Classic."
@@ -74,7 +79,7 @@
 <Hero guild={data.guild} />
 <About guild={data.guild} />
 <LavaDivider />
-<RaidProgress phases={data.phases} stats={data.stats} />
+<RaidProgress phases={data.phases} stats={data.stats} wclExtras={data.wclExtras} />
 <LavaDivider />
 <Feats feats={data.feats} />
 <LavaDivider />
@@ -88,6 +93,6 @@
 <LavaDivider />
 <Apply recruitment={data.recruitment} />
 <LavaDivider />
-<Officers officers={data.officers} />
+<Officers officers={data.officers} wclExtras={data.wclExtras} />
 <LavaDivider />
-<HallOfFame hallOfFame={data.hallOfFame} />
+<HallOfFame wclExtras={data.wclExtras} />

@@ -11,6 +11,19 @@
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
 		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
 		%sveltekit.head%
+		<!--
+			Cloudflare Web Analytics is already live for jefedeguerra.com — no
+			script needed here. Because the domain's DNS is proxied through
+			Cloudflare (it's a Cloudflare "zone", not just a bare *.pages.dev
+			host), Cloudflare collects Web Analytics automatically at the edge
+			for every request to that zone. See it at:
+				dashboard → Analytics & Logs → Web Analytics → jefedeguerra.com
+			No cookies, no consent banner (this is what made the JS-beacon
+			approach below unnecessary — it's the classic alternative for sites
+			NOT proxied through a Cloudflare zone, kept here only for reference
+			in case the domain ever moves off Cloudflare DNS).
+		-->
+		<!-- <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "PASTE_TOKEN_HERE"}'></script> -->
 	</head>
 	<body data-sveltekit-preload-data="hover" class="bg-ash text-silver antialiased">
 		<div style="display: contents">%sveltekit.body%</div>

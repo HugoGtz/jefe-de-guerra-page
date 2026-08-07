@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 
 	type Props = {
 		variant?: 'primary' | 'ghost';
@@ -30,6 +31,7 @@
 		class="jdg-btn jdg-gleam jdg-btn--{variant} {className}"
 		class:jdg-btn--pulse={pulse}
 		class:jdg-beam={beam}
+		use:pauseOffscreen
 		{...rest}
 	>
 		<span class="jdg-btn__label">{@render children?.()}</span>
@@ -39,6 +41,7 @@
 		class="jdg-btn jdg-gleam jdg-btn--{variant} {className}"
 		class:jdg-btn--pulse={pulse}
 		class:jdg-beam={beam}
+		use:pauseOffscreen
 		{...rest}
 	>
 		<span class="jdg-btn__label">{@render children?.()}</span>

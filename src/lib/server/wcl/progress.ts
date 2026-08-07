@@ -1,11 +1,13 @@
 /**
- * Guild progress rank (world / region / server).
+ * Guild progress + speed rank (world / region / server).
  *
- * Source: `guildData.guild(id).zoneRanking(zoneId:1056).progress(size:25)`, the
- * authoritative world/region/server progress rank for the guild in SSC/TK — no
- * report scanning. NOTE: ranks are per GUILD OBJECT, so a core whose logs live
- * on the parent (e.g. Core 4) has no own-guild rank; the parent's rank is the
- * whole-guild figure. Raid size 25 is required for Classic.
+ * Source: `guildData.guild(id).zoneRanking(zoneId:1056)` — `progress(size:25)`
+ * for the boss-progression rank, `speed(size:25)` for the fastest-kills rank —
+ * the authoritative world/region/server ranks for the guild in SSC/TK, no
+ * report scanning, both confirmed live in one request per guild object. NOTE:
+ * ranks are per GUILD OBJECT, so a core whose logs live on the parent (e.g.
+ * Core 4) has no own-guild rank; the parent's rank is the whole-guild figure.
+ * Raid size 25 is required for Classic.
  */
 
 import type { WclEnv, WclSource, WclRankTriple, WclProgress } from './types';
@@ -15,12 +17,13 @@ import { defaultSources } from './core-attribution';
 import { logWcl } from './logging';
 
 type RankNode = { number?: number | null } | null;
+type RankPath = { worldRank?: RankNode; regionRank?: RankNode; serverRank?: RankNode } | null;
+/** Shape of one aliased `guildData { guild(id) { zoneRanking {...} } }` block. */
 type ProgressNode = {
-	zoneRanking?: {
-		progress?: {
-			worldRank?: RankNode;
-			regionRank?: RankNode;
-			serverRank?: RankNode;
+	guild?: {
+		zoneRanking?: {
+			progress?: RankPath;
+			speed?: RankPath;
 		} | null;
 	} | null;
 } | null;
@@ -31,8 +34,7 @@ function rankNum(node: RankNode | undefined): number | null {
 	return typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 
-function toRankTriple(p: ProgressNode): WclRankTriple | null {
-	const pr = p?.zoneRanking?.progress;
+function toRankTriple(pr: RankPath): WclRankTriple | null {
 	if (!pr) return null;
 	const triple = {
 		world: rankNum(pr.worldRank),
@@ -43,7 +45,7 @@ function toRankTriple(p: ProgressNode): WclRankTriple | null {
 	return triple;
 }
 
-/** Build the batched progress query: one aliased guild block per source. */
+/** Build the batched progress+speed query: one aliased guild block per source. */
 function buildProgressQuery(guildIds: number[]): string {
 	const blocks = guildIds
 		.map(
@@ -51,6 +53,11 @@ function buildProgressQuery(guildIds: number[]): string {
     guild(id: ${id}) {
       zoneRanking(zoneId: ${SSC_TK_ZONE_ID}) {
         progress(size: ${RAID_SIZE}) {
+          worldRank { number }
+          regionRank { number }
+          serverRank { number }
+        }
+        speed(size: ${RAID_SIZE}) {
           worldRank { number }
           regionRank { number }
           serverRank { number }
@@ -85,16 +92,32 @@ export async function getWclProgress(
 		if (!data) return null;
 
 		let guild: WclRankTriple | null = null;
+		let guildSpeed: WclRankTriple | null = null;
 		const perCore: Record<number, WclRankTriple> = {};
+		const perCoreSpeed: Record<number, WclRankTriple> = {};
 		list.forEach((source, i) => {
-			const triple = toRankTriple(data[`p${i}`] ?? null);
-			if (!triple) return;
-			if (source.isParent) guild = triple;
-			else perCore[source.wclGuildId] = triple;
+			const zr = data[`p${i}`]?.guild?.zoneRanking ?? null;
+			const progress = toRankTriple(zr?.progress ?? null);
+			const speed = toRankTriple(zr?.speed ?? null);
+			if (progress) {
+				if (source.isParent) guild = progress;
+				else perCore[source.wclGuildId] = progress;
+			}
+			if (speed) {
+				if (source.isParent) guildSpeed = speed;
+				else perCoreSpeed[source.wclGuildId] = speed;
+			}
 		});
 
-		if (!guild && Object.keys(perCore).length === 0) return null;
-		return { guild, perCore };
+		if (
+			!guild &&
+			!guildSpeed &&
+			Object.keys(perCore).length === 0 &&
+			Object.keys(perCoreSpeed).length === 0
+		) {
+			return null;
+		}
+		return { guild, perCore, guildSpeed, perCoreSpeed };
 	} catch (e) {
 		logWcl('getWclProgress', { error: e instanceof Error ? e.message : String(e) });
 		return null;

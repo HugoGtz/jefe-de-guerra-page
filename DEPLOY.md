@@ -108,6 +108,29 @@ consulta. La fila lleva un `tier` (hoy `'p2-ssc-tk'`, ver `CURRENT_TIER` en
    npx wrangler d1 execute jefe-de-guerra --remote --command "DELETE FROM wcl_boss_kills WHERE tier <> 'p3-...';"
    ```
 
+**Agregar una fase o raid nuevo.** `/admin/raids` solo permite EDITAR fases,
+raids y jefes que ya existen (incluye agregar/quitar jefes dentro de un raid
+existente). Agregar una fase o un raid completo es un evento de un par de
+veces al año (cuando abre contenido nuevo) y se hace a mano:
+
+```bash
+npx wrangler d1 execute jefe-de-guerra --remote --command \
+  "INSERT INTO phases (id, name, label, status, status_label, sort) VALUES ('phase-3', 'Fase 3', 'Fase 3', 'upcoming', 'Próxima', 2);"
+npx wrangler d1 execute jefe-de-guerra --remote --command \
+  "INSERT INTO raids (id, phase_id, name, abbr, sort) VALUES ('mount-hyjal', 'phase-3', 'Mount Hyjal', 'MH', 0);"
+```
+
+Luego los jefes de ese raid ya se agregan normal desde `/admin/raids`.
+
+**Analíticas de visitas (Cloudflare Web Analytics).** Ya están activas y no
+requieren ningún paso adicional: como `jefedeguerra.com` es una zone de
+Cloudflare (DNS proxiado), Cloudflare junta Web Analytics automáticamente a
+nivel de borde para cada request — sin script, sin cookies, sin banner de
+consentimiento. Verlas en dashboard → Analytics & Logs → Web Analytics →
+`jefedeguerra.com`. `src/app.html` deja comentado el método alternativo por
+JS-beacon (`data-cf-beacon`), solo por si el dominio algún día deja de usar
+Cloudflare como DNS — hoy es innecesario.
+
 ## 2. Una sola vez — GitHub
 
 1. Crea el repo remoto y haz push (ver §3).

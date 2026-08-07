@@ -2,6 +2,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { cursorTilt } from '$lib/actions/cursorTilt';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 	import type { Guild } from '$lib/data/guild';
 
 	let { guild }: { guild: Guild } = $props();
@@ -10,7 +11,7 @@
 	let heroEl = $state<HTMLElement>();
 </script>
 
-<section bind:this={heroEl} id="inicio" class="hero">
+<section bind:this={heroEl} id="inicio" class="hero" use:pauseOffscreen>
 	<!-- Resplandor rojo estático detrás del logo (decorativo). SIN parallax ni
 	     blur/animación a propósito: cualquiera de esos promueve el glow a su
 	     propia capa GPU que, recortada por `.hero { overflow:hidden }`, dibuja su

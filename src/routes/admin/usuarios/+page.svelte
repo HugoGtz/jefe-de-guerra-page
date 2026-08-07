@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { fade } from 'svelte/transition';
+	import AdminFormMessage from '$lib/components/admin/AdminFormMessage.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -17,6 +20,18 @@
 
 	// The id of the currently authenticated user (to mark "tú" in the list).
 	let currentId = $derived($page.data.user?.id as number | undefined);
+
+	// Per-row submitting state so a slow D1 write shows immediate feedback
+	// (disabled button + label swap) instead of an inert click followed by a
+	// message that seems to appear "out of nowhere".
+	let pending = new SvelteSet<string>();
+	function trackSubmit(rowId: string) {
+		pending.add(rowId);
+		return async ({ update }: { update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			await update({ reset: false });
+			pending.delete(rowId);
+		};
+	}
 </script>
 
 <svelte:head>
@@ -32,67 +47,13 @@
 	</p>
 </div>
 
-{#if form?.scope === 'create' && form?.created}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>Usuario creado. Deberá cambiar su contraseña al iniciar sesión.</span>
-	</div>
-{/if}
-{#if form?.scope === 'delete' && form?.deleted}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>
-			{#if form?.self}
-				Te eliminaste a ti mismo. Tu sesión seguirá activa hasta que cierres sesión.
-			{:else}
-				Usuario eliminado.
-			{/if}
-		</span>
-	</div>
-{/if}
-{#if form?.scope === 'delete' && form?.error}
-	<div class="admin-msg err" role="alert">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-				x1="12"
-				y1="16"
-				x2="12"
-				y2="16"
-			/>
-		</svg>
-		<span>{form.error}</span>
-	</div>
+{#if form?.id == null}
+	<AdminFormMessage
+		success={form?.scope === 'create' && form?.created
+			? 'Usuario creado. Deberá cambiar su contraseña al iniciar sesión.'
+			: undefined}
+		error={form?.error}
+	/>
 {/if}
 
 <div class="admin-card">
@@ -107,7 +68,7 @@
 	{:else}
 		<div class="admin-list">
 			{#each data.users as u (u.id)}
-				<div class="admin-list-row" style="align-items: center;">
+				<div class="admin-list-row" style="align-items: center;" out:fade={{ duration: 150 }}>
 					<div class="admin-field" style="margin-bottom: 0;">
 						<span class="field-label">Usuario</span>
 						<div style="font-weight: 600; color: var(--color-silver);">
@@ -126,29 +87,35 @@
 					</div>
 					<div class="admin-field admin-field-action" style="margin-bottom: 0;">
 						<span class="field-label" style="visibility: hidden;">Acción</span>
-						<form
-							method="POST"
-							action="?/delete"
-							use:enhance={() => {
-								return async ({ update }) => {
-									await update();
-								};
-							}}
-						>
+						<form method="POST" action="?/delete" use:enhance={() => trackSubmit(String(u.id))}>
 							<input type="hidden" name="id" value={u.id} />
 							<button
 								type="submit"
 								class="admin-btn danger"
-								disabled={data.users.length <= 1}
+								disabled={data.users.length <= 1 || pending.has(String(u.id))}
 								onclick={(e) => {
 									if (!confirm(`¿Eliminar al usuario «${u.username}»?`)) e.preventDefault();
 								}}
 							>
-								Eliminar
+								{#if pending.has(String(u.id))}
+									<span class="admin-spinner" aria-hidden="true"></span>Eliminando…
+								{:else}
+									Eliminar
+								{/if}
 							</button>
 						</form>
 					</div>
 				</div>
+				{#if form?.id === u.id}
+					<AdminFormMessage
+						success={form?.scope === 'delete' && form?.deleted
+							? form?.self
+								? 'Te eliminaste a ti mismo. Tu sesión seguirá activa hasta que cierres sesión.'
+								: 'Usuario eliminado.'
+							: undefined}
+						error={form?.error}
+					/>
+				{/if}
 			{/each}
 		</div>
 	{/if}
@@ -159,30 +126,7 @@
 		<h2>Crear usuario</h2>
 	</div>
 
-	{#if form?.scope === 'create' && form?.error}
-		<div class="admin-msg err" role="alert">
-			<svg
-				class="msg-ico"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-					x1="12"
-					y1="16"
-					x2="12"
-					y2="16"
-				/>
-			</svg>
-			<span>{form.error}</span>
-		</div>
-	{/if}
-
-	<form method="POST" action="?/create" use:enhance>
+	<form method="POST" action="?/create" use:enhance={() => trackSubmit('create')}>
 		<div class="admin-row">
 			<div class="admin-field">
 				<label for="new-username">Usuario</label>
@@ -212,7 +156,13 @@
 		</div>
 
 		<div class="admin-actions footer">
-			<button type="submit" class="admin-btn">Crear usuario</button>
+			<button type="submit" class="admin-btn" disabled={pending.has('create')}>
+				{#if pending.has('create')}
+					<span class="admin-spinner" aria-hidden="true"></span>Creando…
+				{:else}
+					Crear usuario
+				{/if}
+			</button>
 		</div>
 	</form>
 </div>

@@ -136,6 +136,7 @@ export function createRankingsAccumulator() {
 				name,
 				wowClass,
 				classLabel: wowClass ? CLASS_LABEL_ES[wowClass] : undefined,
+				classColor: wowClass ? CLASS_COLOR[wowClass] : undefined,
 				spec,
 				specRole: role,
 				score

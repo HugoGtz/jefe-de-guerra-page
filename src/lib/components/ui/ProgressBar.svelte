@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements';
+	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
 
 	type Props = {
 		value: number;
@@ -15,7 +16,7 @@
 	const displayValue = $derived(complete ? '100%' : `${Math.round(clamped)}%`);
 </script>
 
-<div class="jdg-progress {className}" {...rest}>
+<div class="jdg-progress {className}" use:pauseOffscreen {...rest}>
 	{#if label}
 		<div class="jdg-progress__head">
 			<span class="jdg-progress__label text-engraved">{label}</span>

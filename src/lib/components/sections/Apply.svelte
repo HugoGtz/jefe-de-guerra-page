@@ -185,7 +185,7 @@
 					name="website"
 					bind:value={honeypot}
 				/>
-				<div class="grid grid-cols-1 gap-[1.1rem] sm:grid-cols-2">
+				<div class="grid grid-cols-1 gap-xl sm:grid-cols-2">
 					<div class="field">
 						<label class="field__label" for="ap-character">Nombre de personaje</label>
 						<input
@@ -327,6 +327,10 @@
 						{sending ? 'Enviando…' : 'Enviar aplicación'}
 					</Button>
 				</div>
+				<p class="apply__privacy-note">
+					Al enviar tu aplicación aceptas nuestro
+					<a href="/aviso-privacidad">aviso de privacidad</a>.
+				</p>
 			</form>
 
 			{#if status === 'error'}
@@ -468,6 +472,20 @@
 		margin-top: var(--spacing-3xl);
 		display: flex;
 		justify-content: center;
+	}
+	.apply__privacy-note {
+		margin: var(--spacing-lg) 0 0;
+		text-align: center;
+		font-size: var(--text-xs);
+		color: var(--color-steel-dim);
+	}
+	.apply__privacy-note a {
+		color: var(--color-steel-dim);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.apply__privacy-note a:hover {
+		color: var(--color-lava);
 	}
 
 	.apply__status {

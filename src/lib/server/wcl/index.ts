@@ -29,6 +29,8 @@ export { getWclCharacter } from './character';
 export { getWclRankings } from './rankings/index';
 export { getWclProgress } from './progress';
 export { getWclAttendance } from './attendance';
+export { getWclRateLimit } from './rateLimit';
+export { getWclCharacterRecentReports } from './recentReports';
 
 export type {
 	WclEnv,
@@ -49,5 +51,7 @@ export type {
 	WclRankTriple,
 	WclProgress,
 	WclAttendee,
-	WclAttendance
+	WclAttendance,
+	WclRateLimit,
+	WclRecentReport
 } from './types';

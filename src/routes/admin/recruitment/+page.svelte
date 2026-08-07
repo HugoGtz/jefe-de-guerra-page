@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { enhance } from '$app/forms';
+	import AdminFormMessage from '$lib/components/admin/AdminFormMessage.svelte';
 	import type { PageData, ActionData } from './$types';
 	import type { RecruitNeed } from '$lib/data/recruitment';
 
@@ -9,11 +11,18 @@
 	const r = $derived(data.recruitment);
 	const v = $derived(form?.values);
 
-	// Editable list of needs (label + priority), seeded from form echo or DB.
+	let submitting = $state(false);
+
+	type NeedRow = RecruitNeed & { key: string };
+
+	// `key` is a client-only synthetic id (not submitted) so the {#each} below
+	// can key by identity instead of index — required for out:fade on Quitar
+	// to animate the row you actually clicked instead of always the last one.
 	// Initialised once from the initial props; further edits are user-driven.
-	let needs = $state<RecruitNeed[]>(
+	let needs = $state<NeedRow[]>(
 		untrack(() =>
 			(form?.values?.needs ?? data.recruitment?.needs ?? []).map((n) => ({
+				key: crypto.randomUUID(),
 				label: n.label,
 				priority: n.priority
 			}))
@@ -21,7 +30,7 @@
 	);
 
 	function addNeed() {
-		needs = [...needs, { label: '', priority: 'media' }];
+		needs = [...needs, { key: crypto.randomUUID(), label: '', priority: 'media' }];
 	}
 	function removeNeed(i: number) {
 		needs = needs.filter((_, idx) => idx !== i);
@@ -42,47 +51,16 @@
 	</p>
 </div>
 
-{#if form?.success}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>Cambios guardados correctamente.</span>
-	</div>
-{/if}
-{#if form?.error}
-	<div class="admin-msg err" role="alert">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-				x1="12"
-				y1="16"
-				x2="12"
-				y2="16"
-			/>
-		</svg>
-		<span>{form.error}</span>
-	</div>
-{/if}
-
-<form method="POST" use:enhance>
+<form
+	method="POST"
+	use:enhance={() => {
+		submitting = true;
+		return async ({ update }) => {
+			await update({ reset: false });
+			submitting = false;
+		};
+	}}
+>
 	<div class="admin-card">
 		<h2>Presentación y contacto</h2>
 		<div class="admin-field">
@@ -114,8 +92,8 @@
 	<div class="admin-card">
 		<h2>Necesidades <span class="hint">— clases / roles que buscáis</span></h2>
 		<div class="admin-list">
-			{#each needs as need, i (i)}
-				<div class="admin-list-row">
+			{#each needs as need, i (need.key)}
+				<div class="admin-list-row" out:fade={{ duration: 150 }}>
 					<div class="admin-field">
 						<label for="need-{i}">Clase / rol</label>
 						<input id="need-{i}" name="needLabel" type="text" bind:value={need.label} />
@@ -157,6 +135,18 @@
 	</div>
 
 	<div class="admin-actions footer">
-		<button type="submit" class="admin-btn">Guardar cambios</button>
+		<button type="submit" class="admin-btn" disabled={submitting}>
+			{#if submitting}
+				<span class="admin-spinner" aria-hidden="true"></span>Guardando…
+			{:else}
+				Guardar cambios
+			{/if}
+		</button>
+		<div style="flex: 1 1 100%; margin-top: var(--spacing-lg);">
+			<AdminFormMessage
+				success={form?.success ? 'Cambios guardados correctamente.' : undefined}
+				error={form?.error}
+			/>
+		</div>
 	</div>
 </form>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { enhance } from '$app/forms';
+	import AdminFormMessage from '$lib/components/admin/AdminFormMessage.svelte';
 	import type { PageData, ActionData } from './$types';
 	import type { RaidNight } from '$lib/data/community';
 
@@ -9,10 +11,18 @@
 	const v = $derived(form?.values);
 	const weekdayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
+	let submitting = $state(false);
+
+	type NightRow = RaidNight & { key: string };
+
+	// `key` is a client-only synthetic id (not submitted) so the {#each} below
+	// can key by identity instead of index — required for out:fade on Quitar
+	// to animate the row you actually clicked instead of always the last one.
 	// Initialised once from the initial load; further edits are user-driven.
-	let nights = $state<RaidNight[]>(
+	let nights = $state<NightRow[]>(
 		untrack(() =>
 			(data.raidNights ?? []).map((n) => ({
+				key: crypto.randomUUID(),
 				team: n.team ?? '',
 				weekday: n.weekday,
 				time: n.time
@@ -21,7 +31,7 @@
 	);
 
 	function addNight() {
-		nights = [...nights, { team: '', weekday: 1, time: '' }];
+		nights = [...nights, { key: crypto.randomUUID(), team: '', weekday: 1, time: '' }];
 	}
 	function removeNight(i: number) {
 		nights = nights.filter((_, idx) => idx !== i);
@@ -40,47 +50,16 @@
 	</p>
 </div>
 
-{#if form?.success}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>Cambios guardados correctamente.</span>
-	</div>
-{/if}
-{#if form?.error}
-	<div class="admin-msg err" role="alert">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-				x1="12"
-				y1="16"
-				x2="12"
-				y2="16"
-			/>
-		</svg>
-		<span>{form.error}</span>
-	</div>
-{/if}
-
-<form method="POST" use:enhance>
+<form
+	method="POST"
+	use:enhance={() => {
+		submitting = true;
+		return async ({ update }) => {
+			await update({ reset: false });
+			submitting = false;
+		};
+	}}
+>
 	<div class="admin-card">
 		<h2>Ajustes generales</h2>
 		<div class="admin-row">
@@ -112,8 +91,8 @@
 			El equipo es opcional. El día es 0 = Domingo … 6 = Sábado. La hora va en formato HH:MM (24h).
 		</p>
 		<div class="admin-list">
-			{#each nights as night, i (i)}
-				<div class="admin-list-row">
+			{#each nights as night, i (night.key)}
+				<div class="admin-list-row" out:fade={{ duration: 150 }}>
 					<div class="admin-field">
 						<label for="nteam-{i}">Equipo (opcional)</label>
 						<input id="nteam-{i}" name="nightTeam" type="text" bind:value={night.team} />
@@ -156,6 +135,18 @@
 	</div>
 
 	<div class="admin-actions footer">
-		<button type="submit" class="admin-btn">Guardar cambios</button>
+		<button type="submit" class="admin-btn" disabled={submitting}>
+			{#if submitting}
+				<span class="admin-spinner" aria-hidden="true"></span>Guardando…
+			{:else}
+				Guardar cambios
+			{/if}
+		</button>
+		<div style="flex: 1 1 100%; margin-top: var(--spacing-lg);">
+			<AdminFormMessage
+				success={form?.success ? 'Cambios guardados correctamente.' : undefined}
+				error={form?.error}
+			/>
+		</div>
 	</div>
 </form>

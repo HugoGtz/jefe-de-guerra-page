@@ -53,14 +53,14 @@ export const actions: Actions = {
 		const fields = parseFields(form);
 		if (id < 0) return fail(400, { error: 'Falta el identificador del oficial.' });
 		if (fields.name.length === 0 || fields.role.length === 0) {
-			return fail(400, { error: 'El nombre y el rol del oficial son obligatorios.' });
+			return fail(400, { error: 'El nombre y el rol del oficial son obligatorios.', id });
 		}
 		try {
 			await updateOfficer(requireDb(platform), id, fields);
 		} catch {
-			return fail(503, { error: DB_ERROR });
+			return fail(503, { error: DB_ERROR, id });
 		}
-		return { success: 'Oficial actualizado.' };
+		return { success: 'Oficial actualizado.', id };
 	},
 
 	delete: async ({ request, platform }) => {

@@ -33,6 +33,12 @@
 	--color-stone: #14100f; /* lighter dark surface */
 	--color-iron: #1c1815; /* card/surface dark */
 
+	/* Success — outside the brand's red/metal palette on purpose (admin form
+	   feedback is the only place a "this worked" state needs a distinct hue). */
+	--color-success: #4ade80; /* accent / icon */
+	--color-success-deep: #166534; /* background mix base */
+	--color-success-tint: #bbf7d0; /* text on dark success background */
+
 	/* Fonts — exposed as font-display / font-sans utilities */
 	--font-display: 'Cinzel', serif;
 	--font-sans: 'Inter', system-ui, sans-serif;
@@ -415,6 +421,22 @@
 			--jdg-beam-angle: 360deg;
 		}
 	}
+}
+
+/* Perf: elements marked by the `pauseOffscreen` action pause any continuous
+   `animation` (theirs or a descendant's, incl. pseudo-elements) while
+   scrolled out of view — shine sweeps, pulses, beams keep running forever
+   otherwise. Reduced-motion above already handles the accessibility case;
+   this is purely about not burning GPU cycles off-screen. */
+.is-offscreen,
+.is-offscreen *,
+.is-offscreen::before,
+.is-offscreen::after,
+.is-offscreen *::before,
+.is-offscreen *::after {
+	/* !important: Svelte's per-component scoping attribute otherwise out-specifies
+	   this global rule, same rationale as the reduced-motion rule below. */
+	animation-play-state: paused !important;
 }
 
 /* ============================================================

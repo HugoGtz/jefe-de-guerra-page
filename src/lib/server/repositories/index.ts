@@ -7,7 +7,21 @@
  */
 
 export { getGuild, updateGuild, setAboutParagraphs, type GuildUpdate } from './guild.repository';
-export { getPhases, withRaidProgress, phasePercent } from './raids.repository';
+export {
+	getPhases,
+	withRaidProgress,
+	phasePercent,
+	listPhasesAdmin,
+	updatePhase,
+	updateRaid,
+	setBossesForRaid,
+	type PhaseAdmin,
+	type RaidAdmin,
+	type BossAdmin,
+	type PhaseInput,
+	type RaidInput,
+	type BossListInput
+} from './raids.repository';
 export { getTeams, createTeam, updateTeam, deleteTeam, type TeamInput } from './teams.repository';
 export {
 	getOfficers,
@@ -25,7 +39,15 @@ export {
 	setRequirements,
 	type RecruitmentMetaUpdate
 } from './recruitment.repository';
-export { getFeats } from './feats.repository';
+export {
+	getFeats,
+	listFeatsAdmin,
+	createFeat,
+	updateFeat,
+	deleteFeat,
+	type FeatAdmin,
+	type FeatInput
+} from './feats.repository';
 export {
 	getFaq,
 	listFaqAdmin,
@@ -43,8 +65,26 @@ export {
 	type CommunityMeta,
 	type CommunityMetaUpdate
 } from './community.repository';
-export { getCache, setCache, tryAcquireLock, type CacheEntry } from './wclCache.repository';
-export { getBossKills, upsertBossKills, type BossKillRow } from './wclBossKills.repository';
+export {
+	getCache,
+	setCache,
+	tryAcquireLock,
+	deleteCache,
+	type CacheEntry
+} from './wclCache.repository';
+export {
+	getBossKills,
+	upsertBossKills,
+	deleteBossKill,
+	type BossKillRow
+} from './wclBossKills.repository';
+export {
+	createApplication,
+	listApplicationsAdmin,
+	markApplicationReviewed,
+	type ApplicationInput,
+	type ApplicationAdmin
+} from './applications.repository';
 export {
 	countUsers,
 	getByUsername,

@@ -1,8 +1,23 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { fade } from 'svelte/transition';
+	import AdminFormMessage from '$lib/components/admin/AdminFormMessage.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// Per-row submitting state so a slow D1 write shows immediate feedback
+	// (disabled button + label swap) instead of an inert click followed by a
+	// message that seems to appear "out of nowhere".
+	let pending = new SvelteSet<string>();
+	function trackSubmit(rowId: string) {
+		pending.add(rowId);
+		return async ({ update }: { update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			await update({ reset: false });
+			pending.delete(rowId);
+		};
+	}
 </script>
 
 <svelte:head>
@@ -17,49 +32,22 @@
 	</p>
 </div>
 
-{#if form?.success}
-	<div class="admin-msg ok" role="status">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M20 6 9 17l-5-5" />
-		</svg>
-		<span>{form.success}</span>
-	</div>
-{/if}
-{#if form?.error}
-	<div class="admin-msg err" role="alert">
-		<svg
-			class="msg-ico"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line
-				x1="12"
-				y1="16"
-				x2="12"
-				y2="16"
-			/>
-		</svg>
-		<span>{form.error}</span>
-	</div>
+{#if form?.id == null}
+	<AdminFormMessage success={form?.success} error={form?.error} />
 {/if}
 
 {#each data.faq as item (item.id)}
-	<form method="POST" action="?/update" use:enhance class="admin-card">
+	<form
+		method="POST"
+		action="?/update"
+		use:enhance={() => trackSubmit(String(item.id))}
+		class="admin-card"
+		out:fade={{ duration: 150 }}
+	>
 		<input type="hidden" name="id" value={item.id} />
+		{#if form?.id === item.id}
+			<AdminFormMessage success={form?.success} error={form?.error} />
+		{/if}
 		<div class="admin-card-head">
 			<h2>Pregunta #{item.sort}</h2>
 		</div>
@@ -76,14 +64,34 @@
 			<input id="sort-{item.id}" name="sort" type="number" value={item.sort} />
 		</div>
 		<div class="admin-actions footer">
-			<button type="submit" class="admin-btn">Guardar</button>
-			<button type="submit" formaction="?/delete" class="admin-btn danger">Eliminar</button>
+			<button type="submit" class="admin-btn" disabled={pending.has(String(item.id))}>
+				{#if pending.has(String(item.id))}
+					<span class="admin-spinner" aria-hidden="true"></span>Guardando…
+				{:else}
+					Guardar
+				{/if}
+			</button>
+			<button
+				type="submit"
+				formaction="?/delete"
+				class="admin-btn danger"
+				disabled={pending.has(String(item.id))}
+				onclick={(e) => {
+					if (!confirm(`¿Eliminar la pregunta «${item.q}»?`)) e.preventDefault();
+				}}
+			>
+				{#if pending.has(String(item.id))}
+					<span class="admin-spinner" aria-hidden="true"></span>Eliminando…
+				{:else}
+					Eliminar
+				{/if}
+			</button>
 		</div>
 	</form>
 {/each}
 
 <h2>Añadir pregunta</h2>
-<form method="POST" action="?/create" use:enhance class="admin-card">
+<form method="POST" action="?/create" use:enhance={() => trackSubmit('create')} class="admin-card">
 	<div class="admin-field">
 		<label for="new-q">Pregunta</label>
 		<input id="new-q" name="q" type="text" required />
@@ -97,6 +105,12 @@
 		<input id="new-sort" name="sort" type="number" value={data.faq.length} />
 	</div>
 	<div class="admin-actions footer">
-		<button type="submit" class="admin-btn">Añadir pregunta</button>
+		<button type="submit" class="admin-btn" disabled={pending.has('create')}>
+			{#if pending.has('create')}
+				<span class="admin-spinner" aria-hidden="true"></span>Añadiendo…
+			{:else}
+				Añadir pregunta
+			{/if}
+		</button>
 	</div>
 </form>
