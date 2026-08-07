@@ -8,9 +8,13 @@
  * returns `null` rather than throwing, matching the previous try/catch behavior.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Db } from '$lib/server/db/client';
 import { wclCache } from '$lib/server/db/schema';
+
+/** Default single-flight lease: comfortably covers the slowest WCL pipeline
+ *  (rankings' several chunked round-trips). */
+const DEFAULT_LEASE_MS = 30_000;
 
 /** A cache hit: the raw JSON string and when it was fetched (epoch ms). */
 export type CacheEntry = { json: string; fetchedAt: number };
@@ -45,11 +49,48 @@ export async function setCache(
 	fetchedAt: number
 ): Promise<void> {
 	try {
-		await db.insert(wclCache).values({ key, json, fetchedAt }).onConflictDoUpdate({
-			target: wclCache.key,
-			set: { json, fetchedAt }
-		});
+		// Clears any lease left over from `tryAcquireLock` — a successful write is
+		// the natural release, so the next stale read doesn't wait out the lease.
+		await db
+			.insert(wclCache)
+			.values({ key, json, fetchedAt, lockedUntil: null })
+			.onConflictDoUpdate({
+				target: wclCache.key,
+				set: { json, fetchedAt, lockedUntil: null }
+			});
 	} catch {
 		// Best-effort cache write; ignore failures.
+	}
+}
+
+/**
+ * Best-effort single-flight lock for a cache key. Returns true iff THIS call
+ * acquired the lock (the row's `lockedUntil` was null/expired and got bumped to
+ * `now + leaseMs` in one atomic upsert) — so a stale key under concurrent
+ * requests only triggers one live WCL refetch; the rest serve the stale value.
+ *
+ * FAILS OPEN: any error acquiring the lock is treated as "acquired" so a broken
+ * lock primitive never blocks a legitimate fetch — worst case is today's
+ * behavior (every stale request refetches).
+ */
+export async function tryAcquireLock(
+	db: Db,
+	key: string,
+	now: number,
+	leaseMs = DEFAULT_LEASE_MS
+): Promise<boolean> {
+	try {
+		const result = await db
+			.insert(wclCache)
+			.values({ key, json: '', fetchedAt: 0, lockedUntil: now + leaseMs })
+			.onConflictDoUpdate({
+				target: wclCache.key,
+				set: { lockedUntil: now + leaseMs },
+				where: sql`${wclCache.lockedUntil} IS NULL OR ${wclCache.lockedUntil} < ${now}`
+			});
+		const changes = (result as { meta?: { changes?: number } })?.meta?.changes ?? 0;
+		return changes > 0;
+	} catch {
+		return true;
 	}
 }

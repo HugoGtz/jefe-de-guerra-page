@@ -103,4 +103,48 @@ describe('cacheThrough', () => {
 		expect(out).toEqual({ names: new Set(['a', 'b']) });
 		expect(failingWrite).toHaveBeenCalledOnce(); // attempted, but its throw was swallowed
 	});
+
+	it('skips fetch and serves the stale row when acquireLock loses the race', async () => {
+		const store = fakeStore({ json: JSON.stringify({ v: 'stale' }), fetchedAt: 0 });
+		const fetch = vi.fn(async () => ({ v: 'fresh' }));
+		const acquireLock = vi.fn(async () => false);
+
+		const out = await cacheThrough({ now: 10_000, ttlMs: 100, ...store, fetch, acquireLock });
+
+		expect(out).toEqual({ v: 'stale' });
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('returns null when acquireLock loses the race and there is no cache row', async () => {
+		const store = fakeStore(null);
+		const fetch = vi.fn(async () => ({ v: 'fresh' }));
+		const acquireLock = vi.fn(async () => false);
+
+		const out = await cacheThrough({ now: 0, ttlMs: 100, ...store, fetch, acquireLock });
+
+		expect(out).toBeNull();
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('fetches normally when acquireLock wins the race', async () => {
+		const store = fakeStore({ json: JSON.stringify({ v: 'stale' }), fetchedAt: 0 });
+		const fetch = vi.fn(async () => ({ v: 'fresh' }));
+		const acquireLock = vi.fn(async () => true);
+
+		const out = await cacheThrough({ now: 10_000, ttlMs: 100, ...store, fetch, acquireLock });
+
+		expect(out).toEqual({ v: 'fresh' });
+		expect(fetch).toHaveBeenCalledOnce();
+	});
+
+	it('never calls acquireLock when the row is already fresh', async () => {
+		const store = fakeStore({ json: JSON.stringify({ v: 1 }), fetchedAt: 100 });
+		const fetch = vi.fn(async () => ({ v: 999 }));
+		const acquireLock = vi.fn(async () => true);
+
+		const out = await cacheThrough({ now: 150, ttlMs: 100, ...store, fetch, acquireLock });
+
+		expect(out).toEqual({ v: 1 });
+		expect(acquireLock).not.toHaveBeenCalled();
+	});
 });

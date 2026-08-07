@@ -146,8 +146,18 @@ CREATE TABLE IF NOT EXISTS `users` (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS `users_username_unique` ON `users` (`username`);
+CREATE TABLE IF NOT EXISTS `wcl_boss_kills` (
+	`core_wcl_guild_id` integer NOT NULL,
+	`boss` text NOT NULL,
+	`tier` text NOT NULL,
+	`first_seen_at` integer NOT NULL,
+	`last_seen_at` integer NOT NULL,
+	PRIMARY KEY(`core_wcl_guild_id`, `boss`, `tier`)
+);
+
 CREATE TABLE IF NOT EXISTS `wcl_cache` (
 	`key` text PRIMARY KEY NOT NULL,
 	`json` text NOT NULL,
-	`fetched_at` integer NOT NULL
+	`fetched_at` integer NOT NULL,
+	`locked_until` integer
 );

@@ -6,7 +6,7 @@
 	import { reveal } from '$lib/actions/reveal';
 	import { parseTier } from '$lib/parse';
 	import { specOrClassIcon, playerHref } from '$lib/wow-icons';
-	import type { HallOfFame, HallOfFameEntry } from '$lib/server/warcraftlogs';
+	import type { HallOfFame, HallOfFameEntry } from '$lib/server/wcl';
 
 	let { hallOfFame }: { hallOfFame: HallOfFame | null } = $props();
 

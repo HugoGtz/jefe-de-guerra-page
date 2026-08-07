@@ -12,7 +12,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { sqliteTable, integer, text, check } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, check, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ── Guild identity (singleton row id=1) ──────────────────────────────────────
 export const guild = sqliteTable(
@@ -194,8 +194,32 @@ export const wclCache = sqliteTable('wcl_cache', {
 	key: text('key').primaryKey(),
 	json: text('json').notNull(),
 	/** epoch ms (Date.now()) */
-	fetchedAt: integer('fetched_at').notNull()
+	fetchedAt: integer('fetched_at').notNull(),
+	/** epoch ms; NULL or in the past = free. Single-flight lease so a stale key
+	    under concurrent requests only triggers one live WCL refetch. */
+	lockedUntil: integer('locked_until')
 });
+
+// ── WarcraftLogs boss-kill ledger (persisted "ever killed", per core+tier) ──
+// Additive record so a kill can never silently disappear when it ages out of
+// the live fetch's recent-report window. Union'd with each fresh fetch, never
+// replaces it. Reset for a new raid tier: change CURRENT_TIER in
+// `src/lib/server/wcl-boss-ledger.ts` and see DEPLOY.md for the manual cleanup
+// command — old-tier rows are simply excluded by the `tier` filter, no
+// automatic migration.
+export const wclBossKills = sqliteTable(
+	'wcl_boss_kills',
+	{
+		coreWclGuildId: integer('core_wcl_guild_id').notNull(),
+		boss: text('boss').notNull(),
+		tier: text('tier').notNull(),
+		/** epoch ms — first time this core+boss kill was observed live. */
+		firstSeenAt: integer('first_seen_at').notNull(),
+		/** epoch ms — most recent time it was reconfirmed by a live fetch. */
+		lastSeenAt: integer('last_seen_at').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.coreWclGuildId, t.boss, t.tier] })]
+);
 
 // ── Inferred row types (for repository mappers) ──────────────────────────────
 export type GuildRow = typeof guild.$inferSelect;
@@ -213,4 +237,5 @@ export type FaqRow = typeof faq.$inferSelect;
 export type CommunityMetaRow = typeof communityMeta.$inferSelect;
 export type RaidNightRow = typeof raidNights.$inferSelect;
 export type WclCacheRow = typeof wclCache.$inferSelect;
+export type WclBossKillRow = typeof wclBossKills.$inferSelect;
 export type UserRow = typeof users.$inferSelect;

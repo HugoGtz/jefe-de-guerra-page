@@ -67,6 +67,32 @@ npx wrangler d1 execute jefe-de-guerra --remote --file=db/seed.sql
 > reseed nunca tumba la web. El progreso/feats de WarcraftLogs se cachean en la
 > tabla `wcl_cache` en runtime; no se siembra.
 
+> ⚠️ **`db/schema.sql` solo usa `CREATE TABLE IF NOT EXISTS`.** Para una tabla
+> **nueva** (p. ej. `wcl_boss_kills`) basta con aplicarlo. Pero si agregas una
+> **columna a una tabla que ya existe en la D1 remota** (como pasó con
+> `wcl_cache.locked_until`), el `CREATE ... IF NOT EXISTS` es un no-op —
+> confirmado en local: la tabla no ganó la columna hasta correr el `ALTER`
+> manualmente. Para esos casos aplica también un `ALTER TABLE` explícito:
+>
+> ```bash
+> npx wrangler d1 execute jefe-de-guerra --remote --command "ALTER TABLE wcl_cache ADD COLUMN locked_until integer;"
+> ```
+>
+> Es seguro repetirlo si ya existe (falla con "duplicate column", ignorable).
+
+**Ledger de jefes derrotados (`wcl_boss_kills`).** El progreso SSC/TK mostrado
+en `/equipos/[id]` es la unión de esta tabla (permanente, solo suma) con el
+resultado del fetch en vivo más reciente — así un kill confirmado nunca
+desaparece aunque su reporte salga de la ventana de reportes recientes que WCL
+consulta. La fila lleva un `tier` (hoy `'p2-ssc-tk'`, ver `CURRENT_TIER` en
+`src/lib/server/wcl-boss-ledger.ts`). Al abrir la siguiente fase de raid:
+
+1. Cambia `CURRENT_TIER` en `wcl-boss-ledger.ts` a un nuevo valor (p. ej. `'p3-...'`).
+2. (Opcional) limpia las filas del tier viejo, ya inertes pero innecesarias:
+   ```bash
+   npx wrangler d1 execute jefe-de-guerra --remote --command "DELETE FROM wcl_boss_kills WHERE tier <> 'p3-...';"
+   ```
+
 ## 2. Una sola vez — GitHub
 
 1. Crea el repo remoto y haz push (ver §3).

@@ -43,7 +43,8 @@ export {
 	type CommunityMeta,
 	type CommunityMetaUpdate
 } from './community.repository';
-export { getCache, setCache, type CacheEntry } from './wclCache.repository';
+export { getCache, setCache, tryAcquireLock, type CacheEntry } from './wclCache.repository';
+export { getBossKills, upsertBossKills, type BossKillRow } from './wclBossKills.repository';
 export {
 	countUsers,
 	getByUsername,

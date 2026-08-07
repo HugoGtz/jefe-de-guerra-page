@@ -34,6 +34,7 @@ import {
 	getWclProgress,
 	getWclAttendance,
 	CLASS_COLOR,
+	logWclEvent,
 	type WclData,
 	type WclCoreStats,
 	type WclFeat,
@@ -45,7 +46,7 @@ import {
 	type WclRecentKill,
 	type WclProgress,
 	type WclAttendance
-} from '$lib/server/warcraftlogs';
+} from '$lib/server/wcl';
 import { getDb, type Db } from '$lib/server/db/client';
 import { cacheThrough } from '$lib/server/cache';
 import {
@@ -60,9 +61,13 @@ import {
 	getRaidNights,
 	getCache,
 	setCache,
+	tryAcquireLock,
+	getBossKills,
+	upsertBossKills,
 	withRaidProgress,
 	phasePercent
 } from '$lib/server/repositories';
+import { mergeLedger, pairsFromLive, CURRENT_TIER } from '$lib/server/wcl-boss-ledger';
 
 /** Guild-wide stats surfaced in the UI, derived from WCL (or manual fallback). */
 export type GuildStats = {
@@ -135,10 +140,17 @@ const WCL_OFFICERS_TTL_MS = 60 * 60 * 1000;
 const WCL_OFFICERS_KEY = 'officers';
 
 /**
- * Report rankings (per-core roster + parses) — heaviest endpoint, ~1h TTL.
- * ONE fetch feeds BOTH the Hall of Fame and reliable officer spec enrichment.
+ * Report rankings (per-core roster + parses) — heaviest endpoint (chunked
+ * report-rankings + per-character zoneRankings fetches), ~12h TTL. ONE fetch
+ * feeds BOTH the Hall of Fame and reliable officer spec enrichment.
+ *
+ * Was previously coded as 1h despite every other reference to this cache in
+ * this file already describing it as "12h" — that mismatch meant the heaviest
+ * endpoint refetched 12x more often than documented, a direct contributor to
+ * hitting WCL's rate limits. Fixed to match the documented (and correct)
+ * intent.
  */
-const WCL_HOF_TTL_MS = 60 * 60 * 1000;
+const WCL_HOF_TTL_MS = 12 * 60 * 60 * 1000;
 const WCL_HOF_KEY = 'hall_of_fame_v4';
 
 /** Per-character detail (internal player page) — cached ~1h, keyed per name. */
@@ -282,7 +294,22 @@ async function loadWclCached(db: Db, env: App.Platform['env']): Promise<WclData 
 		write: async (json) => {
 			await setCache(db, WCL_CACHE_KEY, json, now);
 		},
-		fetch: () => getWclData(env),
+		fetch: async () => {
+			const result = await getWclData(env);
+			// Persist this cycle's Phase-2 kills into the permanent ledger (rides
+			// this same ~10min cycle, no extra GraphQL calls) so a confirmed kill
+			// can never disappear later just because its report ages out of
+			// getWclData's recent-report window — see `wcl-boss-ledger.ts`.
+			if (result) {
+				const pairs = pairsFromLive(result, PHASE_2_BOSSES);
+				if (pairs.length > 0) {
+					await upsertBossKills(db, CURRENT_TIER, pairs, now);
+					logWclEvent('boss-kills-persisted', { count: pairs.length });
+				}
+			}
+			return result;
+		},
+		acquireLock: () => tryAcquireLock(db, WCL_CACHE_KEY, now),
 		parse: parseRow,
 		serialize: (v) =>
 			JSON.stringify({
@@ -304,7 +331,8 @@ async function loadJsonCached<T>(
 	db: Db,
 	key: string,
 	ttlMs: number,
-	fetcher: () => Promise<T | null>
+	fetcher: () => Promise<T | null>,
+	useLock = false
 ): Promise<T | null> {
 	const now = Date.now();
 	return cacheThrough<T>({
@@ -314,7 +342,8 @@ async function loadJsonCached<T>(
 		write: async (json) => {
 			await setCache(db, key, json, now);
 		},
-		fetch: fetcher
+		fetch: fetcher,
+		acquireLock: useLock ? () => tryAcquireLock(db, key, now) : undefined
 	});
 }
 
@@ -327,13 +356,14 @@ async function loadWclJsonCached<T>(
 	platform: App.Platform | undefined,
 	key: string,
 	ttlMs: number,
-	fetch: (env: App.Platform['env']) => Promise<T | null>
+	fetch: (env: App.Platform['env']) => Promise<T | null>,
+	useLock = false
 ): Promise<T | null> {
 	try {
 		const binding = platform?.env?.DB;
 		if (!binding) return null;
 		const db = getDb(binding);
-		return await loadJsonCached<T>(db, key, ttlMs, () => fetch(platform!.env));
+		return await loadJsonCached<T>(db, key, ttlMs, () => fetch(platform!.env), useLock);
 	} catch {
 		return null;
 	}
@@ -343,12 +373,14 @@ async function loadWclJsonCached<T>(
  * Load the report-rankings aggregate (Hall of Fame + reliable character map +
  * per-core rosters) through the shared 12h D1 cache. ONE source of truth for the
  * rankings cache so `loadGuildData` and `loadCoreRoster` share the same cache
- * key/TTL and never trigger a second fetch.
+ * key/TTL and never trigger a second fetch. Single-flight locked — this is the
+ * heaviest WCL endpoint, so concurrent requests during a stale window must not
+ * each independently re-run its several chunked round-trips.
  */
 export function loadWclRankingsCached(
 	platform: App.Platform | undefined
 ): Promise<WclRankings | null> {
-	return loadWclJsonCached(platform, WCL_HOF_KEY, WCL_HOF_TTL_MS, getWclRankings);
+	return loadWclJsonCached(platform, WCL_HOF_KEY, WCL_HOF_TTL_MS, getWclRankings, true);
 }
 
 /** Load the guild + per-core progress rank (world/region/server), ~6h D1 cache. */
@@ -841,15 +873,34 @@ export async function loadGuildData(platform: App.Platform | undefined): Promise
 		let outFeats = feats;
 		let outTeams = teams;
 		try {
-			const wcl = await loadWclCached(db, env);
+			const rawWcl = await loadWclCached(db, env);
+			// Union this cycle's live result with the permanent boss-kill ledger —
+			// runs even when `rawWcl` is null (live fetch down), so a confirmed kill
+			// still shows from the ledger alone. Only the boss-defeated signal is
+			// affected; feats/perCoreStats keep coming straight from the live fetch
+			// (the ledger has no report/date, only "ever seen").
+			const persisted = await getBossKills(db, CURRENT_TIER);
+			const { perCore, killedBossNames } = mergeLedger(persisted, rawWcl);
+			const wcl: WclData | null =
+				Object.keys(perCore).length > 0
+					? {
+							killedBossNames,
+							perCore,
+							perCoreStats: rawWcl?.perCoreStats,
+							feats: rawWcl?.feats ?? []
+						}
+					: null;
 			if (wcl) {
 				const overridden = applyWclOverride(phases, feats, wcl);
 				outPhases = overridden.phases;
 				outFeats = overridden.feats;
 				outTeams = applyTeamWclOverride(teams, wcl);
 			}
-		} catch {
-			// Keep the manual progress + feats + teams on any WCL error.
+		} catch (e) {
+			// Keep the manual progress + feats + teams on any WCL error — but log
+			// it, since this exact silent catch is what let a real regression go
+			// unnoticed for weeks.
+			logWclEvent('wcl-override-failed', { error: e instanceof Error ? e.message : String(e) });
 		}
 
 		// Report rankings — ONE cached fetch (~12h) feeds BOTH the Hall of Fame

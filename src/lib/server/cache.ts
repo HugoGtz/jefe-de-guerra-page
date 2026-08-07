@@ -31,6 +31,13 @@ export type CacheThroughOptions<T> = {
 	parse?: (json: string) => T | null;
 	/** Serialize a value for storage. Defaults to JSON.stringify. */
 	serialize?: (value: T) => string;
+	/**
+	 * Optional single-flight guard, checked only when the row is stale/missing
+	 * (never on a fresh hit). Resolving `false` means another request already
+	 * won the race to refresh this key — `fetch()` is skipped entirely and the
+	 * stale/null row is served instead. Omit for the old un-guarded behavior.
+	 */
+	acquireLock?: () => Promise<boolean>;
 };
 
 function defaultParse<T>(json: string): T | null {
@@ -42,7 +49,7 @@ function defaultParse<T>(json: string): T | null {
 }
 
 export async function cacheThrough<T>(opts: CacheThroughOptions<T>): Promise<T | null> {
-	const { now, ttlMs, read, write, fetch } = opts;
+	const { now, ttlMs, read, write, fetch, acquireLock } = opts;
 	const parse = opts.parse ?? defaultParse<T>;
 	const serialize = opts.serialize ?? ((value: T) => JSON.stringify(value));
 
@@ -51,6 +58,11 @@ export async function cacheThrough<T>(opts: CacheThroughOptions<T>): Promise<T |
 	if (row && now - row.fetchedAt < ttlMs) {
 		const fresh = parse(row.json);
 		if (fresh !== null) return fresh;
+	}
+
+	if (acquireLock && !(await acquireLock())) {
+		// Lost the race — another request is already refreshing this key.
+		return row ? parse(row.json) : null;
 	}
 
 	let fetched: T | null;
