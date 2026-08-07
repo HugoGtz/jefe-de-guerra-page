@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import Section from '$lib/components/layout/Section.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import SparkBurst from '$lib/components/SparkBurst.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import type { Recruitment } from '$lib/data/recruitment';
 
@@ -149,6 +150,7 @@
 	<div class="apply surface" use:reveal={{ blur: true }}>
 		{#if status === 'success'}
 			<div class="apply__success">
+				<SparkBurst />
 				<h3 class="apply__success-title text-engraved" tabindex="-1" bind:this={successTitleEl}>
 					¡Bienvenido a la hueste!
 				</h3>
@@ -368,6 +370,7 @@
 	}
 	/* Estado de éxito: bienvenida + botones de unirse (revelados al aplicar). */
 	.apply__success {
+		position: relative;
 		text-align: center;
 		padding: clamp(0.5rem, 3vw, 1.5rem) 0;
 	}

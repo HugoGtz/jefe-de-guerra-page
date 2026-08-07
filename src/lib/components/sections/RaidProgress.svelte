@@ -2,6 +2,7 @@
 	import Section from '$lib/components/layout/Section.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import RaidCard from '$lib/components/sections/RaidCard.svelte';
+	import TorchCorridor from '$lib/components/TorchCorridor.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import { countUp } from '$lib/actions/countUp';
 	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
@@ -91,6 +92,16 @@
 	const allRaids = $derived([...phaseOne.raids, ...phaseTwo.raids]);
 	const totalBossesDefeated = $derived(allRaids.reduce((acc, r) => acc + r.kills, 0));
 	const totalRaids = $derived(allRaids.length);
+
+	// Jefes de Fase 2 derrotados/totales — para el corredor de antorchas
+	// decorativo. Prefiere las stats de WCL (mismo número que la tira de
+	// arriba); si no hay WCL, cae a sumar kills/total de los raids de Fase 2.
+	const phase2Down = $derived(
+		stats?.phase2BossesDown ?? phaseTwo.raids.reduce((acc, r) => acc + r.kills, 0)
+	);
+	const phase2Total = $derived(
+		stats?.phase2BossesTotal ?? phaseTwo.raids.reduce((acc, r) => acc + r.total, 0)
+	);
 </script>
 
 <Section id="progreso" eyebrow="Progreso" title="Avance de raids" class="raids">
@@ -204,6 +215,10 @@
 			<span class="phase__overall" use:countUp={{ to: phaseTwo.percent, suffix: '%' }}
 				>{phaseTwo.percent}%</span
 			>
+		</div>
+
+		<div use:reveal={{ delay: 150 }}>
+			<TorchCorridor litCount={phase2Down} total={phase2Total} />
 		</div>
 
 		<div class="raid-cards">

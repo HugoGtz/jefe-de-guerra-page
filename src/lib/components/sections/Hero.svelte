@@ -3,12 +3,82 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { cursorTilt } from '$lib/actions/cursorTilt';
 	import { pauseOffscreen } from '$lib/actions/pauseOffscreen';
+	import { getReducedMotion } from '$lib/utils/reducedMotion';
 	import type { Guild } from '$lib/data/guild';
 
 	let { guild }: { guild: Guild } = $props();
 
 	// Zona de referencia para la inclinación 3D del logo (todo el héroe).
 	let heroEl = $state<HTMLElement>();
+
+	// Real three.js crest (perspective camera + crest plane + a further-back
+	// glow plane, so tilt shows genuine parallax) layered OVER the static
+	// <img> below. The <img> is the permanent fallback — always rendered, for
+	// SSR/no-JS/reduced-motion/WebGL-unavailable — and is only visually hidden
+	// once the 3D crest's texture has actually loaded. See HeroCrestScene.ts.
+	let logo3dCanvas = $state<HTMLCanvasElement>();
+	let logo3dReady = $state(false);
+
+	$effect(() => {
+		if (!logo3dCanvas || !heroEl || getReducedMotion()) return;
+		const zone = heroEl;
+		const canvasEl = logo3dCanvas;
+
+		let cancelled = false;
+		let heroCrest: import('$lib/three/HeroCrestScene').HeroCrestScene | null = null;
+		let observer: IntersectionObserver | null = null;
+
+		const finePointer =
+			typeof window.matchMedia === 'function' &&
+			window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+		const onMove = (e: PointerEvent) => {
+			if (e.pointerType !== 'mouse') return;
+			const rect = zone.getBoundingClientRect();
+			if (rect.width === 0 || rect.height === 0) return;
+			heroCrest?.setCursor(
+				(e.clientX - rect.left) / rect.width - 0.5,
+				(e.clientY - rect.top) / rect.height - 0.5
+			);
+		};
+		const onLeave = () => heroCrest?.resetCursor();
+
+		import('$lib/three/HeroCrestScene').then(({ HeroCrestScene }) => {
+			if (cancelled) return;
+			const scene = new HeroCrestScene(canvasEl, { src: '/logo.webp' });
+			heroCrest = scene;
+			scene.ready.then(() => {
+				if (!cancelled) logo3dReady = true;
+			});
+
+			if ('IntersectionObserver' in window) {
+				observer = new IntersectionObserver(
+					(entries) => {
+						if (entries[0]?.isIntersecting) scene.start();
+						else scene.stop();
+					},
+					{ threshold: 0.1 }
+				);
+				observer.observe(zone);
+			} else {
+				scene.start();
+			}
+
+			if (finePointer) {
+				zone.addEventListener('pointermove', onMove, { passive: true });
+				zone.addEventListener('pointerleave', onLeave, { passive: true });
+			}
+		});
+
+		return () => {
+			cancelled = true;
+			observer?.disconnect();
+			zone.removeEventListener('pointermove', onMove);
+			zone.removeEventListener('pointerleave', onLeave);
+			heroCrest?.dispose();
+			heroCrest = null;
+		};
+	});
 </script>
 
 <section bind:this={heroEl} id="inicio" class="hero" use:pauseOffscreen>
@@ -36,10 +106,13 @@
 							width="679"
 							height="588"
 							class="hero__logo"
+							class:is-hidden={logo3dReady}
 							fetchpriority="high"
 							decoding="async"
 						/>
 					</picture>
+					<canvas bind:this={logo3dCanvas} class="hero__logo-3d" class:is-ready={logo3dReady}
+					></canvas>
 				</div>
 			</div>
 		</div>
@@ -121,6 +194,7 @@
 	}
 	/* Flotación idle continua, independiente de la entrada "forja" del <img>. */
 	.hero__logo-float {
+		position: relative;
 		animation: hero-float 6s ease-in-out infinite;
 		will-change: transform;
 	}
@@ -132,6 +206,34 @@
 		transform-origin: center;
 		/* Entrada "forja": fade + scale-up. */
 		animation: hero-forge 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+		transition: opacity 0.4s ease;
+	}
+	/* Faded out once the real three.js crest (.hero__logo-3d) has loaded and
+	   taken over — kept in the DOM (not display:none) so layout/SEO/no-JS/
+	   reduced-motion/WebGL-unavailable all still show the plain image.
+	   `animation: none` is required here: hero-forge's `both` fill-mode pins
+	   opacity at its final keyframe value (1) forever once it completes, which
+	   otherwise overrides this rule regardless of specificity/source order. */
+	.hero__logo.is-hidden {
+		animation: none;
+		opacity: 0;
+	}
+	/* Real three.js crest — perspective camera + textured plane + a
+	   further-back glow plane, see HeroCrestScene.ts. Sits exactly over the
+	   <img> above; invisible (opacity 0) until its texture has loaded, then
+	   crossfades in as the <img> fades out. Never mounted under
+	   prefers-reduced-motion (the mount effect bails out early). */
+	.hero__logo-3d {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
+		transition: opacity 0.4s ease;
+		pointer-events: none;
+	}
+	.hero__logo-3d.is-ready {
+		opacity: 1;
 	}
 
 	.hero__name {

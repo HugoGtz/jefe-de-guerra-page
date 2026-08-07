@@ -1,9 +1,15 @@
 <script lang="ts">
 	import Section from '$lib/components/layout/Section.svelte';
+	import SparkBurst from '$lib/components/SparkBurst.svelte';
 	import { reveal } from '$lib/actions/reveal';
 	import type { Feat } from '$lib/data/kills';
 
 	let { feats }: { feats: Feat[] } = $props();
+
+	// First-kill entries get a one-shot spark burst when their card reveals —
+	// tracked per feat (boss+date key) so it only ever fires once, even if the
+	// list re-renders (e.g. a new feat pushes this one down but doesn't remount it).
+	let celebrated = $state<Record<string, boolean>>({});
 
 	const MONTHS_ES = [
 		'ene',
@@ -53,12 +59,24 @@
 	{#if feats.length > 0}
 		<ol class="timeline">
 			{#each feats as feat, i (feat.boss + feat.date)}
+				{@const key = feat.boss + feat.date}
 				<li
 					class="feat"
 					class:is-first={feat.firstKill}
-					use:reveal={{ delay: 80 + i * 90, direction: 'left' }}
+					use:reveal={{
+						delay: 80 + i * 90,
+						direction: 'left',
+						onreveal: () => {
+							if (feat.firstKill) celebrated[key] = true;
+						}
+					}}
 				>
 					<span class="feat__node" aria-hidden="true"></span>
+					{#if feat.firstKill && celebrated[key]}
+						<span class="feat__burst-anchor">
+							<SparkBurst />
+						</span>
+					{/if}
 
 					<div class="feat__body">
 						<div class="feat__head">
@@ -149,6 +167,15 @@
 	.feat.is-first .feat__node {
 		background: radial-gradient(circle at 35% 30%, #fff, var(--color-lava));
 		box-shadow: 0 0 14px rgba(255, 107, 44, 0.85);
+	}
+	/* Centered on .feat__node (16px, at left:0/top:0.3rem) but larger, so the
+	   one-shot spark burst has room to expand outward from the marker. */
+	.feat__burst-anchor {
+		position: absolute;
+		left: calc(0px - 16px);
+		top: calc(0.3rem - 16px);
+		width: 48px;
+		height: 48px;
 	}
 
 	.feat__head {

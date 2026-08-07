@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { prefersReducedMotion } from '$lib/utils/reducedMotion';
+	import { scrollSpy } from '$lib/actions/scrollSpy';
+	import type { EmberMood } from '$lib/three/EmberScene';
 
 	// The dark "forge + lava glow" atmosphere is pure CSS (always rendered,
 	// GPU-safe). The transparent WebGL canvas on top carries only the floating
@@ -9,10 +11,48 @@
 	let mounted = $state(false);
 	let scene: import('$lib/three/EmberScene').EmberScene | null = null;
 
+	// Section-aware mood: same section ids Navbar's scroll-spy tracks. Calmer
+	// over informational sections, more alive near the raid/recruitment CTAs.
+	// Purely a feel — no data dependency, so this list can drift from Navbar's
+	// without breaking anything.
+	const SECTION_IDS = [
+		'inicio',
+		'la-guild',
+		'progreso',
+		'hazanas',
+		'equipos',
+		'comunidad',
+		'reclutamiento',
+		'faq',
+		'oficiales',
+		'salon-fama'
+	];
+	const CALM: EmberMood = { alpha: 0.85, speed: 0.85 };
+	const NEUTRAL: EmberMood = { alpha: 1, speed: 1 };
+	const INTENSE: EmberMood = { alpha: 1.25, speed: 1.2 };
+	const MOOD_BY_SECTION: Record<string, EmberMood> = {
+		'la-guild': CALM,
+		faq: CALM,
+		oficiales: CALM,
+		'salon-fama': CALM,
+		progreso: INTENSE,
+		hazanas: INTENSE,
+		reclutamiento: INTENSE
+	};
+
 	// Live reduced-motion preference. SSR-safe (the store defaults to false on the
 	// server) and updates reactively if the OS setting is toggled while open.
 	// `$`-auto-subscription gives us a reactive boolean.
 	const reducedMotion = $derived($prefersReducedMotion);
+
+	// Called directly by the scrollSpy action below — not a reactive $effect,
+	// since `scene` is a plain (non-$state) instance handle assigned once the
+	// lazy three.js import resolves. If a section change fires before that
+	// resolves, it's a no-op (nothing to set the mood on yet) — harmless: the
+	// scene always starts at #inicio/NEUTRAL, the same default it boots with.
+	function handleSectionChange(id: string | null): void {
+		scene?.setMood(id ? (MOOD_BY_SECTION[id] ?? NEUTRAL) : NEUTRAL);
+	}
 
 	onMount(() => {
 		mounted = true;
@@ -57,7 +97,12 @@
 	No WebGL fragment shader, no per-pixel procedural math — just CSS.
 	Pure CSS → no GPU fragment-shader artifacts, smooth on every device.
 -->
-<div class="atmosphere" class:atmosphere--still={reducedMotion} aria-hidden="true">
+<div
+	class="atmosphere"
+	class:atmosphere--still={reducedMotion}
+	aria-hidden="true"
+	use:scrollSpy={{ ids: SECTION_IDS, onactive: handleSectionChange }}
+>
 	<!-- Main forge glow — bottom-weighted, the primary heat source -->
 	<div class="glow glow--forge"></div>
 	<!-- Secondary ember column — rises from lower-left, slow drift -->
